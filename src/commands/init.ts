@@ -1,22 +1,23 @@
 import { Command as Cli } from "@effect/cli"
 import { Effect } from "effect"
-import { updateAgentDocs } from "../agent-docs.ts"
-import { commitConfigChanges, repoRoot } from "../git.ts"
+import { repoRoot } from "../git.ts"
 import { ok, withCommandTelemetry } from "../log.ts"
-import { reportOptionalPath, reportWritten } from "../reports.ts"
+import { refreshGeneratedFiles } from "../project-files.ts"
+import { RuntimeConfig } from "../runtime.ts"
 import { commandInvocation } from "../script.ts"
 import { listVendored } from "../vendor-state.ts"
-import { updateVscodeSettings } from "../vscode-settings.ts"
 
 export const initImpl = Effect.gen(function* () {
   const cwd = yield* repoRoot
   const repos = yield* listVendored(cwd)
-  const command = commandInvocation(cwd)
-  const written = yield* updateAgentDocs({ cwd, repos, command })
-  yield* reportWritten(cwd, written)
-  const settings = yield* updateVscodeSettings(cwd)
-  yield* reportOptionalPath(cwd, settings)
-  yield* commitConfigChanges(cwd, "vendor: initialize vendor-subtree-skill")
+  const runtime = yield* RuntimeConfig
+  const command = commandInvocation({ cwd, argv: runtime.argv })
+  yield* refreshGeneratedFiles({
+    cwd,
+    repos,
+    commitMessage: "vendor: initialize vendor-subtree-skill",
+    vscode: true
+  })
   yield* ok(
     `Initialized. Run \`${command} add <repo>\` to vendor a repository.`
   )

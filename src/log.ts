@@ -1,4 +1,5 @@
 import { Effect } from "effect"
+import { RuntimeConfig } from "./runtime.ts"
 import { style, type StyleOptions } from "./styles.ts"
 
 export type StatusKind = "info" | "ok" | "warn" | "error"
@@ -34,10 +35,20 @@ export const withCommandTelemetry =
       Effect.annotateLogs({ command })
     )
 
-export const info = (message: string) =>
-  Effect.logInfo(formatStatus("info", message))
-export const ok = (message: string) => Effect.logInfo(formatStatus("ok", message))
+const logStatus = (
+  kind: StatusKind,
+  message: string,
+  log: (message: string) => Effect.Effect<void>
+) =>
+  RuntimeConfig.pipe(
+    Effect.flatMap((runtime) =>
+      log(formatStatus(kind, message, { colors: runtime.colors }))
+    )
+  )
+
+export const info = (message: string) => logStatus("info", message, Effect.logInfo)
+export const ok = (message: string) => logStatus("ok", message, Effect.logInfo)
 export const warn = (message: string) =>
-  Effect.logWarning(formatStatus("warn", message))
+  logStatus("warn", message, Effect.logWarning)
 export const error = (message: string) =>
-  Effect.logError(formatStatus("error", message))
+  logStatus("error", message, Effect.logError)

@@ -4,7 +4,12 @@ import {
   FileSystem
 } from "@effect/platform"
 import { Effect, Option, Stream, pipe } from "effect"
-import { die } from "./errors.ts"
+import {
+  DirtyWorkingTree,
+  GitCommandFailed,
+  NotGitRepository
+} from "./errors.ts"
+import { RuntimeConfig } from "./runtime.ts"
 
 export interface GitResult {
   readonly stdout: string
@@ -19,10 +24,31 @@ export interface GitOptions {
   readonly cwd?: string
 }
 
+export interface CommitConfigChangesParams {
+  readonly cwd: string
+  readonly message: string
+}
+
 const gitCommandLabel = (args: ReadonlyArray<string>) => `git ${args.join(" ")}`
 
 const gitOutput = (result: GitResult) =>
   result.stderr.trim() || result.stdout.trim() || "unknown error"
+
+const nonZeroExit = (
+  args: ReadonlyArray<string>,
+  result: GitResult,
+  options: GitOptions
+): GitCommandFailed => {
+  const params = {
+    args,
+    exitCode: result.exitCode,
+    output: gitOutput(result)
+  }
+
+  return new GitCommandFailed(
+    options.cwd === undefined ? params : { ...params, cwd: options.cwd }
+  )
+}
 
 const makeGitExec =
   (executor: CommandExecutor.CommandExecutor) =>
@@ -53,16 +79,21 @@ export class Git extends Effect.Service<Git>()("vendor-subtree/Git", {
 }) {}
 
 export const git = (args: ReadonlyArray<string>, options: GitOptions = {}) =>
-  Git.exec(args, options).pipe(
-    Effect.withSpan("git.exec", {
-      attributes: {
-        args: args.join(" "),
-        cwd: options.cwd ?? process.cwd()
-      }
-    }),
-    Effect.annotateLogs({
-      git: gitCommandLabel(args),
-      cwd: options.cwd ?? process.cwd()
+  RuntimeConfig.pipe(
+    Effect.flatMap((runtime) => {
+      const cwd = options.cwd ?? runtime.cwd
+      return Git.exec(args, options).pipe(
+        Effect.withSpan("git.exec", {
+          attributes: {
+            args: args.join(" "),
+            cwd
+          }
+        }),
+        Effect.annotateLogs({
+          git: gitCommandLabel(args),
+          cwd
+        })
+      )
     })
   )
 
@@ -71,73 +102,48 @@ export const gitChecked = (
   options: GitOptions = {}
 ) =>
   git(args, options).pipe(
-    Effect.flatMap((result) =>
-      result.exitCode === 0
-        ? Effect.succeed(result)
-        : die(
-            {
-              title: "Git command failed",
-              detail: `${gitCommandLabel(args)} exited with ${result.exitCode}\n${gitOutput(result)}`,
-              hint: options.cwd
-                ? `Run this from ${options.cwd} after checking the working tree.`
-                : "Run the git command manually for the full git output."
-            },
-            3
-          )
+    Effect.filterOrFail(
+      (result) => result.exitCode === 0,
+      (result) => nonZeroExit(args, result, options)
     )
   )
 
-export const repoRoot = Effect.gen(function* () {
-  const result = yield* git(["rev-parse", "--show-toplevel"])
-  if (result.exitCode !== 0) {
-    return yield* die(
-      {
-        title: "Not inside a git repository",
-        detail:
-          "The vendor-subtree command must run from a project that already has a git repository.",
-        hint: "Run this from your project root, or run `git init` first."
-      },
-      5
-    )
-  }
-  return result.stdout.trim()
-})
+export const repoRoot = git(["rev-parse", "--show-toplevel"]).pipe(
+  Effect.filterOrFail(
+    (result) => result.exitCode === 0,
+    () => new NotGitRepository()
+  ),
+  Effect.map((result) => result.stdout.trim())
+)
 
 export const assertCleanTree = (cwd: string) =>
-  Effect.gen(function* () {
-    const result = yield* gitChecked(
-      ["status", "--porcelain", "--untracked-files=no"],
-      { cwd }
-    )
-    if (result.stdout.trim() !== "") {
-      return yield* die(
-        {
-          title: "Working tree has uncommitted changes",
-          detail:
-            "git subtree refuses to run on dirty trees, and this command only ignores untracked files.",
-          hint: "Commit or stash tracked changes before running subtree operations."
-        },
-        4
-      )
-    }
-  })
+  gitChecked(["status", "--porcelain", "--untracked-files=no"], { cwd }).pipe(
+    Effect.filterOrFail(
+      (result) => result.stdout.trim() === "",
+      () => new DirtyWorkingTree({ cwd })
+    ),
+    Effect.asVoid
+  )
 
 export const detectDefaultBranch = (url: string) =>
-  Effect.gen(function* () {
-    const result = yield* git(["ls-remote", "--symref", url, "HEAD"])
-    if (result.exitCode !== 0) return Option.none<string>()
-    const match = result.stdout.match(/^ref:\s+refs\/heads\/(\S+)\s+HEAD/m)
-    return match?.[1] ? Option.some(match[1]) : Option.none<string>()
-  })
+  git(["ls-remote", "--symref", url, "HEAD"]).pipe(
+    Effect.map((result) => {
+      if (result.exitCode !== 0) return Option.none<string>()
+      const match = result.stdout.match(/^ref:\s+refs\/heads\/(\S+)\s+HEAD/m)
+      return match?.[1] ? Option.some(match[1]) : Option.none<string>()
+    })
+  )
 
-export const commitConfigChanges = (cwd: string, message: string) =>
+export const commitConfigChanges = ({
+  cwd,
+  message
+}: CommitConfigChangesParams) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const candidates = [".vscode/settings.json", "AGENTS.md", "CLAUDE.md"]
-    const toStage: string[] = []
-    for (const relativePath of candidates) {
-      if (yield* fs.exists(`${cwd}/${relativePath}`)) toStage.push(relativePath)
-    }
+    const toStage = yield* Effect.filter(candidates, (relativePath) =>
+      fs.exists(`${cwd}/${relativePath}`)
+    )
     if (toStage.length === 0) return
     yield* git(["add", "--", ...toStage], { cwd })
     const diff = yield* git(["diff", "--cached", "--quiet"], { cwd })

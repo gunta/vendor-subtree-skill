@@ -28,6 +28,20 @@ export interface VendoredLogParseResult {
   readonly diagnostics: ReadonlyArray<VendoredLogDiagnostic>
 }
 
+export interface FindVendoredRepoParams {
+  readonly cwd: string
+  readonly name: string
+}
+
+interface VendoredLogRecordFields {
+  readonly date: string
+  readonly name: string
+  readonly prefix: string
+  readonly ref: string
+  readonly sha: string
+  readonly url: string
+}
+
 export const gitLogFormat = [
   "%H",
   "%cI",
@@ -36,35 +50,74 @@ export const gitLogFormat = [
   `%(trailers:key=${TRAILER_REF},valueonly)`
 ].join("%x00")
 
-export const parseVendoredLogWithDiagnostics = (
-  stdout: string
-): VendoredLogParseResult => {
-  const byPrefix = new Map<string, VendoredRepo>()
-  const diagnostics: VendoredLogDiagnostic[] = []
-  const records = stdout
+interface VendoredLogAccumulator {
+  readonly byPrefix: ReadonlyMap<string, VendoredRepo>
+  readonly diagnostics: ReadonlyArray<VendoredLogDiagnostic>
+}
+
+const nonEmptyRecords = (stdout: string): ReadonlyArray<string> =>
+  stdout
     .split("\x1e")
     .map((record) => record.trim())
     .filter((record) => record.length > 0)
 
-  for (const record of records) {
-    const [sha, date, prefix, url, ref] = record
-      .split("\x00")
-      .map((part) => part.trim())
-    const name = prefix?.replace(/\/+$/, "").split("/").pop() ?? ""
-    const decoded = decodeVendoredRepo({ name, prefix, url, ref, sha, date })
-    if (Either.isRight(decoded)) {
-      if (!byPrefix.has(decoded.right.prefix)) {
-        byPrefix.set(decoded.right.prefix, decoded.right)
-      }
-    } else {
-      diagnostics.push({
-        record,
-        reason: `Invalid vendored repo record for prefix '${prefix ?? ""}': ${ParseResult.TreeFormatter.formatErrorSync(
-          decoded.left
-        )}`
-      })
-    }
+const recordPart = (
+  parts: ReadonlyArray<string>,
+  index: number
+): string => parts[index]?.trim() ?? ""
+
+const repoFromRecord = (record: string): VendoredLogRecordFields => {
+  const parts = record.split("\x00")
+  const sha = recordPart(parts, 0)
+  const date = recordPart(parts, 1)
+  const prefix = recordPart(parts, 2)
+  const url = recordPart(parts, 3)
+  const ref = recordPart(parts, 4)
+  const name = prefix.replace(/\/+$/, "").split("/").pop() ?? ""
+  return { date, name, prefix, ref, sha, url }
+}
+
+const diagnosticFromRecord = (
+  record: string,
+  error: ParseResult.ParseError
+): VendoredLogDiagnostic => {
+  const { prefix } = repoFromRecord(record)
+  return {
+    record,
+    reason: `Invalid vendored repo record for prefix '${prefix ?? ""}': ${ParseResult.TreeFormatter.formatErrorSync(
+      error
+    )}`
   }
+}
+
+const rememberRepo = (
+  byPrefix: ReadonlyMap<string, VendoredRepo>,
+  repo: VendoredRepo
+): ReadonlyMap<string, VendoredRepo> =>
+  byPrefix.has(repo.prefix) ? byPrefix : new Map([...byPrefix, [repo.prefix, repo]])
+
+const appendRecord = (
+  state: VendoredLogAccumulator,
+  record: string
+): VendoredLogAccumulator =>
+  Either.match(decodeVendoredRepo(repoFromRecord(record)), {
+    onRight: (repo) => ({
+      ...state,
+      byPrefix: rememberRepo(state.byPrefix, repo)
+    }),
+    onLeft: (error) => ({
+      ...state,
+      diagnostics: [...state.diagnostics, diagnosticFromRecord(record, error)]
+    })
+  })
+
+export const parseVendoredLogWithDiagnostics = (
+  stdout: string
+): VendoredLogParseResult => {
+  const { byPrefix, diagnostics } = nonEmptyRecords(stdout).reduce(appendRecord, {
+    byPrefix: new Map<string, VendoredRepo>(),
+    diagnostics: []
+  })
 
   return {
     repos: [...byPrefix.values()].sort((a, b) => a.name.localeCompare(b.name)),
@@ -97,15 +150,12 @@ export const listVendored = (cwd: string) =>
       (diagnostic) => Effect.logDebug(diagnostic.reason),
       { discard: true }
     )
-    const present: VendoredRepo[] = []
-    for (const repo of parsed.repos) {
-      const exists = yield* fs.exists(path.resolve(cwd, repo.prefix))
-      if (exists) present.push(repo)
-    }
-    return present
+    return yield* Effect.filter(parsed.repos, (repo) =>
+      fs.exists(path.resolve(cwd, repo.prefix))
+    )
   })
 
-export const findByName = (cwd: string, name: string) =>
+export const findByName = ({ cwd, name }: FindVendoredRepoParams) =>
   listVendored(cwd).pipe(
     Effect.map((repos) =>
       Option.fromNullable(

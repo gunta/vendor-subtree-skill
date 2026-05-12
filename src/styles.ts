@@ -4,13 +4,7 @@ export interface StyleOptions {
 
 const reset = "\x1b[0m"
 
-const shouldUseColor = (): boolean => {
-  if (process.env.NO_COLOR) return false
-  if (process.env.FORCE_COLOR && process.env.FORCE_COLOR !== "0") return true
-  return Boolean(process.stdout.isTTY) && process.env.TERM !== "dumb"
-}
-
-const enabled = (options: StyleOptions = {}) => options.colors ?? shouldUseColor()
+const enabled = (options: StyleOptions = {}) => options.colors ?? false
 
 export const paint = (
   value: string,

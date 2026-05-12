@@ -17,17 +17,48 @@ const ARRAY_KEYS = [
 ] as const
 const OBJECT_KEYS = ["files.exclude", "files.watcherExclude", "search.exclude"] as const
 
+type ArrayExclusionKey = (typeof ARRAY_KEYS)[number]
+type ObjectExclusionKey = (typeof OBJECT_KEYS)[number]
+
+interface UnchangedSettingsMerge {
+  readonly _tag: "Unchanged"
+}
+
+interface UpdatedSettingsMerge {
+  readonly _tag: "Updated"
+  readonly text: string
+}
+
+interface InvalidSettingsMerge {
+  readonly _tag: "Invalid"
+  readonly message: string
+}
+
 export type SettingsMergeResult =
-  | { readonly _tag: "Unchanged" }
-  | { readonly _tag: "Updated"; readonly text: string }
-  | { readonly _tag: "Invalid"; readonly message: string }
+  | UnchangedSettingsMerge
+  | UpdatedSettingsMerge
+  | InvalidSettingsMerge
+
+interface ValidParsedSettings {
+  readonly _tag: "Valid"
+  readonly value: Record<string, unknown>
+  readonly source: string
+}
+
+interface InvalidParsedSettings {
+  readonly _tag: "Invalid"
+  readonly message: string
+  readonly source: string
+}
+
+type ParsedSettings = ValidParsedSettings | InvalidParsedSettings
 
 const formatOptions = { insertSpaces: true, tabSize: 2 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
-const parseSettings = (text: string) => {
+const parseSettings = (text: string): ParsedSettings => {
   const errors: ParseError[] = []
   const source = text.trim() === "" ? "{}\n" : text
   const value = parse(source, errors, { allowTrailingComma: true })
@@ -59,42 +90,79 @@ const applyJsoncChange = (
     })
   )
 
+interface SettingsMergeState {
+  readonly changed: boolean
+  readonly settings: Record<string, unknown>
+  readonly text: string
+}
+
+const updateState = (
+  state: SettingsMergeState,
+  path: ReadonlyArray<string>,
+  value: unknown,
+  settings: Record<string, unknown>
+): SettingsMergeState => ({
+  changed: true,
+  settings,
+  text: applyJsoncChange(state.text, path, value)
+})
+
+const ensureArrayExclusion = (
+  state: SettingsMergeState,
+  key: ArrayExclusionKey
+): SettingsMergeState => {
+  const current = Array.isArray(state.settings[key]) ? state.settings[key] : []
+  if (current.includes(VENDOR_GLOB)) return state
+
+  const value = [...current, VENDOR_GLOB]
+  return updateState(state, [key], value, {
+    ...state.settings,
+    [key]: value
+  })
+}
+
+const ensureObjectExclusion = (
+  state: SettingsMergeState,
+  key: ObjectExclusionKey
+): SettingsMergeState => {
+  const current = isRecord(state.settings[key]) ? state.settings[key] : {}
+  if (current[VENDOR_GLOB] === true) return state
+
+  const value = { ...current, [VENDOR_GLOB]: true }
+  return isRecord(state.settings[key])
+    ? updateState(state, [key, VENDOR_GLOB], true, {
+        ...state.settings,
+        [key]: value
+      })
+    : updateState(state, [key], value, {
+        ...state.settings,
+        [key]: value
+      })
+}
+
+const mergeValidSettings = (
+  source: string,
+  value: Record<string, unknown>
+): SettingsMergeState =>
+  OBJECT_KEYS.reduce(
+    ensureObjectExclusion,
+    ARRAY_KEYS.reduce(ensureArrayExclusion, {
+      changed: false,
+      settings: { ...value },
+      text: source
+    })
+  )
+
 export const mergeVscodeSettingsText = (text = "{}\n"): SettingsMergeResult => {
   const parsed = parseSettings(text)
   if (parsed._tag === "Invalid") {
     return { _tag: "Invalid", message: parsed.message }
   }
 
-  let next = parsed.source
-  let changed = false
-  const settings = { ...parsed.value }
-
-  for (const key of ARRAY_KEYS) {
-    const current = Array.isArray(settings[key]) ? settings[key] : []
-    if (!current.includes(VENDOR_GLOB)) {
-      const value = [...current, VENDOR_GLOB]
-      next = applyJsoncChange(next, [key], value)
-      settings[key] = value
-      changed = true
-    }
-  }
-
-  for (const key of OBJECT_KEYS) {
-    const current = isRecord(settings[key]) ? settings[key] : {}
-    if (current[VENDOR_GLOB] !== true) {
-      if (isRecord(settings[key])) {
-        next = applyJsoncChange(next, [key, VENDOR_GLOB], true)
-        settings[key] = { ...current, [VENDOR_GLOB]: true }
-      } else {
-        const value = { [VENDOR_GLOB]: true }
-        next = applyJsoncChange(next, [key], value)
-        settings[key] = value
-      }
-      changed = true
-    }
-  }
-
-  return changed ? { _tag: "Updated", text: next } : { _tag: "Unchanged" }
+  const merged = mergeValidSettings(parsed.source, parsed.value)
+  return merged.changed
+    ? { _tag: "Updated", text: merged.text }
+    : { _tag: "Unchanged" }
 }
 
 export const updateVscodeSettings = (cwd: string) =>
@@ -109,13 +177,20 @@ export const updateVscodeSettings = (cwd: string) =>
     const merged = mergeVscodeSettingsText(current)
     switch (merged._tag) {
       case "Invalid":
-        yield* warn(`Could not parse .vscode/settings.json (${merged.message}); skipping update.`)
+        yield* warn(
+          `Could not parse .vscode/settings.json (${merged.message}); skipping update.`
+        )
         return Option.none<string>()
       case "Unchanged":
         return Option.none<string>()
       case "Updated":
-        yield* fs.makeDirectory(path.dirname(target), { recursive: true }).pipe(Effect.ignore)
-        yield* fs.writeFileString(target, merged.text.endsWith("\n") ? merged.text : `${merged.text}\n`)
+        yield* fs.makeDirectory(path.dirname(target), { recursive: true }).pipe(
+          Effect.ignore
+        )
+        yield* fs.writeFileString(
+          target,
+          merged.text.endsWith("\n") ? merged.text : `${merged.text}\n`
+        )
         return Option.some(target)
     }
   })

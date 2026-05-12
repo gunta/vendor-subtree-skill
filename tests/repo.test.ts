@@ -24,4 +24,12 @@ describe("repo parsing", () => {
       Effect.runPromise(inferRepoName("git@github.com:Effect-TS/effect.git"))
     ).resolves.toBe("effect")
   })
+
+  test("fails with a tagged error when a repo name cannot be inferred", async () => {
+    const failure = await Effect.runPromise(
+      inferRepoName("https://github.com/").pipe(Effect.flip)
+    )
+
+    expect(failure._tag).toBe("RepoNameInferenceFailed")
+  })
 })

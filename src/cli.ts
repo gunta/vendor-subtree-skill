@@ -2,8 +2,13 @@ import { Command as Cli } from "@effect/cli"
 import { BunContext, BunRuntime } from "@effect/platform-bun"
 import { Console, Effect, Layer, Logger } from "effect"
 import { FALLBACK_SCRIPT_REL, VERSION } from "./constants.ts"
-import { CliError, formatCliError } from "./errors.ts"
+import {
+  type VendorError,
+  exitCodeOf,
+  formatVendorError
+} from "./errors.ts"
 import { Git } from "./git.ts"
+import { RuntimeConfig } from "./runtime.ts"
 import { addCmd } from "./commands/add.ts"
 import { initCmd } from "./commands/init.ts"
 import { listCmd } from "./commands/list.ts"
@@ -36,14 +41,37 @@ export const runCli = Cli.run(vendorCommand, {
 })
 
 const GitLive = Git.Default.pipe(Layer.provide(BunContext.layer))
-const LiveLayer = Layer.mergeAll(BunContext.layer, GitLive)
+const LiveLayer = Layer.mergeAll(BunContext.layer, GitLive, RuntimeConfig.Default)
 
-export const main = runCli(process.argv).pipe(
-  Effect.catchTag("CliError", (cause: CliError) =>
-    Console.error(formatCliError(cause)).pipe(
-      Effect.zipRight(Effect.sync(() => process.exit(cause.code)))
+const handleVendorError = <E extends VendorError>(
+  cause: E
+) =>
+  RuntimeConfig.pipe(
+    Effect.flatMap((runtime) =>
+      Console.error(formatVendorError(cause, { colors: runtime.colors })).pipe(
+        Effect.zipRight(runtime.exit(exitCodeOf(cause)))
+      )
     )
-  ),
+  )
+
+const app = RuntimeConfig.pipe(
+  Effect.flatMap((runtime) => runCli(runtime.argv)),
+  Effect.catchTags({
+    DirtyWorkingTree: handleVendorError,
+    GitCommandFailed: handleVendorError,
+    GitRemoveFailed: handleVendorError,
+    NotGitRepository: handleVendorError,
+    RepoNameInferenceFailed: handleVendorError,
+    SubtreeAddFailed: handleVendorError,
+    UpdateFailed: handleVendorError,
+    UpdateTargetMissing: handleVendorError,
+    VendorPathAlreadyExists: handleVendorError,
+    VendoredRepoAlreadyExists: handleVendorError,
+    VendoredRepoNotFound: handleVendorError
+  })
+)
+
+export const main = app.pipe(
   Effect.provide(Logger.pretty),
   Effect.provide(LiveLayer)
 )

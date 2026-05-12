@@ -156,7 +156,9 @@ Key modules:
 - `src/cli.ts` wires the top-level Effect CLI and pretty logging.
 - `src/commands/` contains each subcommand implementation.
 - `src/git.ts` exposes git through an injectable Effect service.
-- `src/errors.ts` and `src/log.ts` keep CLI errors, colors, and command spans consistent.
+- `src/errors.ts` defines the typed domain error union used in the Effect error channel.
+- `src/log.ts` keeps colors and command spans consistent.
+- `src/project-files.ts` owns the shared AGENTS/CLAUDE/VS Code refresh flow.
 - `src/vendor-state.ts` reads git trailers and validates repo records with Effect Schema diagnostics.
 - `src/vscode-settings.ts` edits JSONC settings without stripping comments.
 

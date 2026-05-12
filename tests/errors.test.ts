@@ -1,24 +1,23 @@
 import { describe, expect, test } from "bun:test"
-import { CliError, formatCliError } from "../src/errors.ts"
+import { formatVendorError, GitCommandFailed } from "../src/errors.ts"
 import { formatStatus } from "../src/log.ts"
 
 describe("CLI presentation", () => {
-  test("formats structured errors with detail and hint", () => {
-    const message = formatCliError(
-      new CliError({
-        title: "Git command failed",
-        detail: "git subtree pull exited with code 1",
-        hint: "Run `git status` and resolve conflicts before retrying.",
-        code: 3
+  test("formats tagged domain errors with detail and hint", () => {
+    const message = formatVendorError(
+      new GitCommandFailed({
+        args: ["subtree", "pull"],
+        cwd: "/repo",
+        exitCode: 1,
+        output: "merge conflict"
       }),
       { colors: false }
     )
 
     expect(message).toContain("Error: Git command failed")
-    expect(message).toContain("git subtree pull exited with code 1")
-    expect(message).toContain(
-      "Hint: Run `git status` and resolve conflicts before retrying."
-    )
+    expect(message).toContain("git subtree pull exited with 1")
+    expect(message).toContain("merge conflict")
+    expect(message).toContain("Hint:")
   })
 
   test("can colorize status messages for interactive output", () => {

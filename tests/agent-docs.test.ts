@@ -8,8 +8,10 @@ describe("agent docs", () => {
       repos: []
     })
 
-    expect(injectSection("# Project\n", section)).toContain("# Project\n\n")
-    expect(injectSection("# Project\n", section)).toContain(
+    expect(injectSection({ content: "# Project\n", section })).toContain(
+      "# Project\n\n"
+    )
+    expect(injectSection({ content: "# Project\n", section })).toContain(
       "<!-- vendor-subtree-skill:begin -->"
     )
   })
@@ -37,7 +39,7 @@ describe("agent docs", () => {
       ]
     })
 
-    const result = injectSection(first, next)
+    const result = injectSection({ content: first, section: next })
 
     expect(result).not.toContain("old")
     expect(result).toContain("bun tools/vendor.ts list")
