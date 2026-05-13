@@ -74,7 +74,7 @@ export const problemSection = {
     },
     {
       title: "One strategy is not enough",
-      body: "Small libraries can be subtrees, large repositories can be submodules, and temporary source mirrors can be clone-ignore entries.",
+      body: "Small libraries can be subtrees, large repositories can be submodules, temporary mirrors can be clone-ignore entries, and repeated local references can be cache-links.",
       icon: "layers"
     }
   ]

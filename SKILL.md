@@ -1,6 +1,6 @@
 ---
 name: ingraft
-description: Vendors upstream repositories into a project's vendor/ directory via git subtree, submodule, or ignored clone. Use when the user wants to vendor a dependency, copy upstream source for offline agent reference, scan package manifests for vendoring candidates, run any ingraft command, or set up, refresh, update, or remove vendored repos in a monorepo. Also use when the user mentions git subtree, vendored dependencies, or bundling upstream source into a project.
+description: Vendors upstream repositories into a project's vendor/ directory via git subtree, submodule, ignored clone, or cache-linked checkout. Use when the user wants to vendor a dependency, copy upstream source for offline agent reference, scan package manifests for vendoring candidates, run any ingraft command, or set up, refresh, update, or remove vendored repos in a monorepo. Also use when the user mentions git subtree, vendored dependencies, or bundling upstream source into a project.
 ---
 
 # ingraft
@@ -69,6 +69,7 @@ bunx ingraft@latest add Effect-TS/effect --exclude-dir docs --exclude '*.snap'
 bunx ingraft@latest add Effect-TS/effect --strategy subtree
 bunx ingraft@latest add Effect-TS/effect --strategy submodule
 bunx ingraft@latest add Effect-TS/effect --strategy clone-ignore
+bunx ingraft@latest add Effect-TS/effect --strategy cache-link
 bunx ingraft@latest update effect
 bunx ingraft@latest update --all
 bunx ingraft@latest list
@@ -87,6 +88,7 @@ bunx ingraft@latest refresh
 - The default strategy is `subtree`.
 - Use `submodule` when the upstream repository should stay separate from the host commit history.
 - Use `clone-ignore` for very large repositories, local-only references, or jj-collocated repositories.
+- Use `cache-link` when repeated local projects should share one read-only resolved-commit checkout through an ignored `vendor/` symlink.
 - Use filters to omit directories, file extensions, globs, or files over a size limit.
 - Use `--sync-package <name>` when the vendored source should follow the version used by the host package manifest; use `hex:<name>`, `swift:<owner/repo>`, or `android:<group>:<artifact>` for non-npm ecosystems.
 - Npm, React, Expo, and React Native package targets use exact installed/locked versions when available: `node_modules`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, then `bun.lock`.

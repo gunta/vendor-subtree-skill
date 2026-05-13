@@ -12,7 +12,7 @@ Treat these as **read-only reference material**, not as part of the application 
 - Prefer examples and patterns from `vendor/` over web search or generated guesses.
 - `vendor/` stays visible to agents and language tooling; generated ignores target formatters, linters, and analyzers only.
 - Committed subtree sources are marked in `.gitattributes` as vendored/generated so GitHub PR diffs stay focused on project code.
-- Strategies: `subtree` is committed source, `submodule` is a gitlink, and `clone-ignore` is a local ignored clone.
+- Strategies: `subtree` is committed source, `submodule` is a gitlink, `clone-ignore` is a local ignored clone, and `cache-link` is an ignored symlink to a shared cache checkout.
 - Some repos may be filtered to omit media, generated directories, archives, fixtures, or oversized files.
 - Use `bun packages/cli/scripts/vendor.ts list` to see what is vendored.
 - To add or update vendored repos, run `bun packages/cli/scripts/vendor.ts add <repo>` or `update <name>`.

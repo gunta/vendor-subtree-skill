@@ -46,7 +46,13 @@
     "typecheck": "turbo run typecheck",
     "vendor": "bun packages/cli/scripts/vendor.ts",
     "website": "bun run dev:website",
-    "website:build": "bun run build:website"
+    "website:build": "bun run build:website",
+    "whitepaper:build": "bun run whitepaper:clean && bun run whitepaper:build:pdf && bun run whitepaper:build:html",
+    "whitepaper:build:html": "bun scripts/build-whitepaper-html.ts",
+    "whitepaper:build:pdf": "cd docs/whitepaper && mkdir -p _build _output && PATH=\"/Library/TeX/texbin:$PATH\" latexmk -lualatex -interaction=nonstopmode -halt-on-error -file-line-error -jobname=index -outdir=_build paper.tex && cp _build/index.pdf _output/index.pdf",
+    "whitepaper:clean": "rm -rf docs/whitepaper/_build docs/whitepaper/_output",
+    "whitepaper:watch": "cd docs/whitepaper && mkdir -p _build && PATH=\"/Library/TeX/texbin:$PATH\" latexmk -pvc -lualatex -interaction=nonstopmode -file-line-error -jobname=index -outdir=_build paper.tex",
+    "whitepaper:publish": "bun run whitepaper:build && rm -rf packages/website/public/whitepaper packages/website/public/whitepaper.pdf && mkdir -p packages/website/public/whitepaper && cp docs/whitepaper/_output/index.pdf packages/website/public/whitepaper/index.pdf && cp docs/whitepaper/_output/index.pdf packages/website/public/whitepaper.pdf && cp docs/whitepaper/_output/index.html packages/website/public/whitepaper/index.html"
   },
   "devDependencies": {
     "@types/jscodeshift": "17.3.0",

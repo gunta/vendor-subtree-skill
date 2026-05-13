@@ -7,6 +7,7 @@ import {
   TRAILER_DIR,
   TRAILER_FILTER,
   TRAILER_REF,
+  TRAILER_RESOLVED_REF,
   TRAILER_STRATEGY,
   TRAILER_SYNC_PACKAGE,
   TRAILER_URL
@@ -21,9 +22,16 @@ import { formatVendorFilterTrailer, hasVendorFilter } from "../domain/vendor-fil
 import { listVendored, type VendoredRepo } from "../domain/vendor-state.ts"
 import type { VendorStrategy } from "../domain/vendor-strategy.ts"
 import { PackageVersionSync } from "../package-sync/service.ts"
+import { ensureCacheLinkCheckout, linkCacheCheckout } from "../project/cache-link.ts"
 import { checkoutFilteredRepo, materializeFilteredRepo } from "../project/filtered-checkout.ts"
 import { ProjectFiles } from "../project/service.ts"
-import { assertCleanTree, commitPathsIfChanged, git, repoRoot } from "../services/git.ts"
+import {
+  assertCleanTree,
+  commitPathsIfChanged,
+  emptyCommit,
+  git,
+  repoRoot
+} from "../services/git.ts"
 import { RepositoryHosts } from "../services/repository-hosts.ts"
 
 export interface SelectUpdateTargetsParams {
@@ -101,8 +109,11 @@ const filterTrailer = (repo: VendoredRepo): string => {
 const syncPackageTrailer = (repo: VendoredRepo): string =>
   repo.syncPackage === undefined ? "" : `\n${TRAILER_SYNC_PACKAGE}: ${repo.syncPackage}`
 
+const resolvedRefTrailer = (repo: VendoredRepo): string =>
+  repo.resolvedRef === undefined ? "" : `\n${TRAILER_RESOLVED_REF}: ${repo.resolvedRef}`
+
 const updateMessage = (repo: VendoredRepo) =>
-  `vendor: update ${repo.name} (${repo.url}@${repo.ref}) [${repo.strategy}]\n\n${TRAILER_DIR}: ${repo.prefix}\n${TRAILER_URL}: ${repo.url}\n${TRAILER_REF}: ${repo.ref}\n${TRAILER_STRATEGY}: ${repo.strategy}\n${TRAILER_ACTION}: upsert${filterTrailer(repo)}${syncPackageTrailer(repo)}`
+  `vendor: update ${repo.name} (${repo.url}@${repo.ref}) [${repo.strategy}]\n\n${TRAILER_DIR}: ${repo.prefix}\n${TRAILER_URL}: ${repo.url}\n${TRAILER_REF}: ${repo.ref}${resolvedRefTrailer(repo)}\n${TRAILER_STRATEGY}: ${repo.strategy}\n${TRAILER_ACTION}: upsert${filterTrailer(repo)}${syncPackageTrailer(repo)}`
 
 const lastGitLine = ({ stdout, stderr }: GitOutputParams): string =>
   (stderr.trim() || stdout.trim()).split("\n").slice(-1)[0] ?? "unknown error"
@@ -234,6 +245,28 @@ const updateFilteredCloneIgnore = ({ cwd, repo }: VendoredRepoCommandParams) =>
     })
   })
 
+const updateCacheLink = ({ cwd, repo }: VendoredRepoCommandParams) =>
+  Effect.gen(function* () {
+    const checkout = yield* ensureCacheLinkCheckout({
+      action: "update",
+      cwd,
+      ref: repo.ref,
+      strategy: repo.strategy,
+      url: repo.url
+    })
+    yield* linkCacheCheckout({
+      cachePath: checkout.cachePath,
+      cwd,
+      prefix: repo.prefix
+    })
+    if (checkout.resolvedRef !== repo.resolvedRef) {
+      yield* emptyCommit({
+        cwd,
+        message: updateMessage({ ...repo, resolvedRef: checkout.resolvedRef })
+      })
+    }
+  })
+
 const updateByStrategy = (params: VendoredRepoCommandParams) => {
   if (hasVendorFilter(params.repo.filter)) {
     switch (params.repo.strategy) {
@@ -241,6 +274,15 @@ const updateByStrategy = (params: VendoredRepoCommandParams) => {
         return updateFilteredSubtree(params)
       case "clone-ignore":
         return updateFilteredCloneIgnore(params)
+      case "cache-link":
+        return Effect.fail(
+          new VendorStrategyCommandFailed({
+            action: "update",
+            prefix: params.repo.prefix,
+            strategy: params.repo.strategy,
+            output: "cache-link filter metadata cannot be applied to a shared checkout"
+          })
+        )
       case "submodule":
         return Effect.fail(
           new VendorStrategyCommandFailed({
@@ -271,6 +313,8 @@ const updateByStrategy = (params: VendoredRepoCommandParams) => {
       return updateSubmodule(params)
     case "clone-ignore":
       return updateCloneIgnore(params)
+    case "cache-link":
+      return updateCacheLink(params)
   }
 }
 

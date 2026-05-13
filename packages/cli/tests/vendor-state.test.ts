@@ -157,8 +157,8 @@ describe("vendor state parsing", () => {
 
     expect(parseVendoredLog(log).map((repo) => repo.strategy)).toEqual([
       "submodule",
-      "clone-ignore",
-      "cache-link"
+      "cache-link",
+      "clone-ignore"
     ])
   })
 

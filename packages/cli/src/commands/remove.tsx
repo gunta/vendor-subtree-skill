@@ -7,6 +7,7 @@ import {
   TRAILER_DIR,
   TRAILER_FILTER,
   TRAILER_REF,
+  TRAILER_RESOLVED_REF,
   TRAILER_STRATEGY,
   TRAILER_SYNC_PACKAGE,
   TRAILER_URL
@@ -19,6 +20,7 @@ import {
 } from "../domain/errors.ts"
 import { formatVendorFilterTrailer } from "../domain/vendor-filter.ts"
 import { findByName, listVendored, type VendoredRepo } from "../domain/vendor-state.ts"
+import { isLocalIgnoredVendorStrategy } from "../domain/vendor-strategy.ts"
 import { updateGitignore } from "../project/gitignore.ts"
 import { ProjectFiles } from "../project/service.ts"
 import {
@@ -109,8 +111,11 @@ const filterTrailer = (target: VendoredRepo): string => {
 const syncPackageTrailer = (target: VendoredRepo): string =>
   target.syncPackage === undefined ? "" : `\n${TRAILER_SYNC_PACKAGE}: ${target.syncPackage}`
 
+const resolvedRefTrailer = (target: VendoredRepo): string =>
+  target.resolvedRef === undefined ? "" : `\n${TRAILER_RESOLVED_REF}: ${target.resolvedRef}`
+
 const removeMessage = (target: VendoredRepo) =>
-  `vendor: remove ${target.name} (${target.url}@${target.ref}) [${target.strategy}]\n\n${TRAILER_DIR}: ${target.prefix}\n${TRAILER_URL}: ${target.url}\n${TRAILER_REF}: ${target.ref}\n${TRAILER_STRATEGY}: ${target.strategy}\n${TRAILER_ACTION}: remove${filterTrailer(target)}${syncPackageTrailer(target)}`
+  `vendor: remove ${target.name} (${target.url}@${target.ref}) [${target.strategy}]\n\n${TRAILER_DIR}: ${target.prefix}\n${TRAILER_URL}: ${target.url}\n${TRAILER_REF}: ${target.ref}${resolvedRefTrailer(target)}\n${TRAILER_STRATEGY}: ${target.strategy}\n${TRAILER_ACTION}: remove${filterTrailer(target)}${syncPackageTrailer(target)}`
 
 const removeCloneIgnore = ({ cwd, reposBefore, target }: RemoveCloneIgnoreParams) =>
   Effect.gen(function* () {
@@ -123,7 +128,9 @@ const removeCloneIgnore = ({ cwd, reposBefore, target }: RemoveCloneIgnoreParams
     yield* updateGitignore({
       cwd,
       prefixes: reposBefore
-        .filter((repo) => repo.strategy === "clone-ignore" && repo.prefix !== target.prefix)
+        .filter(
+          (repo) => isLocalIgnoredVendorStrategy(repo.strategy) && repo.prefix !== target.prefix
+        )
         .map((repo) => repo.prefix)
     })
     const committed = yield* commitPathsIfChanged({
@@ -179,7 +186,7 @@ export const removeImpl = ({ dangerouslyRewriteHistory, name }: RemoveCommandPar
     }
 
     yield* info(`Removing ${target.prefix}/`)
-    if (target.strategy === "clone-ignore") {
+    if (isLocalIgnoredVendorStrategy(target.strategy)) {
       yield* removeCloneIgnore({ cwd, reposBefore, target })
     } else {
       yield* removeFromGit({ cwd, target })

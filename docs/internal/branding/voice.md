@@ -16,15 +16,15 @@ Think: the README for `ripgrep`, `bun`, or `astro`. Not the homepage of a B2B Sa
 
 The vocabulary inside Ingraft reuses the horticulture metaphor consistently. Use these terms in docs and copy where they fit; do not invent synonyms.
 
-| Term                             | Meaning                                                                               |
-| -------------------------------- | ------------------------------------------------------------------------------------- |
-| **graft** / **ingraft** _(verb)_ | The operation of inserting upstream source into the host repo.                        |
-| **scion**                        | The upstream repository being vendored — the piece grafted _in_.                      |
-| **rootstock**                    | The host project — the repo that receives the graft.                                  |
-| **vendor/**                      | The directory where ingrafts land (Go-style vendoring convention).                    |
-| **strategy**                     | The mechanism used to ingraft: `subtree`, `submodule`, or `clone-ignore`.             |
-| **refresh**                      | Re-emit agent docs, tool ignores, and project surfaces from the current vendor state. |
-| **doctor**                       | Diagnose drift between vendor state and project configuration.                        |
+| Term                             | Meaning                                                                                 |
+| -------------------------------- | --------------------------------------------------------------------------------------- |
+| **graft** / **ingraft** _(verb)_ | The operation of inserting upstream source into the host repo.                          |
+| **scion**                        | The upstream repository being vendored — the piece grafted _in_.                        |
+| **rootstock**                    | The host project — the repo that receives the graft.                                    |
+| **vendor/**                      | The directory where ingrafts land (Go-style vendoring convention).                      |
+| **strategy**                     | The mechanism used to ingraft: `subtree`, `submodule`, `clone-ignore`, or `cache-link`. |
+| **refresh**                      | Re-emit agent docs, tool ignores, and project surfaces from the current vendor state.   |
+| **doctor**                       | Diagnose drift between vendor state and project configuration.                          |
 
 ## What to call the tool
 

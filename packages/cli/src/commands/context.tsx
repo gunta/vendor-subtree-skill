@@ -133,8 +133,6 @@ export const contextCmd = Command.make(
   { json: contextJsonOption },
   contextToolsImpl
 ).pipe(
-  Command.withDescription(
-    "Detect curated optional context tools that complement vendored source."
-  ),
+  Command.withDescription("Detect curated optional context tools that complement vendored source."),
   Command.withSubcommands([contextPackCmd, contextSourceCmd])
 )

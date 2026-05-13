@@ -7,6 +7,7 @@ import {
   TRAILER_DIR,
   TRAILER_FILTER,
   TRAILER_REF,
+  TRAILER_RESOLVED_REF,
   TRAILER_STRATEGY,
   TRAILER_SYNC_PACKAGE,
   TRAILER_URL
@@ -28,6 +29,7 @@ export const VendoredRepoSchema = Schema.Struct({
   prefix: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
   url: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
   ref: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
+  resolvedRef: Schema.optionalKey(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
   strategy: VendorStrategySchema,
   filter: VendorFilterSchema,
   syncPackage: Schema.optionalKey(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
@@ -80,6 +82,7 @@ interface VendoredLogRecordFields {
   readonly name: string
   readonly prefix: string
   readonly ref: string
+  readonly resolvedRef?: string
   readonly sha: string
   readonly strategy: string
   readonly syncPackage?: string
@@ -92,6 +95,7 @@ interface RawVendoredLogRecordFields {
   readonly name: string
   readonly prefix: string
   readonly rawFilter: string
+  readonly rawResolvedRef: string
   readonly rawSyncPackage: string
   readonly ref: string
   readonly sha: string
@@ -105,6 +109,7 @@ interface RawVendoredRecordFields {
   readonly name: string
   readonly prefix: string
   readonly rawFilter: string
+  readonly rawResolvedRef: string
   readonly rawSyncPackage: string
   readonly ref: string
   readonly sha: string
@@ -121,7 +126,8 @@ export const gitLogFormat = [
   `%(trailers:key=${TRAILER_STRATEGY},valueonly)`,
   `%(trailers:key=${TRAILER_ACTION},valueonly)`,
   `%(trailers:key=${TRAILER_FILTER},valueonly)`,
-  `%(trailers:key=${TRAILER_SYNC_PACKAGE},valueonly)`
+  `%(trailers:key=${TRAILER_SYNC_PACKAGE},valueonly)`,
+  `%(trailers:key=${TRAILER_RESOLVED_REF},valueonly)`
 ].join("%x00")
 
 interface VendoredLogAccumulator {
@@ -149,6 +155,7 @@ const rawRepoFromRecord = (record: string): RawVendoredLogRecordFields => {
   const rawAction = recordPart(parts, 6)
   const rawFilter = recordPart(parts, 7)
   const rawSyncPackage = recordPart(parts, 8)
+  const rawResolvedRef = recordPart(parts, 9)
   const name = prefix.replace(/\/+$/, "").split("/").pop() ?? ""
   const strategy = rawStrategy === "" ? DEFAULT_VENDOR_STRATEGY : rawStrategy
   const action = rawAction === "" ? "upsert" : rawAction
@@ -158,6 +165,7 @@ const rawRepoFromRecord = (record: string): RawVendoredLogRecordFields => {
     name,
     prefix,
     rawFilter,
+    rawResolvedRef,
     rawSyncPackage,
     ref,
     sha,
@@ -192,6 +200,7 @@ const repoFromRecord = (
     name: fields.name,
     prefix: fields.prefix,
     ref: fields.ref,
+    ...(fields.rawResolvedRef === "" ? {} : { resolvedRef: fields.rawResolvedRef }),
     sha: fields.sha,
     strategy: fields.strategy,
     ...(fields.rawSyncPackage === "" ? {} : { syncPackage: fields.rawSyncPackage }),
@@ -204,6 +213,7 @@ const knownTrailerKeys = new Set([
   TRAILER_DIR,
   TRAILER_FILTER,
   TRAILER_REF,
+  TRAILER_RESOLVED_REF,
   TRAILER_STRATEGY,
   TRAILER_SYNC_PACKAGE,
   TRAILER_URL
@@ -239,6 +249,7 @@ const rawRepoFromCommit = ({
     name: prefix.replace(/\/+$/, "").split("/").pop() ?? "",
     prefix,
     rawFilter: trailers.get(TRAILER_FILTER) ?? "",
+    rawResolvedRef: trailers.get(TRAILER_RESOLVED_REF) ?? "",
     rawSyncPackage: trailers.get(TRAILER_SYNC_PACKAGE) ?? "",
     ref: trailers.get(TRAILER_REF) ?? "",
     sha: oid,
@@ -273,6 +284,7 @@ const repoFieldsFromRaw = (
     name: fields.name,
     prefix: fields.prefix,
     ref: fields.ref,
+    ...(fields.rawResolvedRef === "" ? {} : { resolvedRef: fields.rawResolvedRef }),
     sha: fields.sha,
     strategy: fields.strategy,
     ...(fields.rawSyncPackage === "" ? {} : { syncPackage: fields.rawSyncPackage }),
@@ -303,6 +315,7 @@ const rememberRepo = (
             name: record.name,
             prefix: record.prefix,
             ref: record.ref,
+            ...(record.resolvedRef === undefined ? {} : { resolvedRef: record.resolvedRef }),
             filter: record.filter,
             sha: record.sha,
             strategy: record.strategy,
@@ -426,7 +439,7 @@ export const listVendored = (cwd: string) =>
       discard: true
     })
     return yield* Effect.filter(parsed.repos, (repo) =>
-      repo.strategy === "clone-ignore"
+      repo.strategy === "clone-ignore" || repo.strategy === "cache-link"
         ? Effect.succeed(true)
         : fs.exists(path.resolve(cwd, repo.prefix))
     )

@@ -41,7 +41,7 @@ becomes `Effect-TS/effect`, and `convex` becomes both
 Useful options:
 
 ```sh
---strategy subtree|submodule|clone-ignore
+--strategy subtree|submodule|clone-ignore|cache-link
 --ref <branch-or-commit>
 --tag <tag>
 --release <name-or-latest>

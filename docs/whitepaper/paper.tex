@@ -1,0 +1,2616 @@
+% Options for packages loaded elsewhere
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
+%
+\documentclass[
+  11pt,
+  letterpaper,
+  numbers=noendperiod,
+  parskip=half]{scrartcl}
+\usepackage{xcolor}
+\usepackage[margin=1in,heightrounded]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{3}
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{libertinus}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+  \setmainfont{Libertinus Serif}
+  \setsansfont{Libertinus Sans}
+  \setmonofont{JetBrains Mono}[Scale=0.88]
+  \setmathfont{Libertinus Math}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+% Make \paragraph and \subparagraph free-standing
+\makeatletter
+\ifx\paragraph\undefined\else
+  \let\oldparagraph\paragraph
+  \renewcommand{\paragraph}{
+    \@ifstar
+      \xxxParagraphStar
+      \xxxParagraphNoStar
+  }
+  \newcommand{\xxxParagraphStar}[1]{\oldparagraph*{#1}\mbox{}}
+  \newcommand{\xxxParagraphNoStar}[1]{\oldparagraph{#1}\mbox{}}
+\fi
+\ifx\subparagraph\undefined\else
+  \let\oldsubparagraph\subparagraph
+  \renewcommand{\subparagraph}{
+    \@ifstar
+      \xxxSubParagraphStar
+      \xxxSubParagraphNoStar
+  }
+  \newcommand{\xxxSubParagraphStar}[1]{\oldsubparagraph*{#1}\mbox{}}
+  \newcommand{\xxxSubParagraphNoStar}[1]{\oldsubparagraph{#1}\mbox{}}
+\fi
+\makeatother
+
+\usepackage{color}
+\usepackage{fancyvrb}
+\newcommand{\VerbBar}{|}
+\newcommand{\VERB}{\Verb[commandchars=\\\{\}]}
+\DefineVerbatimEnvironment{Highlighting}{Verbatim}{commandchars=\\\{\}}
+% Add ',fontsize=\small' for more characters per line
+\newenvironment{Shaded}{}{}
+\newcommand{\AlertTok}[1]{\textcolor[rgb]{1.00,0.33,0.33}{\textbf{#1}}}
+\newcommand{\AnnotationTok}[1]{\textcolor[rgb]{0.42,0.45,0.49}{#1}}
+\newcommand{\AttributeTok}[1]{\textcolor[rgb]{0.84,0.23,0.29}{#1}}
+\newcommand{\BaseNTok}[1]{\textcolor[rgb]{0.00,0.36,0.77}{#1}}
+\newcommand{\BuiltInTok}[1]{\textcolor[rgb]{0.84,0.23,0.29}{#1}}
+\newcommand{\CharTok}[1]{\textcolor[rgb]{0.01,0.18,0.38}{#1}}
+\newcommand{\CommentTok}[1]{\textcolor[rgb]{0.42,0.45,0.49}{#1}}
+\newcommand{\CommentVarTok}[1]{\textcolor[rgb]{0.42,0.45,0.49}{#1}}
+\newcommand{\ConstantTok}[1]{\textcolor[rgb]{0.00,0.36,0.77}{#1}}
+\newcommand{\ControlFlowTok}[1]{\textcolor[rgb]{0.84,0.23,0.29}{#1}}
+\newcommand{\DataTypeTok}[1]{\textcolor[rgb]{0.84,0.23,0.29}{#1}}
+\newcommand{\DecValTok}[1]{\textcolor[rgb]{0.00,0.36,0.77}{#1}}
+\newcommand{\DocumentationTok}[1]{\textcolor[rgb]{0.42,0.45,0.49}{#1}}
+\newcommand{\ErrorTok}[1]{\textcolor[rgb]{1.00,0.33,0.33}{\underline{#1}}}
+\newcommand{\ExtensionTok}[1]{\textcolor[rgb]{0.84,0.23,0.29}{\textbf{#1}}}
+\newcommand{\FloatTok}[1]{\textcolor[rgb]{0.00,0.36,0.77}{#1}}
+\newcommand{\FunctionTok}[1]{\textcolor[rgb]{0.44,0.26,0.76}{#1}}
+\newcommand{\ImportTok}[1]{\textcolor[rgb]{0.01,0.18,0.38}{#1}}
+\newcommand{\InformationTok}[1]{\textcolor[rgb]{0.42,0.45,0.49}{#1}}
+\newcommand{\KeywordTok}[1]{\textcolor[rgb]{0.84,0.23,0.29}{#1}}
+\newcommand{\NormalTok}[1]{\textcolor[rgb]{0.14,0.16,0.18}{#1}}
+\newcommand{\OperatorTok}[1]{\textcolor[rgb]{0.14,0.16,0.18}{#1}}
+\newcommand{\OtherTok}[1]{\textcolor[rgb]{0.44,0.26,0.76}{#1}}
+\newcommand{\PreprocessorTok}[1]{\textcolor[rgb]{0.84,0.23,0.29}{#1}}
+\newcommand{\RegionMarkerTok}[1]{\textcolor[rgb]{0.42,0.45,0.49}{#1}}
+\newcommand{\SpecialCharTok}[1]{\textcolor[rgb]{0.00,0.36,0.77}{#1}}
+\newcommand{\SpecialStringTok}[1]{\textcolor[rgb]{0.01,0.18,0.38}{#1}}
+\newcommand{\StringTok}[1]{\textcolor[rgb]{0.01,0.18,0.38}{#1}}
+\newcommand{\VariableTok}[1]{\textcolor[rgb]{0.89,0.38,0.04}{#1}}
+\newcommand{\VerbatimStringTok}[1]{\textcolor[rgb]{0.01,0.18,0.38}{#1}}
+\newcommand{\WarningTok}[1]{\textcolor[rgb]{1.00,0.33,0.33}{#1}}
+
+\usepackage{longtable,booktabs,array}
+\newcounter{none} % for unnumbered tables
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepgfplotslibrary{groupplots}
+\usepackage{tabularx}
+\usepackage{makecell}
+\usepackage{adjustbox}
+\usepackage{siunitx}
+\usepackage{colortbl}
+\usepackage{enumitem}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+
+
+% definitions for citeproc citations
+\NewDocumentCommand\citeproctext{}{}
+\NewDocumentCommand\citeproc{mm}{%
+  \begingroup\def\citeproctext{#2}\cite{#1}\endgroup}
+\makeatletter
+ % allow citations to break across lines
+ \let\@cite@ofmt\@firstofone
+ % avoid brackets around text for \cite:
+ \def\@biblabel#1{}
+ \def\@cite#1#2{{#1\if@tempswa , #2\fi}}
+\makeatother
+\newlength{\cslhangindent}
+\setlength{\cslhangindent}{1.5em}
+\newlength{\csllabelwidth}
+\setlength{\csllabelwidth}{3em}
+\newenvironment{CSLReferences}[2] % #1 hanging-indent, #2 entry-spacing
+ {\begin{list}{}{%
+  \setlength{\itemindent}{0pt}
+  \setlength{\leftmargin}{0pt}
+  \setlength{\parsep}{0pt}
+  % turn on hanging indent if param 1 is 1
+  \ifodd #1
+   \setlength{\leftmargin}{\cslhangindent}
+   \setlength{\itemindent}{-1\cslhangindent}
+  \fi
+  % set entry spacing
+  \setlength{\itemsep}{#2\baselineskip}}}
+ {\end{list}}
+\usepackage{calc}
+\newcommand{\CSLBlock}[1]{\hfill\break\parbox[t]{\linewidth}{\strut\ignorespaces#1\strut}}
+\newcommand{\CSLLeftMargin}[1]{\parbox[t]{\csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLRightInline}[1]{\parbox[t]{\linewidth - \csllabelwidth}{\strut#1\strut}}
+\newcommand{\CSLIndent}[1]{\hspace{\cslhangindent}#1}
+
+
+
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+
+
+
+ 
+
+
+\usepackage{microtype}
+\usepackage{hyperref}
+\hypersetup{
+  pdftitle={Context Routing for AI Coding Agents},
+  pdfauthor={Gunther Brunner},
+  pdfsubject={Context allocation policies for AI coding agents},
+  pdfkeywords={AI agents, context routing, context engineering, retrieval, vendoring, MCP, agent skills}
+}
+\usepackage{titling}
+\pretitle{\begin{center}\fontsize{22pt}{26pt}\selectfont\bfseries}
+\posttitle{\par\end{center}\vskip 0.5em}
+\preauthor{\begin{center}\large}
+\postauthor{\end{center}}
+\predate{\begin{center}\large}
+\postdate{\par\end{center}\vskip 1em}
+\usepackage[automark,headsepline,footsepline]{scrlayer-scrpage}
+\clearpairofpagestyles
+\ihead{\small Context Routing for AI Coding Agents}
+\ifoot{\small Brunner, 2026}
+\ofoot{\pagemark}
+\KOMAoption{captions}{tableheading}
+\makeatletter
+\@ifpackageloaded{tcolorbox}{}{\usepackage[skins,breakable]{tcolorbox}}
+\@ifpackageloaded{fontawesome5}{}{\usepackage{fontawesome5}}
+\definecolor{paper-callout-color}{HTML}{909090}
+\definecolor{paper-callout-note-color}{HTML}{0758E5}
+\definecolor{paper-callout-important-color}{HTML}{CC1914}
+\definecolor{paper-callout-warning-color}{HTML}{EB9113}
+\definecolor{paper-callout-tip-color}{HTML}{00A047}
+\definecolor{paper-callout-caution-color}{HTML}{FC5300}
+\definecolor{paper-callout-color-frame}{HTML}{acacac}
+\definecolor{paper-callout-note-color-frame}{HTML}{4582ec}
+\definecolor{paper-callout-important-color-frame}{HTML}{d9534f}
+\definecolor{paper-callout-warning-color-frame}{HTML}{f0ad4e}
+\definecolor{paper-callout-tip-color-frame}{HTML}{02b875}
+\definecolor{paper-callout-caution-color-frame}{HTML}{fd7e14}
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\AtBeginDocument{%
+\ifdefined\contentsname
+  \renewcommand*\contentsname{Table of contents}
+\else
+  \newcommand\contentsname{Table of contents}
+\fi
+\ifdefined\listfigurename
+  \renewcommand*\listfigurename{List of Figures}
+\else
+  \newcommand\listfigurename{List of Figures}
+\fi
+\ifdefined\listtablename
+  \renewcommand*\listtablename{List of Tables}
+\else
+  \newcommand\listtablename{List of Tables}
+\fi
+\ifdefined\figurename
+  \renewcommand*\figurename{Figure}
+\else
+  \newcommand\figurename{Figure}
+\fi
+\ifdefined\tablename
+  \renewcommand*\tablename{Table}
+\else
+  \newcommand\tablename{Table}
+\fi
+}
+\@ifpackageloaded{float}{}{\usepackage{float}}
+\floatstyle{ruled}
+\@ifundefined{c@chapter}{\newfloat{codelisting}{h}{lop}}{\newfloat{codelisting}{h}{lop}[chapter]}
+\floatname{codelisting}{Listing}
+\newcommand*\listoflistings{\listof{codelisting}{List of Listings}}
+\makeatother
+\makeatletter
+\makeatother
+\makeatletter
+\@ifpackageloaded{caption}{}{\usepackage{caption}}
+\@ifpackageloaded{subcaption}{}{\usepackage{subcaption}}
+\makeatother
+\makeatletter
+\@ifpackageloaded{tcolorbox}{}{\usepackage[skins,breakable]{tcolorbox}}
+\makeatother
+\makeatletter
+\@ifundefined{shadecolor}{\definecolor{shadecolor}{HTML}{4a90d9}}{}
+\makeatother
+\makeatletter
+\@ifundefined{codebgcolor}{\definecolor{codebgcolor}{HTML}{f5f5f5}}{}
+\makeatother
+\makeatletter
+\ifdefined\Shaded\renewenvironment{Shaded}{\begin{tcolorbox}[borderline west={3pt}{0pt}{shadecolor}, boxrule=0pt, breakable, colback={codebgcolor}, enhanced, frame hidden, sharp corners]}{\end{tcolorbox}}\fi
+\makeatother
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  pdftitle={Context Routing for AI Coding Agents},
+  pdfauthor={Gunther Brunner},
+  pdfkeywords={AI coding agents, context routing, context
+engineering, retrieval-augmented code generation, repository-level code
+retrieval, vendoring, Model Context Protocol, agent skills, software
+engineering tools},
+  colorlinks=true,
+  linkcolor={RoyalBlue},
+  filecolor={Maroon},
+  citecolor={RoyalBlue},
+  urlcolor={RoyalBlue},
+  pdfcreator={LaTeX}}
+
+\input{figures.tex}
+
+
+\title{Context Routing for AI Coding Agents}
+\usepackage{etoolbox}
+\makeatletter
+\providecommand{\subtitle}[1]{% add subtitle to \maketitle
+  \apptocmd{\@title}{\par {\large #1 \par}}{}{}
+}
+\makeatother
+\subtitle{A Research Agenda for Context Allocation Under Attention,
+Authority, Freshness, Privacy, and Cost Constraints}
+\author{Gunther Brunner}
+\date{2026-05-13}
+\begin{document}
+\maketitle
+\begin{abstract}
+AI coding agents increasingly fail not because relevant knowledge is
+unavailable, but because it is poorly allocated: too much, too stale,
+retrieved from the wrong authority, positioned where the model attends
+weakly, or exposed through the wrong trust boundary. Context windows are
+storage budgets, not attention guarantees. A million-token window lets
+an agent carry more material; it does not imply that the model will
+retrieve, prioritize, and apply the right evidence under task pressure.
+
+This paper surveys academic evidence on long-context degradation,
+retrieval-augmented code generation, repository-level retrieval,
+structural code search, and distractor sensitivity, alongside
+practitioner designs from source vendoring, agentic search, code
+indexing, repo maps, managed context engines, and progressive-disclosure
+skills. The synthesis is simple: no single context strategy dominates
+across model, task, repository, package, privacy, freshness, and latency
+conditions. The correct unit of design is a context-routing policy.
+
+We therefore propose the context router: an explicit policy layer that
+selects, per task and knowledge object, among vendored source, lazy
+source fetch, documentation retrieval, semantic or structural search,
+packaged snapshots, skills, and agent-mediated inspection. We formalize
+the routing problem, separate the design space into orthogonal axes,
+identify failure modes and policy signals, define source authority and
+provenance requirements, outline a router-level evaluation agenda, and
+map current standards onto the abstraction. The paper is motivated by
+work on ingraft, but its primary claim is broader: context routing
+should become an inspectable, overrideable, standards-based layer rather
+than an opaque feature hidden inside individual coding agents.
+\end{abstract}
+
+\renewcommand*\contentsname{Table of contents}
+{
+\hypersetup{linkcolor=black}
+\setcounter{tocdepth}{3}
+\tableofcontents
+}
+
+\section{Introduction}\label{sec-intro}
+
+AI coding agents are now useful enough that their failures matter.
+Developers ask them to patch production repositories, migrate
+frameworks, inspect failing tests, answer questions about large
+codebases, and integrate unfamiliar libraries. In these settings, the
+bottleneck is rarely ``no relevant information exists.'' The bottleneck
+is context allocation: which information should enter the agent's
+working set, in which representation, through which trust boundary, at
+what point in the loop, and under what budget.
+
+The central claim of this paper is:
+
+\begin{quote}
+No single context strategy dominates. The correct unit of design is a
+context-routing policy.
+\end{quote}
+
+\figureContextAtGlance
+
+That claim is deliberately broader than source vendoring or any single
+product architecture. A coding agent needs many kinds of knowledge:
+package source, repository source, local conventions, issue threads,
+stack traces, failing test logs, API docs, examples, migration guides,
+previous decisions, generated summaries, dependency lockfiles, CI logs,
+design docs, architecture diagrams, code-search indexes, human
+instructions, and memory across sessions. A package is only one context
+object.
+
+The more general abstraction is:
+
+\begin{quote}
+A context router selects a representation, retrieval mechanism, trust
+boundary, and loading schedule for each knowledge object relevant to a
+coding task.
+\end{quote}
+
+In that framing, ingraft is not the proof of the thesis. It is a case
+study: ingraft implements the package-knowledge slice of a larger
+context-allocation problem. For third-party package knowledge, the
+router may choose vendored source, lazy source fetch, docs retrieval,
+semantic search, packaged snapshots, skills, or agentic inspection. For
+other knowledge objects, the same routing logic applies to issue
+trackers, project docs, CI logs, API specs, or local architecture notes.
+
+The immediate product trigger was Maxwell Brown's Effect post on using
+git subtrees for coding-agent context (Brown 2026). Brown's short
+version was ``Coding agents rely on patterns and examples, not
+descriptions'' and ``give your agent real library code to learn from.''
+That claim is intentionally narrower than this paper's thesis. It does
+not settle the general problem; it exposes it: if subtree is the right
+route for Effect, what policy decides when subtree is right, when docs
+are better, and when neither should be loaded?
+
+This paper contributes five things:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  A problem formulation for coding-agent context allocation.
+\item
+  An evidence synthesis that distinguishes peer-reviewed research,
+  preprints, vendor engineering posts, practitioner experience,
+  standards, and the author's interpretation.
+\item
+  A multidimensional design space for context strategies: placement,
+  representation, selector, timing, and constraints.
+\item
+  A context-router design model covering policy signals, source
+  authority, provenance, trust classes, task-phase routing, and context
+  lockfiles.
+\item
+  A router-level evaluation agenda with ablations and falsification
+  tests.
+\end{enumerate}
+
+The intended result is not a larger landscape memo. It is a sharper
+argument: context engineering for coding agents is routing under
+attention, authority, freshness, privacy, and cost constraints. Existing
+tools each solve one region of that design space. A router is the
+abstraction that makes those partial solutions composable.
+
+\section{Method and Scope}\label{sec-method}
+
+This paper is a dated synthesis, not an exhaustive census. The review
+covers materials visible through May 13, 2026, with most tool and
+standards claims checked against public documentation, repositories,
+specifications, or vendor posts available during March-May 2026.
+
+\subsection{Search and inclusion criteria}\label{sec-method-search}
+
+Sources searched included arXiv, ACL Anthology, ACM/IEEE proceedings
+where available, OpenReview, GitHub, vendor documentation, engineering
+blogs, standards websites, tool registries, Hacker News, practitioner
+podcasts, and industry surveys.
+
+Papers were included when they addressed at least one of these
+questions:
+
+\begin{itemize}
+\tightlist
+\item
+  long-context evaluation for language models or coding models;
+\item
+  repository-level code generation, completion, repair, or localization;
+\item
+  retrieval-augmented code generation;
+\item
+  semantic, symbolic, graph, or AST-based code retrieval;
+\item
+  agent scaffolding, context management, compression, or distractor
+  behavior.
+\end{itemize}
+
+Tools were included when they affected how coding agents obtain
+repository, library, documentation, organizational, or procedural
+context. The appendix is a representative May 2026 snapshot, not a
+complete inventory. Tool counts and product features are volatile.
+
+Excluded materials include pure model benchmarks with no context
+intervention, general-purpose RAG systems with no code or agent
+relevance, and abandoned tools unless they were historically
+influential.
+
+\subsection{Evidence hierarchy}\label{sec-evidence-hierarchy}
+
+The paper uses heterogeneous evidence. To keep claims calibrated,
+Table~\ref{tbl-evidence} separates the role of each evidence class.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{Evidence classes and their role in the
+argument.}\label{tbl-evidence}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Evidence class
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Examples
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+How it is used
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Evidence class
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Examples
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+How it is used
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Peer-reviewed empirical papers & Lost in the Middle, RULER, RepoBench,
+SWE-bench, GraphCoder & Mechanisms and benchmark results with
+comparatively strong evidential weight \\
+Preprints and technical reports & LongCodeBench, cAST, Context Rot,
+newer repo-retrieval papers & Emerging findings, cited with venue
+caveats \\
+Vendor engineering posts & Anthropic, Cursor, Cognition, Augment,
+Sourcegraph & Evidence of deployed design patterns and product
+constraints, not independent proof \\
+Practitioner essays and podcasts & Effect, Cline, aider, HumanLayer,
+Ptacek, Ronacher & Operating experience and design disagreement \\
+Tool documentation and standards & MCP, Agent Skills, AGENTS.md,
+llms.txt, SCIP & Implementation facts and interoperability surfaces \\
+This paper's synthesis & router thesis, policy model, evaluation design
+& Interpretation that should be tested, not treated as direct empirical
+result \\
+\end{longtable}
+
+Two terms are used carefully:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Academic and technical works} means peer-reviewed papers,
+  workshop papers, arXiv preprints, benchmark reports, and technical
+  reports. It does not imply every cited work is peer-reviewed.
+\item
+  \textbf{Representative tool snapshot} means a dated inventory of
+  visible major tools. It is not complete and will age.
+\end{itemize}
+
+Practitioner evidence shows convergence around a shared problem, not
+consensus on the solution. The field agrees that context selection
+matters; it disagrees on where selection should happen.
+
+\section{Definitions and Problem Formulation}\label{sec-formal}
+
+\subsection{Core definitions}\label{sec-definitions}
+
+\textbf{Context} is any information made available to an agent during a
+task. It includes prompt tokens, files the agent can read, tool results,
+memory, indexes, skills, instructions, logs, and external service
+responses.
+
+\textbf{Context object} is a knowledge unit that might be relevant: a
+package, file, repository, issue, stack trace, lockfile entry, API
+document, design note, generated summary, or skill.
+
+\textbf{Context bundle} is the concrete material exposed to the agent
+for a task: selected files, docs, snippets, index hits, rules,
+provenance notes, and tool affordances.
+
+\textbf{Routing strategy} is a way of exposing a context object: vendor
+it into the workspace, fetch it lazily, retrieve docs, query a graph
+index, pack a repo, activate a skill, or let an agent inspect through
+shell tools.
+
+\textbf{Context router} is a policy
+\texttt{\textbackslash{}pi(t,\ m,\ r,\ k)\ -\textgreater{}\ s}: given a
+task \texttt{t}, model or agent capability \texttt{m}, repository state
+\texttt{r}, and knowledge object \texttt{k}, select a routing strategy
+\texttt{s}.
+
+\textbf{Source authority} describes which source should win for a
+specific question: the lockfile for installed version, official docs for
+public API intent, source and tests for behavior, local code for project
+convention, and human instructions for constraints.
+
+\textbf{Context provenance} records where a bundle came from, which
+version it represents, when it was fetched, how trustworthy it is, and
+what it is intended to be used for.
+
+\subsection{Utility model}\label{sec-utility}
+
+A lightweight model is enough to make the tradeoff explicit. For a
+coding task \texttt{t}, model or agent \texttt{m}, repository state
+\texttt{r}, knowledge object \texttt{k}, and candidate strategy
+\texttt{s}, the router wants high expected success and low total cost:
+
+\begin{align*}
+U(s \mid t,m,r,k) ={}&
+P(\mathrm{success} \mid t,m,r,C_s) \\
+&- \lambda_1\mathrm{tokens}(C_s)
+- \lambda_2\mathrm{latency}(s)
+- \lambda_3\mathrm{privacyRisk}(s) \\
+&- \lambda_4\mathrm{staleness}(s)
+- \lambda_5\mathrm{distractorRisk}(C_s)
+- \lambda_6\mathrm{trustRisk}(s)
+\end{align*}
+
+The context router chooses the strategy with the highest expected
+utility under observable signals. The exact weights are product and
+organization specific, but the terms make clear why ``more context'' is
+not the objective.
+
+\figureUtilityTradeoff
+
+The operational principle is \textbf{smallest sufficient context}:
+
+\begin{quote}
+Context is sufficient when it lets the agent identify the relevant
+authority, produce a correct change, and verify it without introducing
+materially misleading distractors.
+\end{quote}
+
+Smallest does not mean fewest tokens. It means lowest total context cost
+across tokens, latency, privacy, staleness, trust, and distractor risk.
+Sometimes the lowest-cost context is a small doc page. Sometimes it is a
+large but version-matched source tree.
+
+\subsection{Policy signals}\label{sec-policy-signals}
+
+The router cannot observe expected success directly, so it uses signals.
+The signals in Table~\ref{tbl-signals} are enough to turn ``router''
+from metaphor into a policy surface.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Observable signals for a context-routing
+policy.}\label{tbl-signals}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Signal
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Why it matters
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Signal
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Why it matters
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Package appears in lockfile & Fixes version-specific context and avoids
+latest-doc drift \\
+Import frequency & Estimates package centrality and likely value of
+deeper source \\
+Package source size & Affects vendoring, packing, indexing, and
+distractor cost \\
+Docs availability and quality & Makes docs-first viable for public API
+tasks \\
+API volatility & Increases value of fresh docs, changelogs, or source \\
+Local modifications & Penalizes stale indexes and remote snapshots \\
+Model context window and measured effective length & Bounds what can be
+reliably carried \\
+Agent tool capability & Determines whether agentic search is viable \\
+Privacy policy & Rules out cloud retrieval or remote indexing \\
+Task type & Bugfix, migration, greenfield integration, test repair,
+security review, or refactor \\
+Failure history & Repeated failures justify deeper context or a strategy
+switch \\
+Repository size and churn & Determines index/search break-even \\
+Language ecosystem support & Determines whether AST, LSP, or SCIP
+retrieval is available \\
+\end{longtable}
+
+\section{Why Context Allocation Is Hard}\label{sec-hard}
+
+\subsection{Context windows are not attention
+guarantees}\label{sec-attention}
+
+Long windows increase storage, not reliable computation over every
+token. N. F. Liu et al. (2024) established the now-canonical positional
+failure: models perform best when relevant information is near the
+beginning or end of the context and degrade when evidence is buried in
+the middle. {Hsieh et al.} (2024) showed that advertised context length
+can overstate effective context length, especially on multi-hop
+synthetic tasks.
+
+LongCodeBench extends the problem to realistic code comprehension and
+repair (Rando et al. 2025). It evaluates LongCodeQA and LongSWE-Bench
+across 32K, 64K, 128K, 256K, 512K, and 1M context brackets where
+supported. The precise headline is:
+
+\begin{quote}
+On LongSWE-Bench, Claude 3.5 Sonnet solved 29\% of issues at 32K context
+and 3\% at 256K; it was not a 1M-token Claude result. On LongCodeQA,
+Qwen2.5 peaked at 70.2\% at 512K and fell to 40.0\% at 1M.
+\end{quote}
+
+\figureLongContextDegradation
+
+The newer context-rot literature sharpens the same point. Chroma's
+technical report evaluates 18 models and isolates cases where increasing
+input length alone makes outputs less reliable, including semantic
+needle variants, distractors, LongMemEval comparisons, and repeated-word
+copying tasks (Hong, Troynikov, and Huber 2025). NoLiMa extends
+needle-in-a-haystack beyond literal matching and reports severe drops
+when questions and needles have little lexical overlap, even when short
+contexts are nearly solved (Modarressi et al. 2025). AbsenceBench adds a
+different failure class: models that can retrieve present evidence may
+still fail to identify missing information, including omitted lines in
+GitHub pull-request diffs (Fu et al. 2025).
+
+The defensible conclusion is not ``1M always fails.'' The conclusion is
+that advertised context length is an upper bound, not an operating
+target. Routing budgets should be calibrated per model, task class, and
+representation, ideally by local evals or conservative defaults.
+
+\subsection{Retrieval can help or hurt}\label{sec-retrieval-hard}
+
+{Z. Z. Wang et al.} (2025) asks directly whether retrieval can augment
+code generation. Its answer is conditional: high-quality retrieved
+contexts improve some settings, especially weaker models and basic
+programming tasks, while retrievers still struggle when lexical overlap
+is limited and generators do not always integrate extra context
+effectively. Asai et al. (2024) reaches a similar architectural lesson
+from a broader RAG setting: indiscriminate fixed retrieval can reduce
+versatility and produce unhelpful generations; retrieval should be
+adaptive.
+
+The router should not ask ``RAG or not?'' It should ask which retrieval
+substrate has the lowest expected miss, distractor, staleness, and
+latency cost for this task.
+
+That means semantic and non-semantic search should be treated as
+different instruments, not rival slogans. BM25 remains a strong lexical
+baseline because exact terms, identifiers, and error strings often are
+the task (Robertson and Zaragoza 2009). Learned sparse retrieval such as
+SPLADE keeps lexical auditability while adding expansion terms (Formal,
+Piwowarski, and Clinchant 2021). Dense retrieval and text embeddings are
+useful when intent does not share surface form with the target, but
+benchmarks such as BEIR and MTEB show that retrieval quality is highly
+task- and distribution-dependent (Thakur et al. 2021; Muennighoff et al.
+2023). CodeSearchNet made the natural-language-to-code gap explicit for
+semantic code search (Husain et al. 2019), while GraphCodeBERT shows why
+code structure and data flow matter beyond flat token embeddings (Guo et
+al. 2021). Late-interaction retrievers such as ColBERT occupy a useful
+middle ground: they retain token-level matching signals while allowing
+document representations to be precomputed (Khattab and Zaharia 2020).
+ColBERTv2 and PLAID make the deployment point stronger by reducing
+late-interaction storage and serving cost without giving up the core
+matching advantage (Santhanam et al. 2022a; Santhanam et al. 2022b).
+Mixedbread's mxbai work is relevant as practitioner evidence for both
+dense embeddings and ColBERT-style reranking, and mgrep is a concrete
+coding-agent product claim that semantic search can reduce token usage
+relative to repeated grep loops while still preserving grep as the exact
+match fallback (Lee et al. 2024a; Lee et al. 2024b; Mixedbread 2026).
+Multi-function embedding systems such as BGE-M3 push in the same
+direction by supporting dense, sparse, and multi-vector retrieval modes
+inside one model family (Chen et al. 2024).
+
+Recent code and technical-document retrieval benchmarks make the same
+lesson more concrete for software agents. FreshStack argues for
+benchmarks built from recent technical documentation, where off-the-shelf
+retrievers can lag far behind oracle context on niche stacks (Thakur et
+al. 2025). COIR separates code retrieval into multiple task families
+rather than treating ``code search'' as one problem (Li et al. 2024).
+CoSIL frames issue localization as graph-guided repository search rather
+than flat chunk retrieval (Jiang et al. 2025). For routing, these papers
+matter because they move the selector question from ``semantic search or
+grep?'' to ``which retrieval substrate matches this task, authority, and
+failure mode?''
+
+\figureRetrievalLandscape
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Retrieval substrates and their common failure
+modes.}\label{tbl-retrieval-types}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Retrieval type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Typical failure mode
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Retrieval type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Typical failure mode
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Lexical grep & Misses semantic matches and renamed concepts \\
+Semantic vector search & Retrieves plausible but wrong chunks \\
+Graph retrieval & Depends on graph quality and language support \\
+AST chunking & Can miss runtime behavior and dynamic dispatch \\
+Docs retrieval & Docs may be stale, incomplete, or for the wrong
+version \\
+Agentic search & Slow, non-deterministic, and tool-call heavy \\
+Hybrid search & More accurate but harder to debug and reproduce \\
+\end{longtable}
+
+\subsection{Structure matters}\label{sec-structure}
+
+Repository-level work consistently shows that flat text is a weak
+abstraction for code. F. Zhang et al. (2023), Shrivastava et al. (2023),
+Ding et al. (2024), {Ding et al.} (2023), {Liang et al.} (2024), {Phan
+et al.} (2025), and {W. Liu et al.} (2024) all point toward the same
+lesson: imports, definitions, call relationships, type information,
+symbols, and file structure provide routing signals that raw chunks do
+not. {Y. (Sherry). Zhang et al.} (2025) adds a newer preprint result for
+AST-aware chunking.
+
+The careful implication is not ``AST plus graph must always be the
+default.'' It is: for repository-scale retrieval, the prior should favor
+structural retrieval whenever the language ecosystem and latency budget
+permit it.
+
+\subsection{Wrong context has concrete harms}\label{sec-wrong-context}
+
+Context quality fails through recognizable mechanisms.
+Table~\ref{tbl-failure-modes} maps each failure mode to a router
+response.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{Failure modes that motivate
+routing.}\label{tbl-failure-modes}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Failure mode
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Description
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Router response
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Failure mode
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Description
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Router response
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Attention dilution & Relevant tokens are present but weakly attended &
+Reduce bundle size; place high-value context early or late \\
+Distractor interference & Plausible irrelevant context changes the
+reasoning path & Prune aggressively; prefer version-specific
+authority \\
+Representation mismatch & Docs explain concepts but not usage patterns &
+Fetch examples, source, or tests \\
+Version skew & Retrieved docs/source do not match installed package &
+Resolve through lockfile and provenance \\
+Retrieval miss & Search fails to fetch the necessary file or symbol &
+Expand via graph, AST, LSP, or agentic search \\
+Context staleness & Index reflects old repo state & Prefer live grep or
+incremental index \\
+Trust contamination & External docs contain malicious or irrelevant
+instructions & Quote, sanitize, label provenance, sandbox tools \\
+Cost blowup & Agent spends many turns searching & Precompute repo maps
+or local indexes \\
+\end{longtable}
+
+\figureFailureModes
+
+Examples are easy to find in everyday agent work: the agent uses latest
+docs for an older installed package, imports a private symbol after
+reading source, acts on a StackOverflow answer for the wrong major
+version, searches a stale index while local uncommitted changes matter,
+follows instructions embedded in third-party docs, or receives a whole
+repo pack and overlooks the relevant file in the middle. These are not
+model failures alone. They are allocation failures.
+
+\subsection{Context changes during the agent loop}\label{sec-phases}
+
+Context routing is online, not a one-time preprocessing step. Each phase
+of an agent loop wants different material.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Task-phase routing.}\label{tbl-phases}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Phase
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Useful context
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Phase
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Useful context
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Orient & AGENTS.md, repo map, architecture summary, task brief \\
+Locate & Code search, symbols, imports, stack traces, issue
+references \\
+Plan & Relevant local files, docs, examples, package conventions \\
+Edit & Exact files, types, tests, local wrappers, public API
+contracts \\
+Verify & Test logs, CI output, type errors, runtime traces \\
+Repair & Failing trace, package source, issue history, migration docs \\
+Summarize & Decision log, changed files, unresolved risks, provenance \\
+\end{longtable}
+
+\figurePhaseHeatmap
+
+This aligns with Anthropic's context-engineering framing: curation and
+maintenance of useful tokens happens throughout inference, not only at
+prompt construction time (Anthropic 2025a). Emerging OSS-focused context
+engineering work makes the same point at repository scale: agent
+configuration files, guidance documents, and tool manifests vary widely,
+which means context policy itself becomes part of the software
+architecture rather than an afterthought (Mohsenimofidi et al. 2025).
+
+\section{Design Space}\label{sec-design-space}
+
+The earlier ``seven primitives'' vocabulary is useful as shorthand, but
+it mixes dimensions. Vendoring, indexing, retrieving, packing, skills,
+annotations, and agentic reads are common bundles across several
+independent axes. A more useful taxonomy separates the axes first.
+
+\subsection{Axis 1: placement}\label{sec-axis-placement}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Where context lives.}\label{tbl-placement}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Placement
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Examples
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Placement
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Examples
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+In prompt & Pasted file, repo pack, selected snippets \\
+On disk in workspace & Vendored source, cloned dependency, exported
+docs \\
+Local cache & OpenSrc-style package cache, tool-managed snapshots \\
+Local index & Sourcebot, Serena, local vector DB, SCIP/LSP graph \\
+Remote service & Context7, Augment, Glean, hosted semantic search \\
+Model or tool memory & Skills, summaries, persistent notes, agent
+memory \\
+\end{longtable}
+
+\subsection{Axis 2: representation}\label{sec-axis-representation}
+
+\begin{longtable}[]{@{}ll@{}}
+\caption{How context is
+represented.}\label{tbl-representation}\tabularnewline
+\toprule\noalign{}
+Representation & Examples \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Representation & Examples \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Raw source & Vendored repository, fetched package source \\
+Human docs & API docs, README, migration guides, changelogs \\
+Symbol graph & SCIP, LSP, AST, call/reference graph \\
+Embedding chunks & Vector search over files, docs, or issues \\
+Summaries & Repo maps, architecture notes, skills, memory \\
+Executable tools & MCP tools, scripts, local CLI commands \\
+Instructions & AGENTS.md, CLAUDE.md, project rules \\
+\end{longtable}
+
+\subsection{Axis 3: selector}\label{sec-axis-selector}
+
+\begin{longtable}[]{@{}ll@{}}
+\caption{Who or what selects
+context.}\label{tbl-selector}\tabularnewline
+\toprule\noalign{}
+Selector & Examples \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Selector & Examples \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Human & \texttt{@file}, explicit package, manual doc link \\
+Static policy & allowlist routes \texttt{effect} to vendor \\
+Heuristic router & import count, package size, privacy class \\
+Learned retriever & embedding search, reranker \\
+Graph retriever & symbol, dependency, call/reference expansion \\
+Agentic search & \texttt{grep}/read/bash loop \\
+Oracle/evaluator & benchmark-only upper bound \\
+\end{longtable}
+
+\subsection{Axis 4: timing}\label{sec-axis-timing}
+
+\begin{longtable}[]{@{}ll@{}}
+\caption{When context is loaded.}\label{tbl-timing}\tabularnewline
+\toprule\noalign{}
+Timing & Examples \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Timing & Examples \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Always loaded & AGENTS.md, compact repo guidance \\
+Session start & Repo map, recent decision log \\
+Task start & Package docs, relevant tests, task issue \\
+Just in time & Agent calls search, router fetches source \\
+After failure & Fetch package source after stack trace points there \\
+Compacted later & Summarize stale context for continuation \\
+\end{longtable}
+
+\subsection{Axis 5: dominant constraints}\label{sec-axis-constraints}
+
+\begin{longtable}[]{@{}ll@{}}
+\caption{Constraints that dominate route
+choice.}\label{tbl-constraints}\tabularnewline
+\toprule\noalign{}
+Constraint & Examples \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Constraint & Examples \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Token budget & Long-context degradation, prompt cost \\
+Latency & Agentic search and remote retrieval delays \\
+Privacy & Local-only code, no cloud index, no remote docs \\
+Freshness & Local changes, docs drift, moving issues \\
+Trust & MCP/tool/skill supply chain, prompt injection \\
+Determinism & Reproducible context versus live retrieval \\
+Version specificity & Lockfile-resolved package versions \\
+\end{longtable}
+
+The old primitives can now be expressed more precisely:
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Vendoring} = workspace placement + raw source representation +
+  static or heuristic selection + task-time loading + strong
+  reproducibility + local privacy.
+\item
+  \textbf{Indexing} = local or remote placement + symbol/embedding
+  representation
+
+  \begin{itemize}
+  \tightlist
+  \item
+    learned or graph selector + low-latency query + staleness
+    management.
+  \end{itemize}
+\item
+  \textbf{Skills} = memory placement + instruction/tool representation +
+  metadata-based selector + progressive disclosure + high token
+  efficiency.
+\item
+  \textbf{Repo pack} = prompt placement + raw or summarized
+  representation + human or static selector + one-shot timing + weak
+  freshness after creation.
+\end{itemize}
+
+For implementation, these axes become a route descriptor rather than a
+prose taxonomy.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{Route-descriptor axes for a context
+object.}\label{tbl-route-descriptor}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Axis
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Question
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Example values
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Axis
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Question
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Example values
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Object kind & What is being routed? & Package source, repo subtree, doc
+page, API spec, ticket, skill, live endpoint \\
+Materialization & Where does it live for the task? & Committed, cached,
+packed, mounted, remote-only \\
+Representation & In what form is it exposed? & Raw source, structural
+summary, prose doc, metadata envelope, search hit \\
+Access path & How does the agent reach it? & Direct read, local grep,
+local index, remote retrieval API, MCP tool \\
+Freshness mode & How stable is it? & Pinned snapshot, refreshable cache,
+live mutable \\
+Authority/trust & How much should the agent rely on it? & Canonical,
+upstream authoritative, derived, advisory, unverified \\
+Privacy scope & What boundary constrains it? & Repo-safe, local-only,
+restricted, remote-call-required \\
+\end{longtable}
+
+\section{Practitioner Strategies as Operating
+Zones}\label{sec-practitioner}
+
+The practitioner landscape is not a consensus. It is structured
+disagreement. Each camp has a correct operating zone and a failure mode.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}@{}}
+\caption{Practitioner camps, assumptions, failure modes, and routing
+implications.}\label{tbl-camps}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Camp
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Claim
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Evidence
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Hidden assumption
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Failure mode
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Router implication
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Camp
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Claim
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Evidence
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Hidden assumption
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Failure mode
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Router implication
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Source vendoring & Agents learn patterns better from source than prose &
+Effect subtree argument (Brown 2026) & Source is available, navigable,
+version-matched, and not huge & Internal APIs, large repos, poor
+comments, private access & Vendor high-centrality packages with
+manageable source and high idiom value \\
+Agentic search & Let the model inspect live files instead of maintaining
+an index & Claude Code and Cline practice (S. (swyx). Wang and Trotta
+2025; Baumann 2025) & Agent has strong tools and time budget & Latency,
+non-determinism, repeated search loops & Prefer live search when local
+files exist and freshness matters \\
+Pre-indexing & Large repos need fast semantic or structural context &
+Cursor and Sourcegraph/Amp claims (Cursor 2026; Sourcegraph 2025) &
+Index is fresh, private enough, and amortized over many tasks &
+Staleness, privacy, setup cost & Index when repo size and query
+frequency justify maintenance \\
+Repo maps & Summaries preserve structure under tight budgets & aider
+tree-sitter repo map (Gauthier 2023) & Symbols/signatures are enough for
+orientation & Missing details and runtime behavior & Use maps for
+orientation, then expand to exact files \\
+Skills and rules & Procedural knowledge should be progressively
+disclosed & Agent Skills and CLAUDE.md practice (Anthropic 2025b;
+HumanLayer (Kyle) 2025) & Knowledge is stable and reusable & Overbroad
+instructions and hidden script risk & Use skills for procedures,
+conventions, and reusable workflows \\
+Always-on docs indexes & A compact project instruction file can reliably
+point agents at versioned local docs & Vercel Next.js agent evals (Gao
+2026a) & The index is small, accurate, and points to local docs the
+agent can read & Context bloat; stale copied docs; agent ignores project
+instruction files & Put high-value retrieval pointers in AGENTS.md, and
+reserve skills for explicit workflows \\
+Managed enterprise context & Org search needs ACLs, multi-repo scale,
+and governance & Glean, Augment, Sourcegraph, DeepWiki-style systems &
+Cloud or managed index is allowed & IP leakage, opaque ranking, vendor
+lock-in & Route through managed systems only when policy permits \\
+\end{longtable}
+
+\subsection{Effect as the originating case}\label{sec-effect-origin}
+
+Effect is the motivating case for ingraft and for this paper. Brown's
+post makes a narrow but important source-vendoring claim: for an
+idiom-heavy TypeScript framework, human-facing docs can be too lossy for
+coding agents, while source, tests, examples, and module structure
+preserve the patterns agents need (Brown 2026). The recommended route is
+git subtree under a read-only reference directory, with agent
+instructions and editor/tool ignores so humans are not overwhelmed by
+vendored code.
+
+The public article should not be treated as a controlled benchmark
+report. It does not publish task definitions, model list, run counts, or
+pass/fail tables. Its evidential role here is practitioner operating
+experience: for Effect, the authors report that locally available source
+is more useful to agents than fragmented web fetches, human docs, or
+compiled \texttt{node\_modules} surfaces. That is enough to justify
+source vendoring as a candidate route, not enough to make it the global
+default.
+
+This is exactly the router opening. If source vendoring wins for Effect,
+the hidden variables are high package centrality, idiom density,
+navigable TypeScript source, useful tests and examples, manageable
+repository size, and need for version-specific source. The router
+implication is not ``always vendor''; it is ``vendor when source
+authority and idiom value outweigh repository impact and distractor
+risk.''
+
+\subsection{Always-on indexes versus invoked
+skills}\label{sec-agents-md-evals}
+
+Vercel's Next.js team published a useful negative result for the router
+thesis: on a hardened Next.js 16 eval suite, an on-demand docs skill was
+often not invoked and did not improve over the no-docs baseline, while
+explicit instructions improved results but were wording-sensitive (Gao
+2026a). Their best condition was a compressed \texttt{AGENTS.md} docs
+index: the project file kept a small map of version-matched docs always
+visible, and the agent read the actual docs from a local
+\texttt{.next-docs/} directory when needed. The reported pass rates were
+53\% for baseline, 53\% for default skill use, 79\% for skill plus
+explicit instruction, and 100\% for the \texttt{AGENTS.md} docs index.
+
+\figureVercelEval
+
+This is vendor evidence, not an independent controlled study, and it is
+specific to Next.js tasks and the harnesses tested. Still, it sharpens
+the routing model: there are cases where the best route is not to load
+full docs into context and not to rely on skill discovery, but to expose
+a small always-on retrieval index that removes the agent's decision to
+ask for help. Vercel's public \texttt{next-evals-oss} repository is also
+a practical evaluation pattern: self-contained project fixtures with
+\texttt{PROMPT.md}, withheld \texttt{EVAL.ts}, paired experiments with
+and without \texttt{AGENTS.md}, and exported docs-impact deltas (Vercel
+2026). The merged \texttt{@next/codemod\ agents-md} command shows the
+implementation route: detect the framework version, fetch matching docs,
+generate a compressed index, inject it between markers in
+\texttt{AGENTS.md} or \texttt{CLAUDE.md}, and ignore the local docs
+directory (Gao 2026b).
+
+\subsection{Source is not always better than
+docs}\label{sec-source-docs}
+
+The Effect case is one operating zone, not a universal source-over-docs
+rule. The source-vendoring argument is strongest when agents need
+idioms, examples, type-level patterns, framework internals, and
+implementation behavior. Docs are often the authority for public API
+intent, migration guidance, deprecation warnings, and security
+constraints.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Source-versus-docs decision
+rule.}\label{tbl-source-docs}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Task need
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Prefer
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Task need
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Prefer
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Learn public API quickly & Docs and curated examples \\
+Understand behavior edge case & Source and tests \\
+Follow idioms & Source examples plus local usage \\
+Avoid private/internal APIs & Official docs and public type surface \\
+Debug package internals & Version-matched source \\
+Migrate across versions & Changelog and migration guide, then local
+usage \\
+Verify generated code & Tests plus source \\
+Understand package philosophy & Docs and design notes \\
+\end{longtable}
+
+\subsection{Agentic search versus indexing is a break-even
+problem}\label{sec-break-even}
+
+The unresolved question is not whether indexing or agentic search is
+``right.'' It is when the cost of maintaining an index exceeds the cost
+of repeated live search.
+
+Agentic search wins when:
+
+\[
+C_\mathrm{toolCalls} + C_\mathrm{tokens} + C_\mathrm{latency}
+<
+C_\mathrm{indexBuild} + C_\mathrm{indexDrift} + C_\mathrm{privacy}
++ C_\mathrm{retrievalErrors}
+\]
+
+Indexing wins when repository size, query frequency, and cross-file
+complexity are large enough to amortize index maintenance. This depends
+on churn, local change frequency, language tooling, privacy rules, and
+whether cross-repo search matters. The router should make that
+break-even explicit rather than choosing a side globally.
+
+\section{Router Design}\label{sec-router}
+
+\subsection{Inputs and outputs}\label{sec-router-io}
+
+A context router takes:
+
+\begin{itemize}
+\tightlist
+\item
+  task statement and task type;
+\item
+  repository state, including local changes and lockfiles;
+\item
+  knowledge object metadata;
+\item
+  model and tool capabilities;
+\item
+  privacy and trust policy;
+\item
+  history of failures or user overrides.
+\end{itemize}
+
+It outputs:
+
+\begin{itemize}
+\tightlist
+\item
+  selected route and alternatives considered;
+\item
+  context bundle or tool affordance;
+\item
+  provenance record;
+\item
+  trust class and intended use;
+\item
+  explanation and override path;
+\item
+  optional context-lock update.
+\end{itemize}
+
+\figureRouterArchitecture
+
+\subsection{Strategy scoring}\label{sec-strategy-scoring}
+
+The router can begin as a rule system, but the policy should expose
+scoring features so users can understand why a route was chosen.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}@{}}
+\caption{Scoring features across route
+families.}\label{tbl-scoring}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Feature
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Vendoring
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Lazy fetch
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Docs
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Index
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Skill
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Feature
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Vendoring
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Lazy fetch
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Docs
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Index
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Skill
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Version fidelity & High if lockfile-resolved & High if resolved & Medium
+to high & Varies & Low unless versioned \\
+Token efficiency & Medium & Medium & High & High & High \\
+Agent navigability & High & High & Medium & Medium/high & Low/medium \\
+Setup cost & Medium/high & Low & Low & High & Low \\
+Privacy & High & High & Varies & Varies & High \\
+Freshness & Pinned & Pinned & Fresh but may mismatch & Drift risk &
+Stable \\
+Distractor risk & High if huge & Medium & Medium & Medium & Low \\
+Best for & Deep idioms & Occasional inspection & Public API/migration &
+Large repos & Conventions/procedures \\
+\end{longtable}
+
+Default policy rules follow from the table:
+
+\begin{itemize}
+\tightlist
+\item
+  Vendor when package centrality is high, source size is manageable,
+  privacy matters, and idioms matter.
+\item
+  Lazy-fetch when a package is used occasionally but source-level
+  inspection may be needed.
+\item
+  Docs-first when the task targets public API, migration, conceptual
+  usage, security guidance, or newly released features.
+\item
+  Index when repository or package scale exceeds grep-friendly size, or
+  cross-file relationships dominate.
+\item
+  Skill when knowledge is procedural, stable, reusable, and safe to
+  package.
+\item
+  Agentic-search when local source is available and the model/tooling
+  can inspect selectively.
+\item
+  Pack when the agent lacks filesystem/search tools or the task is
+  one-shot and offline.
+\end{itemize}
+
+\subsection{Source authority and conflict
+resolution}\label{sec-authority}
+
+A router should ask not only ``where can I get information?'' but
+``which source is authoritative for this question?''
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Source authority by question
+type.}\label{tbl-authority}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Question
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Best authority
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Question
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Best authority
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+What version is installed? & Lockfile and package manager metadata \\
+What public API is intended? & Official docs and public type surface \\
+What behavior occurs? & Version-matched source and tests \\
+What pattern does this repo prefer? & Local codebase and AGENTS.md \\
+What should the agent never do? & AGENTS.md, security policy, human
+instruction \\
+What broke? & Failing test, log, trace, CI output \\
+What changed between versions? & Changelog, release notes, migration
+guide \\
+What symbols reference this? & LSP, SCIP, source index, grep \\
+\end{longtable}
+
+Conflict resolution should preserve provenance. A useful agent-facing
+message is not ``use zod docs''; it is ``this recommendation is based on
+local package source resolved from \texttt{bun.lock}, not latest web
+docs.'' That distinction prevents version skew and makes human override
+possible.
+
+\subsection{Provenance and context lockfiles}\label{sec-provenance}
+
+The router should emit context plus provenance. Example bundle metadata
+for source:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{context\_bundle}\KeywordTok{:}
+\AttributeTok{  }\FunctionTok{source}\KeywordTok{:}\AttributeTok{ npm}
+\AttributeTok{  }\FunctionTok{package}\KeywordTok{:}\AttributeTok{ effect}
+\AttributeTok{  }\FunctionTok{version}\KeywordTok{:}\AttributeTok{ }\FloatTok{3.14.2}
+\AttributeTok{  }\FunctionTok{route}\KeywordTok{:}\AttributeTok{ vendor}
+\AttributeTok{  }\FunctionTok{resolved\_from}\KeywordTok{:}\AttributeTok{ bun.lock}
+\AttributeTok{  }\FunctionTok{fetched\_at}\KeywordTok{:}\AttributeTok{ 2026{-}05{-}13}
+\AttributeTok{  }\FunctionTok{trust\_class}\KeywordTok{:}\AttributeTok{ local{-}readonly{-}source}
+\AttributeTok{  }\FunctionTok{mutable}\KeywordTok{:}\AttributeTok{ }\CharTok{false}
+\AttributeTok{  }\FunctionTok{intended\_use}\KeywordTok{:}\AttributeTok{ reference{-}only}
+\end{Highlighting}
+\end{Shaded}
+
+For docs:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\FunctionTok{context\_bundle}\KeywordTok{:}
+\AttributeTok{  }\FunctionTok{source}\KeywordTok{:}\AttributeTok{ context7}
+\AttributeTok{  }\FunctionTok{package}\KeywordTok{:}\AttributeTok{ next}
+\AttributeTok{  }\FunctionTok{version\_hint}\KeywordTok{:}\AttributeTok{ }\StringTok{"15.x"}
+\AttributeTok{  }\FunctionTok{route}\KeywordTok{:}\AttributeTok{ docs}
+\AttributeTok{  }\FunctionTok{fetched\_at}\KeywordTok{:}\AttributeTok{ 2026{-}05{-}13}
+\AttributeTok{  }\FunctionTok{trust\_class}\KeywordTok{:}\AttributeTok{ remote{-}docs}
+\AttributeTok{  }\FunctionTok{warning}\KeywordTok{:}\AttributeTok{ verify against lockfile and local source before editing}
+\end{Highlighting}
+\end{Shaded}
+
+A \texttt{context.lock} file is the reproducibility bridge between
+research and implementation. It records the strategy, source URL,
+package version, commit, docs version, index version, skill version,
+trust class, generated summaries, timestamps, and override reasons.
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\KeywordTok{[packages.effect]}
+\DataTypeTok{strategy} \OperatorTok{=} \StringTok{"vendor"}
+\DataTypeTok{version} \OperatorTok{=} \StringTok{"3.14.2"}
+\DataTypeTok{source} \OperatorTok{=} \StringTok{"github:Effect{-}TS/effect"}
+\DataTypeTok{commit} \OperatorTok{=} \StringTok{"abc123"}
+\DataTypeTok{reason} \OperatorTok{=} \StringTok{"core{-}framework allowlist; imported in 42 files"}
+\DataTypeTok{trust} \OperatorTok{=} \StringTok{"local{-}readonly"}
+
+\KeywordTok{[packages.zod]}
+\DataTypeTok{strategy} \OperatorTok{=} \StringTok{"docs{-}first"}
+\DataTypeTok{version} \OperatorTok{=} \StringTok{"4.1.0"}
+\DataTypeTok{docs} \OperatorTok{=} \StringTok{"context7:zod@4.1"}
+\DataTypeTok{fallback} \OperatorTok{=} \StringTok{"fetch{-}source"}
+\DataTypeTok{reason} \OperatorTok{=} \StringTok{"public API task; source size low; docs available"}
+\DataTypeTok{trust} \OperatorTok{=} \StringTok{"remote{-}docs"}
+
+\KeywordTok{[tools.mgrep]}
+\DataTypeTok{enabled} \OperatorTok{=} \ConstantTok{false}
+\DataTypeTok{reason} \OperatorTok{=} \StringTok{"privacy=strict{-}local"}
+\end{Highlighting}
+\end{Shaded}
+
+\begin{longtable}[]{@{}ll@{}}
+\caption{Core fields for a context
+lockfile.}\label{tbl-lockfields}\tabularnewline
+\toprule\noalign{}
+Lockfile field & Purpose \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Lockfile field & Purpose \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\texttt{object\_id} & Stable identity for the routed artifact \\
+\texttt{kind} & Context-object class \\
+\texttt{source\_uri} & Upstream origin \\
+\texttt{revision} & Commit, version, timestamp, or content hash \\
+\texttt{authority} & Canonical, upstream, derived, advisory, or
+unverified \\
+\texttt{materialization} & Committed, cache, mount, live, or pack \\
+\texttt{representation} & Raw, summary, metadata, index, or executable
+tool \\
+\texttt{privacy\_class} & Repo-safe, local-only, restricted, or
+remote \\
+\texttt{integrity} & Hash, signature, or provenance attestation \\
+\texttt{phase\_policy} & Preferred routes by task phase \\
+\texttt{refresh\_policy} & Pinned, manual refresh, TTL, or live \\
+\texttt{transform\_chain} & Export, normalization, and summarization
+steps \\
+\end{longtable}
+
+Provenance supports version fidelity, audit logs, privacy review,
+benchmark reproducibility, and human overrides.
+
+\subsection{Trust policy}\label{sec-security}
+
+Security is central to routing, not an appendix. Every route has a
+different attack surface.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Route-specific security
+risks.}\label{tbl-security}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Route
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Risk
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Route
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Risk
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Docs retrieval & Prompt injection, outdated examples, wrong version \\
+MCP server & Tool overpermission, data exfiltration, remote execution \\
+Skills & Executable scripts, hidden instructions, supply-chain
+attacks \\
+Vendored source & Malicious comments, enormous distractor surface \\
+Repo pack & Secret exposure and uncontrolled redistribution \\
+Cloud index & IP leakage and opaque retention \\
+Agentic search & Command misuse and accidental broad reads \\
+Generated summaries & Untraceable hallucinated compression \\
+\end{longtable}
+
+A practical router should support policy modes such as:
+
+\begin{itemize}
+\tightlist
+\item
+  \texttt{strict-local}: no remote retrieval or cloud index;
+\item
+  \texttt{local-executable-denied}: local files allowed, bundled scripts
+  blocked;
+\item
+  \texttt{remote-docs-allowed}: remote docs allowed but quoted as
+  untrusted;
+\item
+  \texttt{remote-code-denied}: no remote source fetch;
+\item
+  \texttt{cloud-index-allowed}: managed indexes permitted;
+\item
+  \texttt{scripts-require-confirmation}: skills and MCP tools cannot
+  execute without confirmation;
+\item
+  \texttt{untrusted-context-quoted}: external context is evidence, not
+  instruction.
+\end{itemize}
+
+The ethical case for an open router follows from these requirements:
+transparent routing decisions, user override, local-first defaults,
+provenance logs, auditable lockfiles, no silent cloud upload,
+standards-based portability, and avoidance of vendor lock-in.
+
+\subsection{Explainability requirements}\label{sec-explainability}
+
+A useful routing explanation includes:
+
+\begin{itemize}
+\tightlist
+\item
+  selected strategy;
+\item
+  alternatives considered;
+\item
+  reason selected;
+\item
+  risks;
+\item
+  override command or config;
+\item
+  provenance;
+\item
+  expected cost.
+\end{itemize}
+
+Example:
+
+\begin{quote}
+Routed \texttt{effect} to \texttt{vendor} because it is imported in 47
+files, appears in the core-framework allowlist, source size is below 25
+MB, and privacy policy is \texttt{strict-local}. Alternatives:
+docs-first rejected because the task requires idiomatic patterns; remote
+index rejected by privacy policy. Override with
+\texttt{ingraft\ route\ effect\ -\/-strategy\ fetch}.
+\end{quote}
+
+Explanations are not decoration. They are how users correct the policy.
+
+\subsection{Worked routing examples}\label{sec-examples}
+
+\textbf{Daily framework dependency.} A project uses Effect in 80 files.
+The task is to implement a new service using local idioms. The router
+vendors Effect source read-only, emits AGENTS.md guidance, and tells the
+agent to inspect local examples before docs.
+
+\textbf{Rare utility package.} The project uses \texttt{nanoid} in one
+file and the task is unrelated. The router does nothing. If the agent
+asks, it fetches source lazily.
+
+\textbf{API migration.} A project upgrades Next.js from 14 to 15. The
+router prioritizes version-specific migration docs and changelog, then
+local usage search, then source fallback.
+
+\textbf{Large monorepo.} The task touches one service in a 500K-file
+monorepo. The router avoids full packing, queries structural code search
+or SCIP/LSP, and passes only relevant files.
+
+\textbf{Privacy-restricted enterprise repo.} Cloud retrieval is
+disabled. The router uses local source, local docs, local symbolic
+search, and blocks remote MCPs.
+
+\section{Standards and Interoperability}\label{sec-standards}
+
+Standards matter because routing should not be trapped inside one agent
+vendor. The standards landscape is increasingly centered around AAIF
+projects such as MCP, goose, and AGENTS.md, alongside adjacent standards
+and conventions such as Agent Skills, ACP, A2A, llms.txt, and SCIP. It
+would be wrong to imply that all of these have one governance story.
+
+The Linux Foundation announced the Agentic AI Foundation on December 9,
+2025, with founding project contributions including Anthropic's Model
+Context Protocol, Block's goose, and OpenAI's AGENTS.md (Linux
+Foundation 2025). The same announcement describes MCP as a protocol for
+connecting models to tools, data, and applications, and AGENTS.md as a
+project-guidance standard for coding agents. Agent Skills has its own
+specification and progressive-disclosure model (Agent Skills Working
+Group 2025; Anthropic 2025b). ACP, A2A, llms.txt, and SCIP have separate
+origins and adoption paths (Zed Industries 2025; Google and Linux
+Foundation 2025; Howard 2024; Sourcegraph 2024).
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Standards and their routing
+role.}\label{tbl-standards-role}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Standard or convention
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Router role
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Standard or convention
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Router role
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+AGENTS.md & Declares project-level routing policy and agent
+instructions \\
+MCP & Exposes router tools to multiple agents \\
+Agent Skills & Packages strategy-specific procedures with progressive
+disclosure \\
+ACP & Lets editors invoke agents that call the router \\
+A2A & Lets agents coordinate or delegate context work \\
+SCIP/LSP & Supplies graph and symbol context \\
+llms.txt & Provides docs-discovery hints, low authority unless
+verified \\
+\end{longtable}
+
+The portable stack is therefore not ``one standard to rule them all.''
+It is: AGENTS.md for durable project policy, MCP for tool access, Agent
+Skills for procedural knowledge, and language/index standards for
+structural retrieval.
+
+\section{Evaluation Agenda}\label{sec-eval}
+
+The router thesis needs a router eval. The key research question is:
+
+\begin{quote}
+Does a task-aware context router outperform fixed context strategies
+under equal model, budget, and tool conditions?
+\end{quote}
+
+\subsection{Strategies to compare}\label{sec-eval-strategies}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Fixed strategies and router
+condition.}\label{tbl-eval-strategies}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Strategy
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Description
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Strategy
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Description
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+No extra context & Baseline agent with repo only \\
+Docs-only & Version-specific docs retrieval where available \\
+Always-on docs index & AGENTS.md/CLAUDE.md points to local versioned
+docs \\
+Source vendoring & Dependency source in workspace \\
+Lazy source fetch & Package source fetched on demand \\
+Repo pack & Repomix-style snapshot \\
+Semantic index & Embedding or code-search retrieval \\
+Structural index & AST, LSP, SCIP, call/reference graph retrieval \\
+Agentic search & Bash/grep/read loop \\
+Skills/rules & Procedural guidance only \\
+Router & Chooses among the above \\
+\end{longtable}
+
+\figureEvalLattice
+
+\subsection{Task families}\label{sec-eval-tasks}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\caption{Task families for router
+evaluation.}\label{tbl-eval-tasks}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Task family
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Example
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Task family
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Example
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Unknown library use & Integrate unfamiliar package \\
+Framework idiom task & Add route, middleware, schema, service, or
+hook \\
+API migration & Upgrade package version \\
+Bugfix with stack trace & Failure crosses dependency boundary \\
+Multi-file feature & Edit across local repo \\
+Security-sensitive change & Avoid unsafe API or pattern \\
+Performance/debugging task & Inspect implementation behavior \\
+Test repair & Fix tests requiring project conventions \\
+\end{longtable}
+
+Stratification variables should include package popularity, source size,
+docs quality, framework versus utility package, typed versus untyped
+ecosystem, repo size, public API versus internals, package version
+freshness, model class, and privacy setting.
+
+\subsection{Metrics, ablations, and
+falsification}\label{sec-eval-metrics}
+
+\begin{longtable}[]{@{}ll@{}}
+\caption{Router evaluation
+metrics.}\label{tbl-eval-metrics}\tabularnewline
+\toprule\noalign{}
+Metric & Why it matters \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Metric & Why it matters \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+pass@1 / pass@k & Task success \\
+Tests passed & Functional correctness \\
+Human review score & Maintainability and style \\
+Tokens used & Context efficiency \\
+Wall-clock latency & Practical usability \\
+Tool calls & Loop complexity \\
+Retrieval precision & Context quality \\
+Provenance coverage & Auditability \\
+Version match rate & Source/doc correctness \\
+Regression rate & Safety \\
+Cost per solved task & Operational relevance \\
+\end{longtable}
+
+Ablations should remove model awareness, privacy constraints, vendoring,
+docs, graph/AST retrieval, stale-context detection, and
+failure-triggered strategy switching. Stress tests should include stale
+docs, distractor context, wrong package versions, and small versus
+frontier models.
+
+The thesis should be considered weakened if:
+
+\begin{itemize}
+\tightlist
+\item
+  one fixed strategy beats the router across most task/model/repo
+  settings;
+\item
+  router explanations do not help users override bad choices;
+\item
+  routing overhead cancels out quality gains;
+\item
+  context strategy matters less than model choice once modern agents are
+  used;
+\item
+  simpler agentic search dominates retrieval, indexing, and vendoring
+  under realistic budgets.
+\end{itemize}
+
+Strong papers say what would falsify them. These are the falsification
+tests.
+
+\section{Case Study: ingraft}\label{sec-ingraft}
+
+This paper is motivated by ingraft, an open-source CLI for package and
+repository context routing (Brunner 2026). The case study should be read
+as an implementation path, not as empirical proof that the router wins.
+
+\subsection{Scope}\label{sec-ingraft-scope}
+
+ingraft's natural first slice is package knowledge:
+
+\begin{itemize}
+\tightlist
+\item
+  inspect package manager state and lockfiles;
+\item
+  route core dependencies to read-only vendored source when justified;
+\item
+  route long-tail dependencies to lazy fetch;
+\item
+  route public API or migration tasks to docs-first;
+\item
+  expose provenance and route explanations;
+\item
+  write AGENTS.md guidance so agents treat vendored source as reference
+  material and do not import from it.
+\end{itemize}
+
+This maps to the project rule already used in this repository: vendored
+repositories under \texttt{vendor/} are read-only reference material,
+not application code.
+
+\subsection{From package routing to knowledge
+routing}\label{sec-knowledge-routing}
+
+The same design generalizes to non-code knowledge, but with sharper
+privacy and authority rules. A Linear ticket, Notion decision page,
+OpenAPI spec, CI log, or Figma design note can be treated as a context
+object. The router can choose to vendor it as committed text, fetch it
+into a local cache, mount it read-only, query it through an MCP server,
+or summarize it into a skill.
+
+The important design point is not ``everything belongs in
+\texttt{vendor/}.'' It is that every artifact needs an explicit route,
+provenance record, privacy class, and authority label.
+
+Example workspace layout:
+
+\begin{Shaded}
+\begin{Highlighting}[]
+\NormalTok{vendor/                         \# committed, read{-}only reference material}
+\NormalTok{  github/effect{-}ts/effect/       \# source snapshot}
+\NormalTok{  notion/team{-}handbook/index.md  \# exported page}
+\NormalTok{  linear/DEV{-}42/index.md         \# ticket snapshot}
+\NormalTok{  openapi/payments{-}api.json      \# pinned API spec}
+
+\NormalTok{.ingraft/}
+\NormalTok{  config.toml                    \# committed routing policy}
+\NormalTok{  context.lock                   \# committed or reviewed provenance lock}
+\NormalTok{  cache/                         \# gitignored lazy fetches}
+\NormalTok{  mounts/                        \# gitignored live mounts}
+\end{Highlighting}
+\end{Shaded}
+
+\subsection{ingraft limitations}\label{sec-ingraft-limitations}
+
+The current evidence supports ingraft as a promising implementation of a
+repo-resident router, not as an established empirical winner. The next
+step is the router eval in Section~\ref{sec-eval}. ingraft should also
+treat security as a first class feature: signed connector metadata,
+local-first defaults, privacy-class checks, provenance logs, and
+explicit user confirmation before executable skills or connector scripts
+run.
+
+\section{Threats to Validity and Counterexamples}\label{sec-threats}
+
+\textbf{Benchmark validity.} SWE-bench, LongCodeBench, CodeRAG-Bench,
+RepoEval, CrossCodeEval, and vendor evals measure different task
+distributions. Improvements on one may not transfer to another.
+
+\textbf{Model drift.} Results from Claude 3.5, GPT-4o, Qwen2.5, Gemini
+1.5, and other models may not extrapolate to newer systems. A router
+should use model-aware calibration, not hardcoded thresholds.
+
+\textbf{Tooling confounds.} Agent performance reflects model, scaffold,
+tools, prompts, editing loop, test harness, retry policy, and human
+oversight. It is hard to isolate context strategy alone.
+
+\textbf{Vendor telemetry.} Cursor, Augment, Cognition, Greptile, and
+similar numbers may be directionally useful but should not be treated as
+independent evidence unless methodology is public.
+
+\textbf{Publication bias.} Practitioner essays report successful
+workflows more often than failed context strategies.
+
+\textbf{Temporal instability.} Tool features, standards adoption,
+pricing, security posture, and model context behavior change quickly.
+Dated snapshots should be clearly labeled.
+
+Routing may not help much in very small repos where the whole context
+fits, tasks dominated by model reasoning rather than repo knowledge,
+highly standardized frameworks where docs are enough, environments where
+the agent already has excellent local tool use, security-constrained
+settings where remote retrieval is forbidden and vendoring is
+impossible, product-judgment tasks, repos with poor tests, languages
+with weak structural tooling, generated or minified codebases, and
+monorepos whose package boundaries do not match architectural
+boundaries.
+
+\section{Predictions}\label{sec-predictions}
+
+The router thesis makes testable predictions:
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Hybrid systems will outperform single-context systems under diverse
+  task distributions.
+\item
+  The optimal route will vary by package centrality, not merely repo
+  size.
+\item
+  Source vendoring will help most on idiom-heavy frameworks and least on
+  stable utility libraries.
+\item
+  Docs-first retrieval will outperform source-first on migration tasks
+  and public API usage.
+\item
+  Graph/AST retrieval will show larger gains as cross-file dependency
+  depth increases.
+\item
+  Aggressive retrieval will hurt more often on distractor-heavy tasks
+  than on tightly scoped tasks.
+\item
+  User-visible routing explanations will reduce repeated failure loops
+  by making overrides possible.
+\end{enumerate}
+
+\section{Conclusion}\label{sec-conclusion}
+
+The 2026 context-engineering landscape is not a contest between ``vendor
+source'' and ``use RAG.'' It is a routing problem. Context windows
+remain attention scarce, retrieval is conditional, structure matters,
+authority matters, freshness matters, and privacy often constrains the
+route before quality optimization begins.
+
+The strongest form of the thesis is:
+
+\begin{quote}
+Context engineering for coding agents is context allocation under
+attention, authority, freshness, privacy, trust, and cost constraints.
+Existing tools each solve one region of the design space. A router is
+the abstraction that makes those partial solutions composable.
+\end{quote}
+
+An open, repo-resident routing layer is a promising default because it
+is inspectable, overrideable, local-first, and portable across agent
+vendors. Demonstrating its empirical advantage over fixed strategies
+remains the next evaluation task.
+
+\begin{tcolorbox}[enhanced jigsaw, arc=.35mm, bottomrule=.15mm, bottomtitle=1mm, breakable, colback=white, colbacktitle=paper-callout-tip-color!10!white, colframe=paper-callout-tip-color-frame, coltitle=black, left=2mm, leftrule=.75mm, opacityback=0, opacitybacktitle=0.6, rightrule=.15mm, title=\textcolor{paper-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Citation}, titlerule=0mm, toprule=.15mm, toptitle=1mm]
+
+If you reference this work in academic or industry writing:
+
+\begin{quote}
+Brunner, G. \emph{Context Routing for AI Coding Agents: A Research
+Agenda for Context Allocation Under Attention, Authority, Freshness,
+Privacy, and Cost Constraints.} ingraft project, May 2026.
+\url{https://ingraft.dev/whitepaper}
+\end{quote}
+
+Issues, corrections, and disagreements are welcome at
+\href{https://github.com/gunta/ingraft/issues}{github.com/gunta/ingraft/issues}.
+
+\end{tcolorbox}
+
+\emph{This whitepaper is released under
+\href{https://creativecommons.org/licenses/by/4.0/}{CC BY 4.0}. Quote
+freely with attribution.}
+
+\section{Appendix A: Representative Tool Snapshot, May
+2026}\label{sec-tools}
+
+This appendix preserves the tool-catalog value without letting the
+catalog drive the main argument. It is a representative snapshot, not a
+complete inventory.
+
+\figureToolLandscapeCounts
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{Representative May 2026 tool
+snapshot.}\label{tbl-tool-snapshot}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Category
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Representative tools
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Routing lesson
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Category
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Representative tools
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Routing lesson
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+IDE-native context engines & Cursor, Windsurf, GitHub Copilot, Augment,
+JetBrains AI/Junie, Cline, Zed, Roo Code, Continue, opencode, aider,
+Sourcegraph Amp, Amazon Q, Devin, OpenHands, Factory Droid, Kiro, Google
+Jules, Warp Agent Mode, Codebuff, Plandex & IDEs mix index, manual
+mention, agentic search, and rules; the router should expose which layer
+is active \\
+Standalone code search/indexing & Sourcebot, Zoekt, Livegrep, Hound,
+ast-grep, Comby, Bloop, Greptile, Glean Code Search, Unblocked, Tabby,
+Serena MCP, CocoIndex, Indexify & Search wins when scale or cross-file
+structure overwhelms live grep \\
+Repo packaging/snapshots & Repomix, gitingest, code2prompt,
+files-to-prompt, yek, ai-digest, gpt-repository-loader & Packs are
+useful one-shot snapshots but weak on freshness and position control \\
+MCP context servers & Context7, filesystem MCP, GitHub MCP, GitLab MCP,
+DeepWiki MCP, fff, mgrep, Exa MCP, Tavily MCP, Perplexity MCP,
+MCPfinder, Glama, Smithery, mcp.so, Memory Bank, Mem0, Letta, Mnemos,
+Pieces LTM-2, OpenSrc & MCP turns context into tools; tool permissions
+and provenance become router concerns \\
+Embeddings/RAG components & voyage-code-3, Jina code embeddings, Jina v2
+base code, mxbai-embed-large, CodeBERT, GraphCodeBERT, UniXcoder,
+CodeT5+, StarCoder, CodeSage, ChromaDB, Qdrant, Pinecone, Weaviate,
+Milvus, pgvector & Embeddings are substrates, not policies; quality
+depends on selector, representation, and task \\
+Multi-repo/org context & RepoSwarm, Backstage TechDocs, Roadie RAG,
+Glean, Sourcegraph, DeepWiki, Unblocked & Org context requires ACLs,
+provenance, and privacy-first routing \\
+Adjacent safety/workflow & Qodo Merge, GitGuardian ggshield AI Hook,
+MCP-omnisearch, GPTScript, Jujutsu, agentjj, jj-skill & Context routing
+touches review, secrets, web search, shared prompts, and VCS
+workflows \\
+\end{longtable}
+
+\section{Appendix B: Paper Matrix}\label{sec-paper-matrix}
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}@{}}
+\caption{Academic and technical works mapped to router
+implications.}\label{tbl-paper-matrix}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Work
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Task
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Context type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Main finding
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Router implication
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Evidence strength
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Work
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Task
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Context type
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Main finding
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Router implication
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Evidence strength
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+N. F. Liu et al. (2024) & QA & Long context & Position matters &
+Prioritize placement and bundle size & Peer-reviewed journal \\
+{Hsieh et al.} (2024) & Synthetic long-context & Multi-hop long context
+& Effective length varies by model/task & Calibrate per model &
+Peer-reviewed conference \\
+Rando et al. (2025) & Code QA and repair & Long repo context & Long
+context degrades unevenly on real code tasks & Avoid stuffing whole
+repos; evaluate by task & Preprint/benchmark \\
+Hong et al. (2025) & Long-context reliability & Distractors, semantic
+needles, LongMemEval, repeated words & Increasing input length alone can
+make outputs less reliable & Treat context rot as a first-class routing
+cost & Technical report \\
+Modarressi et al. (2025) & Long-context retrieval & Non-literal
+needles & Literal matching overstates long-context capability & Prefer
+semantic retrieval tests, not only lexical NIAH & Conference/preprint \\
+Fu et al. (2025) & Missing-information detection & Omitted context &
+Models struggle to identify absences even when retrieval looks easy &
+Do not equate retrieval with comprehension & Conference/preprint \\
+{Z. Z. Wang et al.} (2025) & Code generation & Retrieved docs/code &
+Retrieval helps unevenly and retrievers miss useful contexts & Adaptive
+retrieval, not fixed top-k & Peer-reviewed findings \\
+Thakur et al. (2021) & Information retrieval & Heterogeneous retrieval
+tasks & No retriever dominates zero-shot across domains & Route by task
+distribution and retriever failure mode & Peer-reviewed benchmark \\
+Khattab and Zaharia (2020) & Passage search & Late interaction &
+Token-level matching improves retrieval while allowing precomputation &
+Use late interaction when dense vectors are too lossy & Peer-reviewed
+conference \\
+Formal et al. (2021) & Information retrieval & Learned sparse
+retrieval & Sparse expansion bridges lexical auditability and semantic
+matching & Include sparse search in hybrid routing & Peer-reviewed
+conference \\
+Husain et al. (2019) & Code search & Natural-language to code & Code
+search has a language gap distinct from generic text search & Evaluate
+code retrieval separately from text retrieval & Benchmark/preprint \\
+Li et al. (2024) & Code information retrieval & Multi-task code IR &
+Code retrieval decomposes into different task families & Do not tune one
+retriever for all code questions & Preprint/benchmark \\
+Jiang et al. (2025) & Issue localization & Repository graph search &
+Graph-guided search can outperform flatter localization routes & Add
+graph search as an agentic fallback & Preprint \\
+{``{U-NIAH}''} (2025) & Long-context/RAG & Synthetic needles/distractors
+& RAG helps some models and hurts others & Model-aware routing &
+Journal/preprint \\
+F. Zhang et al. (2023) & Code completion & Iterative repo retrieval &
+Repository context improves completion & Expand context iteratively &
+Peer-reviewed conference \\
+{Ding et al.} (2023) & Code completion & Cross-file context &
+Single-file context is insufficient & Use repo-aware retrieval &
+Peer-reviewed benchmark \\
+{Liang et al.} (2024) & Code completion & Fused dual context & Context
+quality and latency trade off & Rank, truncate, and score context &
+Preprint \\
+{Phan et al.} (2025) & Code completion & Semantic graph & Graph
+retrieval outperforms flat baselines & Prefer structural retrieval when
+possible & Workshop/preprint \\
+{Y. (Sherry). Zhang et al.} (2025) & Code RAG & AST chunks & AST
+chunking improves over line chunks & Structural chunking & Preprint \\
+Brown (2026) & Practitioner source-vendoring report & Effect source tree
+& Locally vendored source gives agents implementation structure, tests,
+and examples that docs and web fetches omit & Treat source vendoring as
+a candidate route for high-idiom, high-centrality packages &
+Practitioner/vendor evidence \\
+Gao (2026a) & Framework-agent evals & AGENTS.md docs index versus skills
+& Always-on compressed docs index outperformed on-demand skill use in
+their Next.js suite & Evaluate selector/timing, not only content quality
+& Vendor engineering eval \\
+Shi et al. (2023) & Reasoning & Irrelevant context & Distractors reduce
+performance & Penalize distractor risk & Peer-reviewed conference \\
+\end{longtable}
+
+\section*{References}\label{references}
+\addcontentsline{toc}{section}{References}
+
+\protect\phantomsection\label{refs}
+\begin{CSLReferences}{1}{1}
+\bibitem[\citeproctext]{ref-agentskills2025spec}
+Agent Skills Working Group. 2025. {``Agent Skills Specification.''}
+\url{https://agentskills.io/specification}.
+
+\bibitem[\citeproctext]{ref-anthropic2025contexteng}
+Anthropic. 2025a. {``Effective Context Engineering for {AI} Agents.''}
+September 29.
+\url{https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents}.
+
+\bibitem[\citeproctext]{ref-anthropic2025skills}
+Anthropic. 2025b. {``Equipping Agents for the Real World with Agent
+Skills.''} October 16.
+\url{https://www.anthropic.com/engineering/equipping-agents-for-the-real-world-with-agent-skills}.
+
+\bibitem[\citeproctext]{ref-asai2024selfrag}
+Asai, Akari, Zeqiu Wu, Yizhong Wang, Avirup Sil, and Hannaneh
+Hajishirzi. 2024. {``Self-{RAG}: Learning to Retrieve, Generate, and
+Critique Through Self-Reflection.''} \emph{ICLR 2024}.
+\url{https://arxiv.org/abs/2310.11511}.
+
+\bibitem[\citeproctext]{ref-cline2025nondex}
+Baumann, Nick. 2025. {``Why {Cline} Doesn't Index Your Codebase (and Why
+That's a Good Thing).''} May 27.
+\url{https://cline.bot/blog/why-cline-doesnt-index-your-codebase-and-why-thats-a-good-thing}.
+
+\bibitem[\citeproctext]{ref-brown2026effect}
+Brown, Maxwell. 2026. {``The One Weird Git Trick That Makes Coding
+Agents More {Effect}-Ive.''} May 11.
+\url{https://effect.website/blog/the-one-weird-git-trick-that-makes-coding-agents-more-effect-ive/}.
+
+\bibitem[\citeproctext]{ref-ingraft2026}
+Brunner, Gunther. 2026. {``{ingraft}: The Context Router for {AI} Coding
+Agents.''} \url{https://ingraft.dev/}.
+
+\bibitem[\citeproctext]{ref-cursor2026indexing}
+Cursor. 2026. {``Securely Indexing Large Codebases.''} January 27.
+\url{https://cursor.com/blog/secure-codebase-indexing}.
+
+\bibitem[\citeproctext]{ref-ding2023crosscodeeval}
+{Ding, Yangruibo et al.} 2023. {``{CrossCodeEval}: A Diverse and
+Multilingual Benchmark for Cross-File Code Completion.''} \emph{NeurIPS
+2023 Datasets and Benchmarks Track}.
+\url{https://arxiv.org/abs/2310.11248}.
+
+\bibitem[\citeproctext]{ref-ding2024cocomic}
+Ding, Yangruibo, Zijian Wang, Wasi Uddin Ahmad, et al. 2024.
+{``{CoCoMIC}: Code Completion by Jointly Modeling in-File and Cross-File
+Context.''} \emph{Proceedings of LREC-COLING 2024}.
+\url{https://arxiv.org/abs/2212.10007}.
+
+\bibitem[\citeproctext]{ref-vercel2026agentsmd}
+Gao, Jude. 2026a. {``{AGENTS.md} Outperforms Skills in Our Agent
+Evals.''} January 27.
+\url{https://vercel.com/blog/agents-md-outperforms-skills-in-our-agent-evals}.
+
+\bibitem[\citeproctext]{ref-vercel2026nextagentspr}
+Gao, Jude. 2026b. {``Feat(next-Codemod): Add Agents-Md Command for {AI}
+Coding Agents.''} January 24.
+\url{https://github.com/vercel/next.js/pull/88961}.
+
+\bibitem[\citeproctext]{ref-gauthier2023repomap}
+Gauthier, Paul. 2023. {``Building a Better Repository Map with
+Tree-Sitter.''} October 22.
+\url{https://aider.chat/2023/10/22/repomap.html}.
+
+\bibitem[\citeproctext]{ref-a2a2025spec}
+Google, and Linux Foundation. 2025. {``Agent-to-Agent Protocol
+({A2A}).''} \url{https://a2a-protocol.org/latest/}.
+
+\bibitem[\citeproctext]{ref-llmstxt2024spec}
+Howard, Jeremy. 2024. {``The {llms.txt} Specification.''} September 3.
+\url{https://llmstxt.org/}.
+
+\bibitem[\citeproctext]{ref-hsieh2024ruler}
+{Hsieh, Cheng-Ping et al.} 2024. {``{RULER}: What's the Real Context
+Size of Your Long-Context Language Models?''} \emph{COLM 2024}.
+\url{https://arxiv.org/abs/2404.06654}.
+
+\bibitem[\citeproctext]{ref-humanlayer2025claudemd}
+HumanLayer (Kyle). 2025. {``Writing a Good {CLAUDE.md}.''} November 25.
+\url{https://www.humanlayer.dev/blog/writing-a-good-claude-md}.
+
+\bibitem[\citeproctext]{ref-liang2024repofuse}
+{Liang, Ming, Xiaoheng Xie, Gehao Zhang, Xunjin Zheng, Peng Di, et al.}
+2024. \emph{{REPOFUSE}: Repository-Level Code Completion with Fused Dual
+Context}. \url{https://arxiv.org/abs/2402.14323}.
+
+\bibitem[\citeproctext]{ref-aaif2025foundation}
+Linux Foundation. 2025. {``{Linux Foundation} Announces the Formation of
+the {Agentic AI Foundation}.''} December.
+\url{https://www.linuxfoundation.org/press/linux-foundation-announces-the-formation-of-the-agentic-ai-foundation}.
+
+\bibitem[\citeproctext]{ref-liu2024lost}
+Liu, Nelson F., Kevin Lin, John Hewitt, et al. 2024. {``Lost in the
+Middle: How Language Models Use Long Contexts.''} \emph{Transactions of
+the Association for Computational Linguistics}.
+\url{https://arxiv.org/abs/2307.03172}.
+
+\bibitem[\citeproctext]{ref-liu2024graphcoder}
+{Liu, Wei et al.} 2024. {``{GraphCoder}: Code Context Graph-Based
+Retrieval for Repository-Level Completion.''} \emph{ASE 2024}.
+\url{https://arxiv.org/abs/2406.07003}.
+
+\bibitem[\citeproctext]{ref-phan2025repohyper}
+{Phan, Huy N. et al.} 2025. {``{RepoHyper}: Search-Expand-Refine on
+Semantic Graphs for Repository-Level Code Completion.''} \emph{FORGE
+2025}. \url{https://arxiv.org/abs/2403.06095}.
+
+\bibitem[\citeproctext]{ref-longcodebench2025}
+Rando, Stefano, Luca Romani, Alessio Sampieri, et al. 2025.
+\emph{{LongCodeBench}: Evaluating Coding LLMs at 1M Context Windows}.
+arXiv preprint. \url{https://arxiv.org/abs/2505.07897}.
+
+\bibitem[\citeproctext]{ref-shi2023distracted}
+Shi, Freda, Xinyun Chen, Kanishka Misra, et al. 2023. {``Large Language
+Models Can Be Easily Distracted by Irrelevant Context.''} \emph{ICML
+2023}. \url{https://arxiv.org/abs/2302.00093}.
+
+\bibitem[\citeproctext]{ref-shrivastava2023repofusion}
+Shrivastava, Disha, Denis Kocetkov, Harm de Vries, Dzmitry Bahdanau, and
+Torsten Scholak. 2023. \emph{{RepoFusion}: Training Code Models to
+Understand Your Repository}. arXiv preprint.
+\url{https://arxiv.org/abs/2306.10998}.
+
+\bibitem[\citeproctext]{ref-sourcegraph2024scip}
+Sourcegraph. 2024. {``{SCIP} --- {SourceCode Indexing Protocol}.''}
+\url{https://github.com/sourcegraph/scip}.
+
+\bibitem[\citeproctext]{ref-sourcegraph2025amp}
+Sourcegraph. 2025. {``Why {Sourcegraph} and {Amp} Are Becoming
+Independent Companies.''} December.
+\url{https://sourcegraph.com/blog/why-sourcegraph-and-amp-are-becoming-independent-companies}.
+
+\bibitem[\citeproctext]{ref-uniah2025}
+{``{U-NIAH}: Unified {RAG} and {LLM} Evaluation for Long Context
+Needle-in-a-Haystack.''} 2025. \emph{ACM Transactions on Information
+Systems}. \url{https://arxiv.org/abs/2503.00353}.
+
+\bibitem[\citeproctext]{ref-vercel2026nextevalsoss}
+Vercel. 2026. {``{next-evals-oss}: Agent Evaluations for {Next.js}
+Coding Tasks.''} \url{https://github.com/vercel/next-evals-oss}.
+
+\bibitem[\citeproctext]{ref-latentspace2025claudecode}
+Wang, Shawn (swyx), and Alessio Trotta. 2025. {``{Latent Space} Podcast:
+{Claude Code} with Boris Cherny and Catherine Wu.''} May 7.
+\url{https://www.latent.space/p/claude-code}.
+
+\bibitem[\citeproctext]{ref-wang2025coderagbench}
+{Wang, Zora Zhiruo et al.} 2025. {``{CodeRAG-Bench}: Can Retrieval
+Augment Code Generation?''} \emph{NAACL Findings 2025}.
+\url{https://arxiv.org/abs/2406.14497}.
+
+\bibitem[\citeproctext]{ref-zed2025acp}
+Zed Industries. 2025. {``Agent Client Protocol ({ACP}).''}
+\url{https://zed.dev/acp}.
+
+\bibitem[\citeproctext]{ref-zhang2023repocoder}
+Zhang, Fengji, Bei Chen, Yue Zhang, et al. 2023. {``{RepoCoder}:
+Repository-Level Code Completion Through Iterative Retrieval and
+Generation.''} \emph{Proceedings of EMNLP 2023}.
+\url{https://arxiv.org/abs/2303.12570}.
+
+\bibitem[\citeproctext]{ref-zhang2025cast}
+{Zhang, Yilin (Sherry) et al.} 2025. \emph{{cAST}: Enhancing Code RAG
+with Structural Chunking via Abstract Syntax Tree}.
+\url{https://arxiv.org/abs/2506.15655}.
+
+\bibitem[\citeproctext]{ref-chen2024bgem3}
+Chen, Jianlv, Shitao Xiao, Peitian Zhang, Kun Luo, Defu Lian, and Zheng
+Liu. 2024. \emph{{BGE M3}-Embedding: Multi-Lingual,
+Multi-Functionality, Multi-Granularity Text Embeddings Through
+Self-Knowledge Distillation}. arXiv preprint.
+\url{https://arxiv.org/abs/2402.03216}.
+
+\bibitem[\citeproctext]{ref-formal2021splade}
+Formal, Thibault, Benjamin Piwowarski, and Stéphane Clinchant. 2021.
+{``{SPLADE}: Sparse Lexical and Expansion Model for First Stage
+Ranking.''} \emph{SIGIR 2021}. \url{https://arxiv.org/abs/2107.05720}.
+
+\bibitem[\citeproctext]{ref-fu2025absencebench}
+Fu, Harvey Yiyun, Aryan Shrivastava, Jared Moore, Peter West, Chenhao
+Tan, and Ari Holtzman. 2025. {``AbsenceBench: Language Models Can't Tell
+What's Missing.''} \emph{NeurIPS 2025 Datasets and Benchmarks Track}.
+\url{https://arxiv.org/abs/2506.11440}.
+
+\bibitem[\citeproctext]{ref-hong2025contextrot}
+Hong, Kelly, Anton Troynikov, and Jeff Huber. 2025. {``Context Rot: How
+Increasing Input Tokens Impacts LLM Performance.''} Chroma Technical
+Report. \url{https://trychroma.com/research/context-rot}.
+
+\bibitem[\citeproctext]{ref-husain2019codesearchnet}
+Husain, Hamel, Ho-Hsiang Wu, Tiferet Gazit, Miltiadis Allamanis, and
+Marc Brockschmidt. 2019. \emph{CodeSearchNet Challenge: Evaluating the
+State of Semantic Code Search}. arXiv preprint.
+\url{https://arxiv.org/abs/1909.09436}.
+
+\bibitem[\citeproctext]{ref-jiang2025cosil}
+Jiang, Zhonghao, Xiaoxue Ren, Meng Yan, Wei Jiang, Yong Li, and Zhongxin
+Liu. 2025. \emph{{CoSIL}: Software Issue Localization via LLM-Driven
+Code Repository Graph Searching}. arXiv preprint.
+\url{https://arxiv.org/abs/2503.22424}.
+
+\bibitem[\citeproctext]{ref-khattab2020colbert}
+Khattab, Omar, and Matei Zaharia. 2020. {``{ColBERT}: Efficient and
+Effective Passage Search via Contextualized Late Interaction over
+BERT.''} \emph{Proceedings of SIGIR 2020}, 39--48.
+\url{https://doi.org/10.1145/3397271.3401075}.
+
+\bibitem[\citeproctext]{ref-lee2024mxbaiembed}
+Lee, Sean, Aamir Shakir, Darius Koenig, and Julius Lipp. 2024a. {``Open
+Source Strikes Bread -- New Fluffy Embedding Model.''} Mixedbread.
+\url{https://www.mixedbread.com/blog/mxbai-embed-large-v1}.
+
+\bibitem[\citeproctext]{ref-lee2024mxbaicolbert}
+Lee, Sean, Aamir Shakir, Darius Koenig, and Julius Lipp. 2024b.
+{``ColBERTus Maximus -- Introducing mxbai-colbert-large-v1.''}
+Mixedbread. \url{https://www.mixedbread.com/blog/mxbai-colbert-large-v1}.
+
+\bibitem[\citeproctext]{ref-li2024coir}
+Li, Xiangyang, Kuicai Dong, Yi Quan Lee, Wei Xia, Yichun Yin, Hao Zhang,
+Yong Liu, Yasheng Wang, and Ruiming Tang. 2024. \emph{{CoIR}: A
+Comprehensive Benchmark for Code Information Retrieval Models}. arXiv
+preprint. \url{https://arxiv.org/abs/2407.02883}.
+
+\bibitem[\citeproctext]{ref-mixedbread2026mgrep}
+Mixedbread AI. 2026. {``mgrep: Semantic Search for Agents.''}
+\url{https://www.mgrep.dev/}.
+
+\bibitem[\citeproctext]{ref-modarressi2025nolima}
+Modarressi, Ali, Hanieh Deilamsalehy, Franck Dernoncourt, Trung Bui,
+Ryan A. Rossi, Seunghyun Yoon, and Hinrich Schütze. 2025.
+{``NoLiMa: Long-Context Evaluation Beyond Literal Matching.''}
+\emph{International Conference on Machine Learning}.
+\url{https://arxiv.org/abs/2502.05167}.
+
+\bibitem[\citeproctext]{ref-mohsenimofidi2025contextoss}
+Mohsenimofidi, Seyedmoein, Matthias Galster, Christoph Treude, and
+Sebastian Baltes. 2025. \emph{Context Engineering for AI Agents in
+Open-Source Software}. arXiv preprint.
+\url{https://arxiv.org/abs/2510.21413}.
+
+\bibitem[\citeproctext]{ref-muennighoff2023mteb}
+Muennighoff, Niklas, Nouamane Tazi, Loic Magne, and Nils Reimers. 2023.
+{``{MTEB}: Massive Text Embedding Benchmark.''} \emph{Proceedings of
+EACL 2023}. \url{https://arxiv.org/abs/2210.07316}.
+
+\bibitem[\citeproctext]{ref-robertson2009bm25}
+Robertson, Stephen, and Hugo Zaragoza. 2009. {``The Probabilistic
+Relevance Framework: {BM25} and Beyond.''} \emph{Foundations and Trends
+in Information Retrieval} 3 (4): 333--389.
+\url{https://doi.org/10.1561/1500000019}.
+
+\bibitem[\citeproctext]{ref-santhanam2022colbertv2}
+Santhanam, Keshav, Omar Khattab, Jon Saad-Falcon, Christopher Potts, and
+Matei Zaharia. 2022a. {``{ColBERTv2}: Effective and Efficient Retrieval
+via Lightweight Late Interaction.''} \emph{NAACL 2022}.
+\url{https://aclanthology.org/2022.naacl-main.272/}.
+
+\bibitem[\citeproctext]{ref-santhanam2022plaid}
+Santhanam, Keshav, Omar Khattab, Christopher Potts, and Matei Zaharia.
+2022b. \emph{{PLAID}: An Efficient Engine for Late Interaction
+Retrieval}. arXiv preprint. \url{https://arxiv.org/abs/2205.09707}.
+
+\bibitem[\citeproctext]{ref-thakur2021beir}
+Thakur, Nandan, Nils Reimers, Andreas Rücklé, Abhishek Srivastava, and
+Iryna Gurevych. 2021. {``{BEIR}: A Heterogeneous Benchmark for
+Zero-Shot Evaluation of Information Retrieval Models.''} \emph{NeurIPS
+2021 Datasets and Benchmarks Track}.
+\url{https://openreview.net/forum?id=wCu6T5xFjeJ}.
+
+\bibitem[\citeproctext]{ref-thakur2025freshstack}
+Thakur, Nandan, Jimmy Lin, Sam Havens, Michael Carbin, Omar Khattab, and
+Andrew Drozdov. 2025. {``FreshStack: Building Realistic Benchmarks for
+Evaluating Retrieval on Technical Documents.''} \emph{NeurIPS 2025
+Datasets and Benchmarks Track}. \url{https://arxiv.org/abs/2504.13128}.
+
+\end{CSLReferences}
+
+
+
+
+\end{document}

@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect"
 
-export const VENDOR_STRATEGIES = ["subtree", "submodule", "clone-ignore"] as const
+export const VENDOR_STRATEGIES = ["subtree", "submodule", "clone-ignore", "cache-link"] as const
 
 export const VendorStrategySchema = Schema.Literals(VENDOR_STRATEGIES)
 
@@ -28,7 +28,7 @@ export const effectiveVendorStrategy = ({
   jjColocated,
   requested
 }: EffectiveVendorStrategyParams): VendorStrategy =>
-  jjColocated && requested !== "clone-ignore" ? "clone-ignore" : requested
+  jjColocated && !isLocalIgnoredVendorStrategy(requested) ? "clone-ignore" : requested
 
 export const resolveVendorStrategyPreference = ({
   recommended,
@@ -44,5 +44,10 @@ export const strategyLabel = (strategy: VendorStrategy): string => {
       return "submodule"
     case "clone-ignore":
       return "clone-ignore"
+    case "cache-link":
+      return "cache-link"
   }
 }
+
+export const isLocalIgnoredVendorStrategy = (strategy: VendorStrategy): boolean =>
+  strategy === "clone-ignore" || strategy === "cache-link"

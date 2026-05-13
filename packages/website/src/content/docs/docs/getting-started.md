@@ -56,8 +56,9 @@ fork-backed submodule is the recommended workflow for durable vendor patches:
 ingraft add your-org/effect --strategy submodule --ref vendor-patches
 ```
 
-Use `subtree` for normal read-only reference source and `clone-ignore` for local
-experiments that should not be committed.
+Use `subtree` for normal read-only reference source, `clone-ignore` for local
+experiments that should not be committed, and `cache-link` when multiple local
+projects should share the same large read-only checkout.
 
 ## Where source goes
 

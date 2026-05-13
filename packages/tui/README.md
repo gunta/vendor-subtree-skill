@@ -20,5 +20,5 @@ Keys:
 - `y` / `n`: run or cancel after confirmation
 - `r`: refresh the dependency scan
 - `tab`, `h`, `l`: switch dashboard tabs
-- `1`, `2`, `3`: choose add strategy (`subtree`, `submodule`, `clone-ignore`)
+- `1`, `2`, `3`, `4`: choose add strategy (`subtree`, `submodule`, `clone-ignore`, `cache-link`)
 - `q`: quit

@@ -10,6 +10,7 @@ import {
   TRAILER_DIR,
   TRAILER_FILTER,
   TRAILER_REF,
+  TRAILER_RESOLVED_REF,
   TRAILER_STRATEGY,
   TRAILER_SYNC_PACKAGE,
   TRAILER_URL,
@@ -35,6 +36,7 @@ import {
 import { findByName, listVendored, type VendoredRepo } from "../domain/vendor-state.ts"
 import {
   effectiveVendorStrategy,
+  isLocalIgnoredVendorStrategy,
   resolveVendorStrategyPreference,
   type VendorStrategy
 } from "../domain/vendor-strategy.ts"
@@ -50,6 +52,7 @@ import {
   type PackageEcosystem,
   type PackageVersionResolution
 } from "../package-sync/service.ts"
+import { ensureCacheLinkCheckout, linkCacheCheckout } from "../project/cache-link.ts"
 import { checkoutFilteredRepo, materializeFilteredRepo } from "../project/filtered-checkout.ts"
 import { updateGitignore } from "../project/gitignore.ts"
 import { ProjectFiles } from "../project/service.ts"
@@ -108,6 +111,7 @@ interface SubtreeAddMessageParams {
   readonly name: string
   readonly prefix: string
   readonly ref: string
+  readonly resolvedRef?: Option.Option<string>
   readonly url: string
   readonly strategy: VendorStrategy
   readonly filter: VendorFilter
@@ -291,10 +295,11 @@ const addStrategyOption = Flag.choiceWithValue("strategy", [
   ["subtree", "subtree"],
   ["submodule", "submodule"],
   ["clone-ignore", "clone-ignore"],
-  ["clone", "clone-ignore"]
+  ["clone", "clone-ignore"],
+  ["cache-link", "cache-link"]
 ] as const).pipe(
   Flag.withDescription(
-    "Vendoring strategy: subtree commits source, submodule commits a gitlink, clone-ignore clones locally and gitignores it."
+    "Vendoring strategy: subtree commits source, submodule commits a gitlink, clone-ignore clones locally, cache-link uses a shared cache symlink."
   ),
   Flag.optional
 )
@@ -458,17 +463,26 @@ const syncPackageTrailer = (syncPackage: Option.Option<string>): string =>
     onSome: (value) => `\n${TRAILER_SYNC_PACKAGE}: ${value}`
   })
 
+const resolvedRefTrailer = (resolvedRef: Option.Option<string> | undefined): string =>
+  resolvedRef === undefined
+    ? ""
+    : Option.match(resolvedRef, {
+        onNone: () => "",
+        onSome: (value) => `\n${TRAILER_RESOLVED_REF}: ${value}`
+      })
+
 const subtreeAddMessage = ({
   action = "upsert",
   filter,
   name,
   prefix,
   ref,
+  resolvedRef,
   strategy,
   syncPackage,
   url
 }: SubtreeAddMessageParams) =>
-  `vendor: add ${name} (${url}@${ref}) [${strategy}]\n\n${TRAILER_DIR}: ${prefix}\n${TRAILER_URL}: ${url}\n${TRAILER_REF}: ${ref}\n${TRAILER_STRATEGY}: ${strategy}\n${TRAILER_ACTION}: ${action}${filterTrailer(filter)}${syncPackageTrailer(syncPackage)}`
+  `vendor: add ${name} (${url}@${ref}) [${strategy}]\n\n${TRAILER_DIR}: ${prefix}\n${TRAILER_URL}: ${url}\n${TRAILER_REF}: ${ref}${resolvedRefTrailer(resolvedRef)}\n${TRAILER_STRATEGY}: ${strategy}\n${TRAILER_ACTION}: ${action}${filterTrailer(filter)}${syncPackageTrailer(syncPackage)}`
 
 const ensureNewVendorTarget = ({
   cwd,
@@ -825,7 +839,7 @@ const addCloneIgnore = ({
       cwd,
       prefixes: [
         ...existingRepos
-          .filter((repo) => repo.strategy === "clone-ignore")
+          .filter((repo) => isLocalIgnoredVendorStrategy(repo.strategy))
           .map((repo) => repo.prefix),
         finalPrefix
       ]
@@ -859,6 +873,57 @@ const addCloneIgnore = ({
     }
   })
 
+const addCacheLink = ({
+  cwd,
+  existingRepos,
+  filter,
+  finalName,
+  finalPrefix,
+  finalRef,
+  syncPackage,
+  strategy,
+  url
+}: AddStrategyParams) =>
+  Effect.gen(function* () {
+    const checkout = yield* ensureCacheLinkCheckout({
+      action: "add",
+      cwd,
+      ref: finalRef,
+      strategy,
+      url
+    })
+    yield* linkCacheCheckout({
+      cachePath: checkout.cachePath,
+      cwd,
+      prefix: finalPrefix
+    })
+    yield* updateGitignore({
+      cwd,
+      prefixes: [
+        ...existingRepos
+          .filter((repo) => isLocalIgnoredVendorStrategy(repo.strategy))
+          .map((repo) => repo.prefix),
+        finalPrefix
+      ]
+    })
+    const message = subtreeAddMessage({
+      filter,
+      name: finalName,
+      prefix: finalPrefix,
+      ref: finalRef,
+      resolvedRef: Option.some(checkout.resolvedRef),
+      strategy,
+      syncPackage,
+      url
+    })
+    const committed = yield* commitPathsIfChanged({
+      cwd,
+      paths: [".gitignore"],
+      message
+    })
+    if (!committed) yield* emptyCommit({ cwd, message })
+  })
+
 const addByStrategy = (params: AddStrategyParams) => {
   switch (params.strategy) {
     case "subtree":
@@ -867,6 +932,8 @@ const addByStrategy = (params: AddStrategyParams) => {
       return addSubmodule(params)
     case "clone-ignore":
       return addCloneIgnore(params)
+    case "cache-link":
+      return addCacheLink(params)
   }
 }
 
@@ -957,12 +1024,17 @@ export const addImpl = ({
       excludeExtensions,
       maxFileSize: Option.getOrNull(maxFileSize)
     })
-    if (finalStrategy === "submodule" && hasVendorFilter(filter)) {
+    if (
+      (finalStrategy === "submodule" || finalStrategy === "cache-link") &&
+      hasVendorFilter(filter)
+    ) {
       return yield* Effect.fail(
         new UnsupportedVendorFilter({
           strategy: finalStrategy,
           reason:
-            "submodules commit a gitlink to the upstream repository, so ignored files cannot be represented portably in the parent repo"
+            finalStrategy === "submodule"
+              ? "submodules commit a gitlink to the upstream repository, so ignored files cannot be represented portably in the parent repo"
+              : "cache-link points vendor paths at a shared read-only checkout; filtered materialization needs a project-local strategy"
         })
       )
     }
@@ -1100,6 +1172,6 @@ export const addCmd = Command.make(
   addManyImpl
 ).pipe(
   Command.withDescription(
-    "Add one or more vendored repositories, aliases, npm packages, or hex:<package> packages using subtree, submodule, or clone-ignore strategy metadata."
+    "Add one or more vendored repositories, aliases, npm packages, or hex:<package> packages using subtree, submodule, clone-ignore, or cache-link strategy metadata."
   )
 )

@@ -11,6 +11,7 @@ import {
   Schema,
   Stream
 } from "effect"
+import { HttpClient, HttpClientRequest } from "effect/unstable/http"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { parse as parseJsonc, type ParseError } from "jsonc-parser"
 
@@ -1367,19 +1368,21 @@ const npmLatestMetadata = (
 const hexPackageMetadata = (
   _cwd: string,
   packageName: string
-): Effect.Effect<Option.Option<HexPackageMetadata>> => {
+): Effect.Effect<Option.Option<HexPackageMetadata>, never, HttpClient.HttpClient> => {
   const url = `https://hex.pm/api/packages/${encodeURIComponent(packageName)}`
-  return Effect.tryPromise({
-    try: async () => {
-      const response = await fetch(url, {
-        headers: {
-          accept: "application/json"
-        }
-      })
-      if (!response.ok) return Option.none<HexPackageMetadata>()
-      return parseHexPackageMetadata(await response.text())
-    },
-    catch: (cause) => new MetadataFetchFailed({ source: "hex", url, cause })
+  return Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    const request = HttpClientRequest.get(url).pipe(HttpClientRequest.accept("application/json"))
+    const response = yield* client
+      .execute(request)
+      .pipe(Effect.mapError((cause) => new MetadataFetchFailed({ source: "hex", url, cause })))
+    if (response.status < 200 || response.status >= 300) {
+      return Option.none<HexPackageMetadata>()
+    }
+    const text = yield* response.text.pipe(
+      Effect.mapError((cause) => new MetadataFetchFailed({ source: "hex", url, cause }))
+    )
+    return parseHexPackageMetadata(text)
   }).pipe(Effect.catch(() => Effect.succeed(Option.none<HexPackageMetadata>())))
 }
 
@@ -1417,7 +1420,9 @@ const parseMavenLatestVersion = (text: string): Option.Option<string> =>
     })
   )
 
-const mavenLatestVersion = (packageName: string): Effect.Effect<Option.Option<string>> =>
+const mavenLatestVersion = (
+  packageName: string
+): Effect.Effect<Option.Option<string>, never, HttpClient.HttpClient> =>
   Option.match(mavenPackageParts(packageName), {
     onNone: () => Effect.succeed(Option.none<string>()),
     onSome: ({ artifact, group }) => {
@@ -1427,15 +1432,27 @@ const mavenLatestVersion = (packageName: string): Effect.Effect<Option.Option<st
         wt: "json"
       })
       const url = `${MAVEN_CENTRAL_SEARCH_URL}?${params.toString()}`
-      return Effect.tryPromise({
-        try: async () => {
-          const response = await fetch(url, {
-            headers: { accept: "application/json" }
-          })
-          if (!response.ok) return Option.none<string>()
-          return parseMavenLatestVersion(await response.text())
-        },
-        catch: (cause) => new MetadataFetchFailed({ source: "maven-search", url, cause })
+      return Effect.gen(function* () {
+        const client = yield* HttpClient.HttpClient
+        const request = HttpClientRequest.get(url).pipe(
+          HttpClientRequest.accept("application/json")
+        )
+        const response = yield* client
+          .execute(request)
+          .pipe(
+            Effect.mapError(
+              (cause) => new MetadataFetchFailed({ source: "maven-search", url, cause })
+            )
+          )
+        if (response.status < 200 || response.status >= 300) {
+          return Option.none<string>()
+        }
+        const text = yield* response.text.pipe(
+          Effect.mapError(
+            (cause) => new MetadataFetchFailed({ source: "maven-search", url, cause })
+          )
+        )
+        return parseMavenLatestVersion(text)
       }).pipe(Effect.catch(() => Effect.succeed(Option.none<string>())))
     }
   })
@@ -1443,7 +1460,7 @@ const mavenLatestVersion = (packageName: string): Effect.Effect<Option.Option<st
 const mavenMetadataVersion = (
   packageName: string,
   version: string
-): Effect.Effect<Option.Option<string>> => {
+): Effect.Effect<Option.Option<string>, never, HttpClient.HttpClient> => {
   const exactVersion = nonEmptyVersion(version)
   return Option.isSome(exactVersion)
     ? Effect.succeed(exactVersion)
@@ -1453,7 +1470,7 @@ const mavenMetadataVersion = (
 const mavenPackageMetadata = (
   packageName: string,
   version: string
-): Effect.Effect<Option.Option<MavenPackageMetadata>> =>
+): Effect.Effect<Option.Option<MavenPackageMetadata>, never, HttpClient.HttpClient> =>
   Option.match(mavenPackageParts(packageName), {
     onNone: () => Effect.succeed(Option.none<MavenPackageMetadata>()),
     onSome: (parts) =>
@@ -1463,22 +1480,34 @@ const mavenPackageMetadata = (
             onNone: () => Effect.succeed(Option.none<MavenPackageMetadata>()),
             onSome: (resolvedVersion) => {
               const url = mavenPomUrl({ ...parts, version: resolvedVersion })
-              return Effect.tryPromise({
-                try: async () => {
-                  const response = await fetch(url, {
-                    headers: { accept: "application/xml,text/xml" }
-                  })
-                  if (!response.ok) return Option.none<MavenPackageMetadata>()
-                  return parseMavenPomMetadata(await response.text()).pipe(
-                    Option.orElse(() =>
-                      Option.some({
-                        repositoryUrl: Option.none<string>(),
-                        version: resolvedVersion
-                      })
+              return Effect.gen(function* () {
+                const client = yield* HttpClient.HttpClient
+                const request = HttpClientRequest.get(url).pipe(
+                  HttpClientRequest.accept("application/xml,text/xml")
+                )
+                const response = yield* client
+                  .execute(request)
+                  .pipe(
+                    Effect.mapError(
+                      (cause) => new MetadataFetchFailed({ source: "maven-pom", url, cause })
                     )
                   )
-                },
-                catch: (cause) => new MetadataFetchFailed({ source: "maven-pom", url, cause })
+                if (response.status < 200 || response.status >= 300) {
+                  return Option.none<MavenPackageMetadata>()
+                }
+                const text = yield* response.text.pipe(
+                  Effect.mapError(
+                    (cause) => new MetadataFetchFailed({ source: "maven-pom", url, cause })
+                  )
+                )
+                return parseMavenPomMetadata(text).pipe(
+                  Option.orElse(() =>
+                    Option.some({
+                      repositoryUrl: Option.none<string>(),
+                      version: resolvedVersion
+                    })
+                  )
+                )
               }).pipe(Effect.catch(() => Effect.succeed(Option.none<MavenPackageMetadata>())))
             }
           })

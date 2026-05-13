@@ -54,6 +54,7 @@ ingraft add Effect-TS/effect --exclude-dir docs --exclude '*.snap'
 ingraft add Effect-TS/effect --strategy subtree
 ingraft add Effect-TS/effect --strategy submodule
 ingraft add Effect-TS/effect --strategy clone-ignore
+ingraft add Effect-TS/effect --strategy cache-link
 ingraft add Effect-TS/effect --cloudflare-artifact
 ingraft update effect
 ingraft update --all
@@ -79,7 +80,7 @@ Running `ingraft` with no arguments opens the interactive dashboard. Use `ingraf
 Common repositories can be addressed with short aliases from
 `src/aliases/repository-aliases.json`. That database is also where the CLI keeps
 community-maintained strategy recommendations for repositories that are known to
-work better as a `submodule` or `clone-ignore` target. Explicit `--strategy`
+work better as a `submodule`, `clone-ignore`, or `cache-link` target. Explicit `--strategy`
 flags always win over those recommendations.
 
 ```sh
@@ -140,8 +141,9 @@ configured version selector is ignored for that command.
 - `subtree` - default committed source snapshot via `git subtree`.
 - `submodule` - gitlink for repositories that should not be committed into the host repository.
 - `clone-ignore` - local clone under `vendor/` plus generated `.gitignore` entries.
+- `cache-link` - ignored symlink under `vendor/` pointing at a shared resolved-commit checkout in the ingraft cache.
 
-When a collocated `jj` repository is detected, `add` falls back to `clone-ignore` because jj still does not model git subtree and submodule workflows as first-class operations.
+When a collocated `jj` repository is detected, `add` falls back to `clone-ignore` unless `cache-link` was explicitly requested, because both local strategies avoid git subtree and submodule mutations.
 
 ### Editable vendors
 
@@ -153,7 +155,7 @@ ingraft add your-org/effect --strategy submodule --ref vendor-patches
 
 Make changes inside `vendor/<name>/`, commit and push them inside the submodule, then commit the updated submodule pointer in the parent repository. This keeps vendor patch history in the fork, makes upstream pull requests straightforward, and avoids mixing ongoing vendor development into the host repository history.
 
-Use `subtree` for editable vendors only when the patch is intentionally private to the host project and every clone must include the patched files without submodule initialization. Use `clone-ignore` only for local experiments that do not need team-visible commits.
+Use `subtree` for editable vendors only when the patch is intentionally private to the host project and every clone must include the patched files without submodule initialization. Use `clone-ignore` only for local experiments that do not need team-visible commits, and `cache-link` for shared read-only local references.
 
 ## Dangerous History Rewrites
 

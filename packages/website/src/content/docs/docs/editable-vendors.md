@@ -68,11 +68,13 @@ target back to the upstream repository or a release tag.
 | Large read-only source that should not enter parent history | `submodule`             |
 | Durable vendor patches, forks, or upstream PRs              | fork-backed `submodule` |
 | Local experiment that should not be committed               | `clone-ignore`          |
+| Shared read-only local reference across projects            | `cache-link`            |
 | Colocated `jj` workspace                                    | `clone-ignore`          |
 
-`clone-ignore` is useful for debugging and local exploration, but it is not a
-team-visible patch workflow. If a change matters, move it to a fork-backed
-submodule or commit it intentionally through `subtree`.
+`clone-ignore` is useful for debugging and local exploration, and `cache-link`
+is useful for shared read-only local references. Neither is a team-visible patch
+workflow. If a change matters, move it to a fork-backed submodule or commit it
+intentionally through `subtree`.
 
 ## Agent Instructions
 
@@ -83,6 +85,8 @@ When using editable vendors, update agent docs with the ownership rule:
   submodule first
 - clone-ignore vendors: local scratch only, do not rely on changes for CI or
   review
+- cache-link vendors: shared read-only cache source, recreate links instead of
+  editing through `vendor/`
 
 This prevents coding agents from accidentally editing reference-only source while
 still giving them a clear path for deliberate vendor patches.

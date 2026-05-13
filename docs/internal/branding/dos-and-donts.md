@@ -23,13 +23,13 @@ Quick reference. When in doubt, default to the simpler / lowercase / less-shouty
 
 ## Mechanism vs brand
 
-The tool does **vendoring** using one of three **strategies**: `subtree`, `submodule`, or `clone-ignore`. The brand `Ingraft` is method-agnostic; never let mechanism names creep into product copy.
+The tool does **vendoring** using one of four **strategies**: `subtree`, `submodule`, `clone-ignore`, or `cache-link`. The brand `Ingraft` is method-agnostic; never let mechanism names creep into product copy.
 
-| Do                                   | Don't                                   |
-| ------------------------------------ | --------------------------------------- |
-| "Ingraft vendors upstream source."   | "Ingraft is a git subtree tool."        |
-| "Use `--strategy submodule` for X."  | "Use the submodule version of Ingraft." |
-| "Ingraft supports three strategies." | "Ingraft = git subtree."                |
+| Do                                      | Don't                                   |
+| --------------------------------------- | --------------------------------------- |
+| "Ingraft vendors upstream source."      | "Ingraft is a git subtree tool."        |
+| "Use `--strategy submodule` for X."     | "Use the submodule version of Ingraft." |
+| "Ingraft supports multiple strategies." | "Ingraft = git subtree."                |
 
 ## Agent context
 

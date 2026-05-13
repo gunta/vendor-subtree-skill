@@ -145,7 +145,7 @@ In Maxwell Brown's blog post, the Effect team argued (qualitatively) that agents
 
 **npm**: [`ingraft`](https://www.npmjs.com/package/ingraft) · **Skill**: `ingraft` (Claude Code)
 
-Opinionated, multi-strategy CLI that wraps git subtree (and submodule / clone-ignore as fallbacks). Distributed both as a standalone npm package and as a Claude Code skill. Built on Effect-TS.
+Opinionated, multi-strategy CLI that wraps git subtree, git submodules, local ignored clones, and shared cache-linked checkouts. Distributed both as a standalone npm package and as a Claude Code skill. Built on Effect-TS.
 
 ```bash
 bunx ingraft@latest                          # scan package.json, ask what to vendor
@@ -155,6 +155,7 @@ bunx ingraft@latest add effect --tag v3.21.2 # pin to a tag
 bunx ingraft@latest add effect --sync-package effect      # follow npm version
 bunx ingraft@latest add effect --strategy submodule       # alt strategy
 bunx ingraft@latest add effect --strategy clone-ignore    # alt strategy
+bunx ingraft@latest add effect --strategy cache-link      # shared local cache
 bunx ingraft@latest add effect --exclude-dir docs --max-file-size 1MB
 bunx ingraft@latest update --all
 bunx ingraft@latest doctor                   # diagnose hygiene
@@ -178,6 +179,7 @@ flowchart TB
   Strategy -->|default| Subtree["git subtree<br/>(committed)"]
   Strategy -->|"--strategy submodule"| Sub["git submodule"]
   Strategy -->|"--strategy clone-ignore"| Clone["git clone +<br/>.gitignore"]
+  Strategy -->|"--strategy cache-link"| Cache["shared cache +<br/>vendor symlink"]
 
   Doctor --> Mono["Monorepo aware:<br/>Turbo, Nx, pnpm, moon,<br/>Bazel, Rush, Lage, Pants,<br/>Buck2, Gradle, Maven, ..."]
 
@@ -187,7 +189,7 @@ flowchart TB
 
 | ✅ Strengths                                                                                               | ❌ Weaknesses                        |
 | ---------------------------------------------------------------------------------------------------------- | ------------------------------------ |
-| **Three strategies**: subtree / submodule / clone-ignore                                                   | Newer project, small community       |
+| **Four strategies**: subtree / submodule / clone-ignore / cache-link                                       | Newer project, small community       |
 | **Auto-scans package manifests** for candidates                                                            | Multi-strategy surface area to learn |
 | **Repo aliases**: `effect` → `Effect-TS/effect`                                                            | Effect-TS dependency (internal)      |
 | **Package-version sync** (`--sync-package`)                                                                |                                      |
@@ -618,26 +620,26 @@ The MCP server's **codemode pattern**: agents write JavaScript that runs server-
 
 Three projects wrap `git subtree` for agent vendoring. All inspired by the Effect post; all created within weeks of each other in 2026.
 
-| Feature                             | Raw `git subtree` | **ingraft** (this project)            | **Vendir**        |
-| ----------------------------------- | ----------------- | ------------------------------------- | ----------------- |
-| **Strategies**                      | Subtree only      | Subtree + submodule + clone-ignore    | Subtree only      |
-| **Config file**                     | None              | Inferred from git + targets           | `vendir.toml`     |
-| **Package manifest scan**           | ❌                | ✅ — scans `package.json` / lockfiles | ❌                |
-| **Repository aliases**              | ❌                | ✅ — `effect` → `Effect-TS/effect`    | ❌                |
-| **Package version sync**            | ❌                | ✅ — `--sync-package <name>`          | ❌                |
-| **File filtering**                  | ❌                | ✅ — ext / dir / globs / size         | ❌                |
-| **Ref / tag / release pinning**     | Manual            | ✅ — `--ref` / `--tag` / `--release`  | Branch only       |
-| **`.gitattributes` linguist mgmt**  | ❌                | ✅                                    | ✅                |
-| **IDE excludes (VS Code / Cursor)** | ❌                | ✅                                    | ✅ (VS Code)      |
-| **Repair command**                  | ❌                | `doctor --fix`                        | `doctor --fix`    |
-| **Monorepo support**                | ❌                | ✅ — 13 build systems                 | ❌                |
-| **Optional context-tool routing**   | ❌                | ✅ — Repomix / OpenSrc / Repobase     | ❌                |
-| **Agent skill distribution**        | ❌                | ✅ — `ingraft`                        | ❌                |
-| **History-rewrite removal**         | Manual            | `--dangerously-rewrite-history`       | ❌                |
-| **Cloudflare artifact**             | ❌                | ✅                                    | ❌                |
-| **Language / runtime**              | Git               | TypeScript + Effect-TS (Node)         | TypeScript (Node) |
-| **License**                         | —                 | MIT                                   | MIT               |
-| **Created**                         | —                 | 2026                                  | 2026-05-12        |
+| Feature                             | Raw `git subtree` | **ingraft** (this project)                      | **Vendir**        |
+| ----------------------------------- | ----------------- | ----------------------------------------------- | ----------------- |
+| **Strategies**                      | Subtree only      | Subtree + submodule + clone-ignore + cache-link | Subtree only      |
+| **Config file**                     | None              | Inferred from git + targets                     | `vendir.toml`     |
+| **Package manifest scan**           | ❌                | ✅ — scans `package.json` / lockfiles           | ❌                |
+| **Repository aliases**              | ❌                | ✅ — `effect` → `Effect-TS/effect`              | ❌                |
+| **Package version sync**            | ❌                | ✅ — `--sync-package <name>`                    | ❌                |
+| **File filtering**                  | ❌                | ✅ — ext / dir / globs / size                   | ❌                |
+| **Ref / tag / release pinning**     | Manual            | ✅ — `--ref` / `--tag` / `--release`            | Branch only       |
+| **`.gitattributes` linguist mgmt**  | ❌                | ✅                                              | ✅                |
+| **IDE excludes (VS Code / Cursor)** | ❌                | ✅                                              | ✅ (VS Code)      |
+| **Repair command**                  | ❌                | `doctor --fix`                                  | `doctor --fix`    |
+| **Monorepo support**                | ❌                | ✅ — 13 build systems                           | ❌                |
+| **Optional context-tool routing**   | ❌                | ✅ — Repomix / OpenSrc / Repobase               | ❌                |
+| **Agent skill distribution**        | ❌                | ✅ — `ingraft`                                  | ❌                |
+| **History-rewrite removal**         | Manual            | `--dangerously-rewrite-history`                 | ❌                |
+| **Cloudflare artifact**             | ❌                | ✅                                              | ❌                |
+| **Language / runtime**              | Git               | TypeScript + Effect-TS (Node)                   | TypeScript (Node) |
+| **License**                         | —                 | MIT                                             | MIT               |
+| **Created**                         | —                 | 2026                                            | 2026-05-12        |
 
 **TL;DR**:
 

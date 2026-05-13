@@ -58,7 +58,8 @@ const depsStrategyOption = Flag.choiceWithValue("strategy", [
   ["subtree", "subtree"],
   ["submodule", "submodule"],
   ["clone-ignore", "clone-ignore"],
-  ["clone", "clone-ignore"]
+  ["clone", "clone-ignore"],
+  ["cache-link", "cache-link"]
 ] as const).pipe(
   Flag.optional,
   Flag.withDescription(
@@ -130,7 +131,10 @@ const runTask = (strategy: Option.Option<VendorStrategy>, task: DependencyVendor
     return updateImpl({
       all: false,
       name: task.existingName
-    })
+    }).pipe(
+      Effect.asVoid,
+      Effect.mapError((error): unknown => error)
+    )
   }
   return Effect.gen(function* () {
     const config = yield* IngraftConfig
@@ -162,7 +166,10 @@ const runTask = (strategy: Option.Option<VendorStrategy>, task: DependencyVendor
         requested: addParams.strategy
       })
     })
-  })
+  }).pipe(
+    Effect.asVoid,
+    Effect.mapError((error): unknown => error)
+  )
 }
 
 export const depsImpl = ({ dryRun, json, strategy, yes }: DepsCommandParams) =>
