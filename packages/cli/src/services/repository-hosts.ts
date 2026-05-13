@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option } from "effect"
+import { Context, Effect, Layer, Option, type PlatformError } from "effect"
 
 import {
   hostedRepoFromInput,
@@ -13,12 +13,12 @@ export type HostCommandResult = GitHubCliResult | GitLabCliResult
 type GitHubExec = (
   args: ReadonlyArray<string>,
   options?: GitHubCliOptions
-) => Effect.Effect<GitHubCliResult, unknown>
+) => Effect.Effect<GitHubCliResult, PlatformError.PlatformError>
 
 type GitLabExec = (
   args: ReadonlyArray<string>,
   options?: GitLabCliOptions
-) => Effect.Effect<GitLabCliResult, unknown>
+) => Effect.Effect<GitLabCliResult, PlatformError.PlatformError>
 
 export interface HostCloneParams {
   readonly cwd: string

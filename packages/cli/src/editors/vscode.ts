@@ -12,6 +12,7 @@ import {
   type SettingsMergeState
 } from "../config/jsonc-settings.ts"
 import { VENDOR_DIR } from "../domain/constants.ts"
+import type { GitMetadataFailed } from "../domain/errors.ts"
 import { detectProjectLanguages, type ProjectLanguageUsage } from "../project/languages.ts"
 import { GitMetadata, type GitMetadataShape } from "../services/git-metadata.ts"
 
@@ -41,7 +42,9 @@ export interface MergeVscodeSettingsOptions {
 interface UpdateVscodeSettingsWithParams {
   readonly cwd: string
   readonly fs: FileSystem.FileSystem
-  readonly listProjectFiles: (cwd: string) => Effect.Effect<ReadonlyArray<string>, unknown>
+  readonly listProjectFiles: (
+    cwd: string
+  ) => Effect.Effect<ReadonlyArray<string>, GitMetadataFailed>
   readonly path: Path.Path
   readonly runtime: RuntimeConfigShape
 }
@@ -49,7 +52,9 @@ interface UpdateVscodeSettingsWithParams {
 interface DetectVscodeLanguageUsageParams {
   readonly cwd: string
   readonly fs: FileSystem.FileSystem
-  readonly listProjectFiles: (cwd: string) => Effect.Effect<ReadonlyArray<string>, unknown>
+  readonly listProjectFiles: (
+    cwd: string
+  ) => Effect.Effect<ReadonlyArray<string>, GitMetadataFailed>
   readonly path: Path.Path
 }
 
@@ -137,7 +142,7 @@ const detectVscodeLanguageUsage = ({
 
 const gitProjectFiles =
   (gitMetadata: GitMetadataShape) =>
-  (cwd: string): Effect.Effect<ReadonlyArray<string>, unknown> =>
+  (cwd: string): Effect.Effect<ReadonlyArray<string>, GitMetadataFailed> =>
     gitMetadata.listProjectFiles(cwd)
 
 const updateVscodeSettingsWith = ({

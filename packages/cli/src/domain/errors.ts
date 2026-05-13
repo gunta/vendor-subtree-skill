@@ -94,6 +94,11 @@ export interface RepositoryAliasDatabaseInvalidParams {
   readonly reason: string
 }
 
+export interface IngraftConfigFileFailedParams {
+  readonly path: string
+  readonly cause: unknown
+}
+
 export interface HistoryRewriteToolMissingParams {
   readonly output: string
 }
@@ -172,6 +177,28 @@ export interface ToolIgnoreCheckFailedParams {
   readonly cause: unknown
 }
 
+export interface GitMetadataFailedParams {
+  readonly operation: string
+  readonly cwd?: string
+  readonly filepath?: string
+  readonly cause: unknown
+}
+
+export type MetadataFetchSource = "hex" | "maven-search" | "maven-pom"
+
+export interface MetadataFetchFailedParams {
+  readonly source: MetadataFetchSource
+  readonly url?: string
+  readonly cause: unknown
+}
+
+export interface VendorNotesFailedParams {
+  readonly operation: "read" | "write"
+  readonly cwd: string
+  readonly oid?: string
+  readonly cause: unknown
+}
+
 export class GitCommandFailed extends Data.TaggedError(
   "GitCommandFailed"
 )<GitCommandFailedParams> {}
@@ -240,6 +267,10 @@ export class RepositoryAliasDatabaseInvalid extends Data.TaggedError(
   "RepositoryAliasDatabaseInvalid"
 )<RepositoryAliasDatabaseInvalidParams> {}
 
+export class IngraftConfigFileFailed extends Data.TaggedError(
+  "IngraftConfigFileFailed"
+)<IngraftConfigFileFailedParams> {}
+
 export class HistoryRewriteToolMissing extends Data.TaggedError(
   "HistoryRewriteToolMissing"
 )<HistoryRewriteToolMissingParams> {}
@@ -256,17 +287,11 @@ export class CloudflareArtifactsRequestFailed extends Data.TaggedError(
   "CloudflareArtifactsRequestFailed"
 )<CloudflareArtifactsRequestFailedParams> {}
 
-export class TomlParseFailed extends Data.TaggedError(
-  "TomlParseFailed"
-)<TomlParseFailedParams> {}
+export class TomlParseFailed extends Data.TaggedError("TomlParseFailed")<TomlParseFailedParams> {}
 
-export class YamlParseFailed extends Data.TaggedError(
-  "YamlParseFailed"
-)<YamlParseFailedParams> {}
+export class YamlParseFailed extends Data.TaggedError("YamlParseFailed")<YamlParseFailedParams> {}
 
-export class JsonParseFailed extends Data.TaggedError(
-  "JsonParseFailed"
-)<JsonParseFailedParams> {}
+export class JsonParseFailed extends Data.TaggedError("JsonParseFailed")<JsonParseFailedParams> {}
 
 export class JsoncParseFailed extends Data.TaggedError(
   "JsoncParseFailed"
@@ -284,27 +309,37 @@ export class SchemaDecodeFailed extends Data.TaggedError(
   "SchemaDecodeFailed"
 )<SchemaDecodeFailedParams> {}
 
-export class InkRenderFailed extends Data.TaggedError(
-  "InkRenderFailed"
-)<InkRenderFailedParams> {}
+export class InkRenderFailed extends Data.TaggedError("InkRenderFailed")<InkRenderFailedParams> {}
 
 export class PromptInputFailed extends Data.TaggedError(
   "PromptInputFailed"
 )<PromptInputFailedParams> {}
 
-export class TuiLaunchFailed extends Data.TaggedError(
-  "TuiLaunchFailed"
-)<TuiLaunchFailedParams> {}
+export class TuiLaunchFailed extends Data.TaggedError("TuiLaunchFailed")<TuiLaunchFailedParams> {}
 
 export class TuiRendererFailed extends Data.TaggedError(
   "TuiRendererFailed"
 )<TuiRendererFailedParams> {}
 
-export class BunRuntimeMissing extends Data.TaggedError("BunRuntimeMissing")<Record<string, never>> {}
+export class BunRuntimeMissing extends Data.TaggedError("BunRuntimeMissing")<
+  Record<string, never>
+> {}
 
 export class ToolIgnoreCheckFailed extends Data.TaggedError(
   "ToolIgnoreCheckFailed"
 )<ToolIgnoreCheckFailedParams> {}
+
+export class GitMetadataFailed extends Data.TaggedError(
+  "GitMetadataFailed"
+)<GitMetadataFailedParams> {}
+
+export class MetadataFetchFailed extends Data.TaggedError(
+  "MetadataFetchFailed"
+)<MetadataFetchFailedParams> {}
+
+export class VendorNotesFailed extends Data.TaggedError(
+  "VendorNotesFailed"
+)<VendorNotesFailedParams> {}
 
 export type VendorError =
   | GitCommandFailed
@@ -326,6 +361,7 @@ export type VendorError =
   | UnsupportedVendorFilter
   | InvalidAddTargets
   | RepositoryAliasDatabaseInvalid
+  | IngraftConfigFileFailed
   | HistoryRewriteToolMissing
   | HistoryRewriteFailed
   | CloudflareArtifactsConfigMissing
@@ -343,6 +379,9 @@ export type VendorError =
   | TuiRendererFailed
   | BunRuntimeMissing
   | ToolIgnoreCheckFailed
+  | GitMetadataFailed
+  | MetadataFetchFailed
+  | VendorNotesFailed
 
 const gitCommand = (args: ReadonlyArray<string>) => `git ${args.join(" ")}`
 
@@ -356,6 +395,25 @@ const parseErrorPresentation = (
   hint: `Inspect the file for invalid ${format} syntax.`,
   code: 2
 })
+
+const metadataFetchPresentation = (
+  source: MetadataFetchSource,
+  url: string | undefined,
+  cause: unknown
+): ErrorPresentation => {
+  const label =
+    source === "hex"
+      ? "Hex package metadata"
+      : source === "maven-search"
+        ? "Maven Central search"
+        : "Maven Central POM"
+  return {
+    title: `${label} request failed`,
+    detail: url ? `URL: ${url}\n${String(cause)}` : String(cause),
+    hint: "Check your network connection and that the upstream registry is reachable.",
+    code: 3
+  }
+}
 
 export const errorPresentation = (error: VendorError): ErrorPresentation => {
   switch (error._tag) {
@@ -491,7 +549,14 @@ export const errorPresentation = (error: VendorError): ErrorPresentation => {
       return {
         title: "Repository alias database is invalid",
         detail: error.reason,
-        hint: "Fix packages/cli/src/aliases/repository-aliases.json and retry.",
+        hint: "Fix packages/cli/src/aliases/repository-aliases.json or .ingraft/config.toml and retry.",
+        code: 2
+      }
+    case "IngraftConfigFileFailed":
+      return {
+        title: "Could not read ingraft config",
+        detail: `${error.path}\n${String(error.cause)}`,
+        hint: "Check file permissions or remove the optional .ingraft/config.toml file.",
         code: 2
       }
     case "HistoryRewriteToolMissing":
@@ -581,6 +646,34 @@ export const errorPresentation = (error: VendorError): ErrorPresentation => {
         title: `Tool ignore check failed: ${error.tool}`,
         detail: String(error.cause),
         hint: "Inspect the tool's config file in the project root.",
+        code: 3
+      }
+    case "GitMetadataFailed":
+      return {
+        title: `Git metadata operation failed: ${error.operation}`,
+        detail: [
+          error.cwd ? `cwd: ${error.cwd}` : undefined,
+          error.filepath ? `path: ${error.filepath}` : undefined,
+          String(error.cause)
+        ]
+          .filter((line): line is string => line !== undefined)
+          .join("\n"),
+        hint: "Check that the working directory is a git repository and the path is accessible.",
+        code: 3
+      }
+    case "MetadataFetchFailed":
+      return metadataFetchPresentation(error.source, error.url, error.cause)
+    case "VendorNotesFailed":
+      return {
+        title: `Vendor git note ${error.operation} failed`,
+        detail: [
+          `cwd: ${error.cwd}`,
+          error.oid ? `oid: ${error.oid}` : undefined,
+          String(error.cause)
+        ]
+          .filter((line): line is string => line !== undefined)
+          .join("\n"),
+        hint: "Re-run after confirming git notes can be read from this repository.",
         code: 3
       }
   }

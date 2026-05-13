@@ -3,6 +3,7 @@ import * as nodeFs from "node:fs"
 import { Context, Effect, Layer } from "effect"
 import * as git from "isomorphic-git"
 
+import { VendorNotesFailed } from "../domain/errors.ts"
 import type { VendoredRepo } from "../domain/vendor-state.ts"
 
 export const VENDOR_NOTES_REF = "refs/notes/ingraft"
@@ -50,7 +51,7 @@ const readNote = ({ cwd, oid }: Omit<WriteVendorNoteParams, "note">) =>
       })
       return new TextDecoder().decode(note)
     },
-    catch: (error) => error
+    catch: (cause) => new VendorNotesFailed({ operation: "read", cwd, oid, cause })
   })
 
 const write = ({ cwd, note, oid }: WriteVendorNoteParams) =>
@@ -73,12 +74,12 @@ const write = ({ cwd, note, oid }: WriteVendorNoteParams) =>
                   email: "ingraft@example.invalid"
                 }
               }),
-            catch: (error) => error
+            catch: (cause) => new VendorNotesFailed({ operation: "write", cwd, oid, cause })
           }).pipe(Effect.asVoid)
     )
   )
 
-const sync = ({ cwd, repos }: SyncVendorNotesParams) =>
+const sync = ({ cwd, repos }: SyncVendorNotesParams): Effect.Effect<void, never> =>
   Effect.forEach(
     repos,
     (repo) =>
@@ -91,8 +92,8 @@ const sync = ({ cwd, repos }: SyncVendorNotesParams) =>
   )
 
 export interface VendorNotesShape {
-  readonly sync: (params: SyncVendorNotesParams) => Effect.Effect<void, unknown>
-  readonly write: (params: WriteVendorNoteParams) => Effect.Effect<void, unknown>
+  readonly sync: (params: SyncVendorNotesParams) => Effect.Effect<void, never>
+  readonly write: (params: WriteVendorNoteParams) => Effect.Effect<void, VendorNotesFailed>
 }
 
 export class VendorNotes extends Context.Service<VendorNotes, VendorNotesShape>()(

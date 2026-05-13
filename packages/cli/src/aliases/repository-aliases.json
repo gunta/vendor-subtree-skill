@@ -37,7 +37,8 @@
     },
     {
       "alias": "node",
-      "targets": ["nodejs/node"]
+      "description": "Node.js runtime source. Defaults to submodule because the upstream repository is large.",
+      "targets": [{ "target": "nodejs/node", "strategy": "submodule" }]
     },
     {
       "alias": "bun",
@@ -125,7 +126,8 @@
     },
     {
       "alias": "rust",
-      "targets": ["rust-lang/rust"]
+      "description": "Rust compiler source. Defaults to submodule because the upstream repository is large.",
+      "targets": [{ "target": "rust-lang/rust", "strategy": "submodule" }]
     },
     {
       "alias": "tokio",
@@ -141,11 +143,13 @@
     },
     {
       "alias": "kubernetes",
-      "targets": ["kubernetes/kubernetes"]
+      "description": "Kubernetes core source. Defaults to submodule because the upstream repository is large.",
+      "targets": [{ "target": "kubernetes/kubernetes", "strategy": "submodule" }]
     },
     {
       "alias": "vscode",
-      "targets": ["microsoft/vscode"]
+      "description": "VS Code source. Defaults to submodule because the upstream repository is large.",
+      "targets": [{ "target": "microsoft/vscode", "strategy": "submodule" }]
     }
   ]
 }

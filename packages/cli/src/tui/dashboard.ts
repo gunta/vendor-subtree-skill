@@ -28,6 +28,11 @@ export interface DashboardState {
   readonly strategy: VendorTuiStrategy
 }
 
+export interface CreateDashboardStateOptions {
+  readonly logLines?: ReadonlyArray<string>
+  readonly statusMessage?: string
+}
+
 export type DashboardAction =
   | { readonly type: "append-log"; readonly line: string }
   | { readonly type: "cancel" }
@@ -70,14 +75,17 @@ const normalizeSelectedIndexes = (
     (a, b) => a - b
   )
 
-export const createDashboardState = (snapshot: VendorTuiSnapshot): DashboardState => ({
+export const createDashboardState = (
+  snapshot: VendorTuiSnapshot,
+  options: CreateDashboardStateOptions = {}
+): DashboardState => ({
   activeTab: "tasks",
   focusedTaskIndex: 0,
-  logLines: ["Loaded dependency vendoring snapshot."],
+  logLines: options.logLines ?? ["Loaded dependency vendoring snapshot."],
   mode: "browsing",
   selectedTaskIndexes: [],
   snapshot,
-  statusMessage: "Use j/k to move, space to select, enter to run.",
+  statusMessage: options.statusMessage ?? "Use j/k to move, space to select, enter to run.",
   strategy: "subtree"
 })
 

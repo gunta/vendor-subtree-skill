@@ -32,7 +32,6 @@ nix profile install github:gunta/ingraft#ingraft
 
 ```sh
 ingraft
-ingraft tui
 ingraft deps
 ingraft deps --json
 ingraft deps --yes
@@ -64,7 +63,7 @@ ingraft doctor
 ingraft doctor --json
 ingraft doctor --fix
 ingraft context
-ingraft context tools --json
+ingraft context --json
 ingraft context pack
 ingraft context pack vendor/effect --compress
 ingraft context source zod
@@ -73,12 +72,15 @@ ingraft remove effect --dangerously-rewrite-history
 ingraft refresh
 ```
 
-Running `ingraft` with no arguments opens the interactive dashboard. `ingraft tui` does the same explicitly. Use `ingraft deps` for the non-interactive package scan: it reads project `package.json`, `mix.exs`, `Package.swift`, Gradle build files, and Gradle version catalogs; resolves npm, Hex, Swift source, and Maven SCM metadata; groups packages that share the same source repo; and asks which source repos to add or update. Passing positional targets is shorthand for adding them, so `ingraft zod hex:jason swift:apple/swift-argument-parser Effect-TS/effect` vendors npm, Hex, Swift, and GitHub sources in one run. Repository aliases expand before package resolution, so `ingraft add effect` expands to `Effect-TS/effect`, and `ingraft add convex` expands to the Convex client and helper repositories. `deps --yes` processes every matched task without prompting; `deps --json` prints the detected candidates and planned tasks for tools such as the dashboard.
+Running `ingraft` with no arguments opens the interactive dashboard. Use `ingraft deps` for the non-interactive package scan: it reads project `package.json`, `mix.exs`, `Package.swift`, Gradle build files, and Gradle version catalogs; resolves npm, Hex, Swift source, and Maven SCM metadata; groups packages that share the same source repo; and asks which source repos to add or update. Passing positional targets is shorthand for adding them, so `ingraft zod hex:jason swift:apple/swift-argument-parser Effect-TS/effect` vendors npm, Hex, Swift, and GitHub sources in one run. Repository aliases expand before package resolution, so `ingraft add effect` expands to `Effect-TS/effect`, and `ingraft add convex` expands to the Convex client and helper repositories. `deps --yes` processes every matched task without prompting; `deps --json` prints the detected candidates and planned tasks for tools such as the dashboard.
 
 ## Repository Aliases
 
 Common repositories can be addressed with short aliases from
-`src/aliases/repository-aliases.json`.
+`src/aliases/repository-aliases.json`. That database is also where the CLI keeps
+community-maintained strategy recommendations for repositories that are known to
+work better as a `submodule` or `clone-ignore` target. Explicit `--strategy`
+flags always win over those recommendations.
 
 ```sh
 ingraft add effect
@@ -89,12 +91,49 @@ ingraft add effect-smol
 
 ingraft add convex
 # expands to get-convex/convex-js and get-convex/convex-helpers
+
+ingraft add vscode
+# expands to microsoft/vscode and defaults to --strategy submodule
 ```
 
 Unknown names still fall through to the npm package metadata flow, so ordinary
 package names continue to work. Use `hex:<package>` for Hex, `swift:<owner/repo>`
 or `swift:<url>` for Swift Package sources, and
 `android:<group>:<artifact>` for Maven-backed Android dependencies.
+
+## Local Configuration
+
+Configuration is optional. Add `.ingraft/config.toml` in a project when you want
+per-user defaults or private aliases; `.ingraft/` is ignored by git by default.
+CLI flags still take precedence over configured defaults.
+
+```toml
+[defaults]
+strategy = "clone-ignore"
+ref = "main"
+exclude-dirs = ["docs"]
+exclude-extensions = ["png"]
+max-file-size = "1MB"
+
+[[aliases]]
+alias = "fx"
+description = "Effect repositories"
+strategy = "clone-ignore"
+targets = ["Effect-TS/effect", "Effect-TS/effect-smol"]
+
+[[aliases]]
+alias = "vscode-local"
+targets = [
+  { target = "microsoft/vscode", strategy = "submodule" }
+]
+```
+
+Supported `[defaults]` keys mirror `ingraft add`: `strategy`, `ref`, `tag`,
+`release`, `sync-package`, `cloudflare-artifact`,
+`cloudflare-artifact-depth`, `cloudflare-artifact-name`, `exclude`,
+`exclude-dirs`, `exclude-extensions`, and `max-file-size`. If you pass any
+version selector flag (`--ref`, `--tag`, `--release`, or `--sync-package`), the
+configured version selector is ignored for that command.
 
 ## Strategies
 
@@ -152,10 +191,9 @@ ingraft add swift:apple/swift-argument-parser android:com.squareup.okhttp3:okhtt
 
 ```sh
 ingraft
-ingraft tui
 ```
 
-The dashboard is bundled into this package and shows dependency matches and vendoring tasks. It reads `ingraft deps --json`, lets you select add/update tasks, previews exact commands, and only runs them after confirmation. OpenTUI currently requires Bun, so the default dashboard needs Bun even when other subcommands are run with Node.
+Running `ingraft` with no arguments opens the interactive dashboard. It shows dependency matches and vendoring tasks. It reads `ingraft deps --json`, lets you select add/update tasks, previews exact commands, and only runs them after confirmation. OpenTUI currently requires Bun, so the default dashboard needs Bun even when other subcommands are run with Node.
 
 ## Tooling Integration
 
@@ -169,7 +207,7 @@ ingraft stays git-native for vendored repo state, but it can route to a small se
 
 ```sh
 ingraft context
-ingraft context tools --json
+ingraft context --json
 ingraft context pack
 ingraft context pack vendor/effect --compress
 ingraft context source zod

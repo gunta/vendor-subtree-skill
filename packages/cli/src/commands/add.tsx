@@ -4,6 +4,7 @@ import { Argument, Command, Flag } from "effect/unstable/cli"
 import { RepositoryAliases } from "../aliases/service.ts"
 import { mountProgress } from "../app/ink/progress.tsx"
 import { info, ok, warn, withCommandTelemetry } from "../app/log.tsx"
+import { applyAddDefaults, IngraftConfig } from "../config/ingraft.ts"
 import {
   TRAILER_ACTION,
   TRAILER_DIR,
@@ -33,8 +34,8 @@ import {
 } from "../domain/vendor-filter.ts"
 import { findByName, listVendored, type VendoredRepo } from "../domain/vendor-state.ts"
 import {
-  DEFAULT_VENDOR_STRATEGY,
   effectiveVendorStrategy,
+  resolveVendorStrategyPreference,
   type VendorStrategy
 } from "../domain/vendor-strategy.ts"
 import {
@@ -85,8 +86,9 @@ export interface AddCommandParams {
   readonly strategy: VendorStrategy
 }
 
-export interface AddManyCommandParams extends Omit<AddCommandParams, "repo"> {
+export interface AddManyCommandParams extends Omit<AddCommandParams, "repo" | "strategy"> {
   readonly repos: ReadonlyArray<string>
+  readonly strategy: Option.Option<VendorStrategy>
 }
 
 export type AddTarget =
@@ -291,10 +293,10 @@ const addStrategyOption = Flag.choiceWithValue("strategy", [
   ["clone-ignore", "clone-ignore"],
   ["clone", "clone-ignore"]
 ] as const).pipe(
-  Flag.withDefault(DEFAULT_VENDOR_STRATEGY),
   Flag.withDescription(
     "Vendoring strategy: subtree commits source, submodule commits a gitlink, clone-ignore clones locally and gitignores it."
-  )
+  ),
+  Flag.optional
 )
 
 const optionOrElseEffect = <A, E, R>(option: Option.Option<A>, orElse: Effect.Effect<A, E, R>) =>
@@ -997,6 +999,8 @@ export const addImpl = ({
 export const addManyImpl = ({ repos, ...params }: AddManyCommandParams) =>
   Effect.gen(function* () {
     const repoAliases = yield* RepositoryAliases
+    const config = yield* IngraftConfig
+    const addParams = applyAddDefaults(params, config.defaults)
     const expandedTargets = yield* repoAliases.expand(repos)
     const expandedRepos = expandedTargets.map((target) => target.target)
 
@@ -1028,7 +1032,15 @@ export const addManyImpl = ({ repos, ...params }: AddManyCommandParams) =>
     }
 
     if (expandedRepos.length === 1) {
-      yield* addImpl({ ...params, repo: expandedRepos[0]! })
+      const target = expandedTargets[0]!
+      yield* addImpl({
+        ...addParams,
+        repo: target.target,
+        strategy: resolveVendorStrategyPreference({
+          recommended: target.strategy,
+          requested: addParams.strategy
+        })
+      })
       return
     }
 
@@ -1040,8 +1052,16 @@ export const addManyImpl = ({ repos, ...params }: AddManyCommandParams) =>
       expandedRepos,
       (repo) =>
         Effect.gen(function* () {
+          const target = expandedTargets.find((expanded) => expanded.target === repo)!
           progress.setCurrent(repo)
-          yield* addImpl({ ...params, repo }).pipe(
+          yield* addImpl({
+            ...addParams,
+            repo,
+            strategy: resolveVendorStrategyPreference({
+              recommended: target.strategy,
+              requested: addParams.strategy
+            })
+          }).pipe(
             Effect.match({
               onSuccess: () => progress.complete({ id: repo, label: repo, status: "success" }),
               onFailure: () => progress.complete({ id: repo, label: repo, status: "error" })

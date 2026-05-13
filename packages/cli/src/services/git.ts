@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Option, Stream } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, type PlatformError, Stream } from "effect"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 import { RuntimeConfig } from "../app/runtime.ts"
@@ -91,7 +91,7 @@ export interface GitShape {
   readonly exec: (
     args: ReadonlyArray<string>,
     options?: GitOptions
-  ) => Effect.Effect<GitResult, unknown>
+  ) => Effect.Effect<GitResult, PlatformError.PlatformError>
 }
 
 export class Git extends Context.Service<Git, GitShape>()("ingraft/Git") {}

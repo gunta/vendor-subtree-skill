@@ -1,7 +1,7 @@
-import { Context, Effect, FileSystem, Layer, Path } from "effect"
+import { Context, Effect, FileSystem, Layer, Path, type PlatformError } from "effect"
 
 export interface JujutsuService {
-  readonly isColocated: (cwd: string) => Effect.Effect<boolean, unknown>
+  readonly isColocated: (cwd: string) => Effect.Effect<boolean, PlatformError.PlatformError>
 }
 
 const isColocatedWith = (fs: FileSystem.FileSystem, path: Path.Path, cwd: string) =>

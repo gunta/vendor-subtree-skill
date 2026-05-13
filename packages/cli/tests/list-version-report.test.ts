@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test"
 
+import { Effect } from "effect"
+
+import { resolveListReposWith } from "../src/commands/list.tsx"
 import type { VendoredRepo } from "../src/domain/vendor-state.ts"
 import type { DependencyVendorCandidate } from "../src/package-sync/service.ts"
 import {
@@ -39,6 +42,32 @@ const candidate = {
 } satisfies DependencyVendorCandidate
 
 describe("list version reports", () => {
+  test("keeps the default list path on vendored repo metadata only", async () => {
+    let scanned = false
+    let detectedVersions = false
+
+    const repos = await Effect.runPromise(
+      resolveListReposWith(
+        {
+          detectVendoredVersions: () => {
+            detectedVersions = true
+            return Effect.succeed(new Map())
+          },
+          listVendored: () => Effect.succeed([repo]),
+          scanPackages: () => {
+            scanned = true
+            return Effect.succeed([candidate])
+          }
+        },
+        { cwd: "/repo", versions: false }
+      )
+    )
+
+    expect(scanned).toBe(false)
+    expect(detectedVersions).toBe(false)
+    expect(repos).toEqual([{ ...repo, packageNames: [] }])
+  })
+
   test("adds local vendor and remote package versions to vendored repos", () => {
     expect(
       versionedVendoredRepos({

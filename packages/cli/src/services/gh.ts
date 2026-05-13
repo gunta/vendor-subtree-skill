@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Option, Stream, pipe } from "effect"
+import { Context, Effect, Layer, Option, type PlatformError, Stream } from "effect"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 import { RuntimeConfig } from "../app/runtime.ts"
@@ -59,7 +59,7 @@ export interface GitHubCliShape {
   readonly exec: (
     args: ReadonlyArray<string>,
     options?: GitHubCliOptions
-  ) => Effect.Effect<GitHubCliResult, unknown>
+  ) => Effect.Effect<GitHubCliResult, PlatformError.PlatformError>
 }
 
 export class GitHubCli extends Context.Service<GitHubCli, GitHubCliShape>()("ingraft/GitHubCli") {}

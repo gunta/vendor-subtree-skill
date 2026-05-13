@@ -57,7 +57,9 @@ describe("workspace dev tooling", () => {
 
   test("runs the website dev server through Portless with an Astro fallback", async () => {
     const websitePackage = await readJson<PackageJson>("packages/website/package.json")
-    const astroConfig = await Bun.file(join(workspaceRoot, "packages/website/astro.config.mjs")).text()
+    const astroConfig = await Bun.file(
+      join(workspaceRoot, "packages/website/astro.config.mjs")
+    ).text()
     const devScript = await Bun.file(join(workspaceRoot, "packages/website/scripts/dev.ts")).text()
 
     expect(websitePackage.scripts).toMatchObject({
@@ -72,13 +74,20 @@ describe("workspace dev tooling", () => {
     expect(devScript).toContain("PORTLESS_URL")
     expect(devScript).toContain("--port")
     expect(devScript).toContain("--allowed-hosts")
-    expect(astroConfig).toContain("cacheDir: \".astro/vite\"")
+    expect(astroConfig).toContain('cacheDir: ".astro/vite"')
     expect(astroConfig).toContain("strictPort: true")
     expect(astroConfig).toContain("PORTLESS_URL")
   })
 
   test("rewrites Astro dev server URLs to the Portless origin", async () => {
-    const { rewritePortlessDevServerUrls } = await import("../../website/scripts/portless-output")
+    const { rewritePortlessDevServerUrls } = (await import(
+      new URL("../../website/scripts/portless-output.ts", import.meta.url).href
+    )) as {
+      readonly rewritePortlessDevServerUrls: (
+        output: string,
+        options: { readonly host: string; readonly port: string; readonly publicOrigin?: string }
+      ) => string
+    }
 
     const output = rewritePortlessDevServerUrls("┃ Local    http://127.0.0.1:4534/\n", {
       host: "127.0.0.1",
@@ -97,7 +106,11 @@ describe("workspace dev tooling", () => {
     delete process.env.PORT
     delete process.env.HOST
     try {
-      const config = (await import("../../website/astro.config.mjs")).default
+      const config = (
+        (await import(new URL("../../website/astro.config.mjs", import.meta.url).href)) as {
+          readonly default: { readonly server: unknown }
+        }
+      ).default
       expect(config.server).toMatchObject({
         host: "127.0.0.1",
         port: 4321

@@ -75,7 +75,7 @@ bunx ingraft@latest list
 bunx ingraft@latest doctor
 bunx ingraft@latest doctor --fix
 bunx ingraft@latest context
-bunx ingraft@latest context tools --json
+bunx ingraft@latest context --json
 bunx ingraft@latest context pack vendor/effect --compress
 bunx ingraft@latest context source zod
 bunx ingraft@latest remove effect

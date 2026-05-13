@@ -5,20 +5,25 @@ import { Box } from "ink"
 import { Header, KeyValues, Section, Table } from "../app/ink/components.tsx"
 import { renderInkOnce } from "../app/ink/render.tsx"
 import { info, ok, warn, withCommandTelemetry } from "../app/log.tsx"
+import { applyAddDefaults, IngraftConfig } from "../config/ingraft.ts"
 import { InkRenderFailed } from "../domain/errors.ts"
-import { type VendoredRepo, listVendored } from "../domain/vendor-state.ts"
-import { DEFAULT_VENDOR_STRATEGY, type VendorStrategy } from "../domain/vendor-strategy.ts"
-import { PackageVersionSync, type DependencyVendorCandidate } from "../package-sync/service.ts"
+import { listVendored } from "../domain/vendor-state.ts"
+import {
+  DEFAULT_VENDOR_STRATEGY,
+  resolveVendorStrategyPreference,
+  type VendorStrategy
+} from "../domain/vendor-strategy.ts"
+import {
+  dependencyVendorTasks,
+  type DependencyVendorTask
+} from "../package-sync/dependency-tasks.ts"
+import { PackageVersionSync } from "../package-sync/service.ts"
 import { detectVendoredPackageVersions } from "../package-sync/version-detect.ts"
 import {
-  findExistingRepo,
   matchedDependencyCandidates,
-  packageVersionReport,
-  shouldDisplayCandidateVersions,
   vendoredPackageVersionKey,
   type PackageVersionDriftStatus,
-  type PackageVersionReport,
-  type VendoredPackageVersionMap
+  type PackageVersionReport
 } from "../package-sync/version-report.ts"
 import { repoRoot } from "../services/git.ts"
 import { Prompts, type SelectionChoice } from "../services/prompts.tsx"
@@ -28,24 +33,13 @@ import { updateImpl } from "./update.tsx"
 export interface DepsCommandParams {
   readonly dryRun: boolean
   readonly json: boolean
-  readonly strategy: VendorStrategy
+  readonly strategy: Option.Option<VendorStrategy>
   readonly yes: boolean
-}
-
-export interface DependencyVendorTask {
-  readonly action: "add" | "update"
-  readonly existingName: Option.Option<string>
-  readonly packageNames: ReadonlyArray<string>
-  readonly primaryPackageName: string
-  readonly repositoryUrl: string
-  readonly suggestedName?: string
-  readonly syncPackage: string
-  readonly versions: DependencyVendorTaskVersions
 }
 
 export type DependencyVersionDriftStatus = PackageVersionDriftStatus
 export type DependencyVendorTaskVersions = PackageVersionReport
-export { vendoredPackageVersionKey }
+export { dependencyVendorTasks, vendoredPackageVersionKey, type DependencyVendorTask }
 
 const depsJsonOption = Flag.boolean("json").pipe(
   Flag.withDescription("Print dependency vendoring candidates as JSON.")
@@ -66,8 +60,10 @@ const depsStrategyOption = Flag.choiceWithValue("strategy", [
   ["clone-ignore", "clone-ignore"],
   ["clone", "clone-ignore"]
 ] as const).pipe(
-  Flag.withDefault(DEFAULT_VENDOR_STRATEGY),
-  Flag.withDescription("Strategy to use for newly vendored dependency source repos.")
+  Flag.optional,
+  Flag.withDescription(
+    `Strategy to use for newly vendored dependency source repos. Defaults to configured strategy or ${DEFAULT_VENDOR_STRATEGY}.`
+  )
 )
 
 const candidateLabel = (task: DependencyVendorTask): string =>
@@ -82,60 +78,6 @@ const asChoice = (task: DependencyVendorTask): SelectionChoice => ({
   description: candidateDescription(task),
   label: candidateLabel(task)
 })
-
-export const dependencyVendorTasks = (
-  candidates: ReadonlyArray<DependencyVendorCandidate>,
-  repos: ReadonlyArray<VendoredRepo>,
-  vendoredPackageVersions: VendoredPackageVersionMap = new Map()
-): ReadonlyArray<DependencyVendorTask> => {
-  const tasks = new Map<string, DependencyVendorTask>()
-  for (const candidate of matchedDependencyCandidates(candidates)) {
-    const repositoryUrl = candidate.repositoryUrl
-    if (!repositoryUrl) continue
-    const existing = findExistingRepo(candidate, repos)
-    const key = existing === undefined ? `add:${repositoryUrl}` : `update:${existing.name}`
-    const previous = tasks.get(key)
-    if (previous) {
-      const preferCandidate = shouldDisplayCandidateVersions(candidate, existing)
-      tasks.set(key, {
-        ...previous,
-        packageNames: [...previous.packageNames, candidate.packageName],
-        ...(preferCandidate
-          ? {
-              primaryPackageName: candidate.packageName,
-              syncPackage: candidate.syncPackage,
-              versions: packageVersionReport({
-                candidate,
-                existing,
-                vendoredPackageVersions
-              })
-            }
-          : {})
-      })
-      continue
-    }
-    const task = {
-      action: existing === undefined ? "add" : "update",
-      existingName: existing === undefined ? Option.none() : Option.some(existing.name),
-      packageNames: [candidate.packageName],
-      primaryPackageName: candidate.packageName,
-      repositoryUrl,
-      syncPackage: candidate.syncPackage,
-      versions: packageVersionReport({
-        candidate,
-        existing,
-        vendoredPackageVersions
-      })
-    } satisfies Omit<DependencyVendorTask, "suggestedName">
-    tasks.set(
-      key,
-      candidate.suggestedName === undefined
-        ? task
-        : { ...task, suggestedName: candidate.suggestedName }
-    )
-  }
-  return [...tasks.values()]
-}
 
 interface DepsSummaryProps {
   readonly candidateCount: number
@@ -183,29 +125,43 @@ const taskToJson = (task: DependencyVendorTask) => ({
   versions: task.versions
 })
 
-const runTask = (strategy: VendorStrategy, task: DependencyVendorTask) => {
+const runTask = (strategy: Option.Option<VendorStrategy>, task: DependencyVendorTask) => {
   if (task.action === "update") {
     return updateImpl({
       all: false,
       name: task.existingName
     })
   }
-  return addImpl({
-    cloudflareArtifact: false,
-    cloudflareArtifactDepth: Option.none(),
-    cloudflareArtifactName: Option.none(),
-    exclude: [],
-    excludeDirs: [],
-    excludeExtensions: [],
-    maxFileSize: Option.none(),
-    name: Option.none(),
-    prefix: Option.none(),
-    ref: Option.none(),
-    release: Option.none(),
-    repo: task.repositoryUrl,
-    strategy,
-    syncPackage: Option.some(task.syncPackage),
-    tag: Option.none()
+  return Effect.gen(function* () {
+    const config = yield* IngraftConfig
+    const addParams = applyAddDefaults(
+      {
+        cloudflareArtifact: false,
+        cloudflareArtifactDepth: Option.none(),
+        cloudflareArtifactName: Option.none(),
+        exclude: [],
+        excludeDirs: [],
+        excludeExtensions: [],
+        maxFileSize: Option.none(),
+        name: Option.none(),
+        prefix: Option.none(),
+        ref: Option.none(),
+        release: Option.none(),
+        repo: task.repositoryUrl,
+        strategy,
+        syncPackage: Option.some(task.syncPackage),
+        tag: Option.none()
+      },
+      config.defaults
+    )
+
+    return yield* addImpl({
+      ...addParams,
+      strategy: resolveVendorStrategyPreference({
+        recommended: undefined,
+        requested: addParams.strategy
+      })
+    })
   })
 }
 

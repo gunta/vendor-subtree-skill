@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Stream, pipe } from "effect"
+import { Context, Effect, Layer, type PlatformError, Stream } from "effect"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 import { RuntimeConfig } from "../app/runtime.ts"
@@ -46,7 +46,7 @@ export interface GitLabCliShape {
   readonly exec: (
     args: ReadonlyArray<string>,
     options?: GitLabCliOptions
-  ) => Effect.Effect<GitLabCliResult, unknown>
+  ) => Effect.Effect<GitLabCliResult, PlatformError.PlatformError>
 }
 
 export class GitLabCli extends Context.Service<GitLabCli, GitLabCliShape>()("ingraft/GitLabCli") {}

@@ -71,7 +71,7 @@ const snapshot = {
   ]
 } satisfies VendorTuiSnapshot
 
-describe("ingraft tui dashboard", () => {
+describe("tui dashboard", () => {
   test("includes a vendored repositories tab", () => {
     expect(dashboardTabs).toContain("repositories")
     expect(visibleRepositoryRows(snapshot)).toEqual([
@@ -157,7 +157,7 @@ describe("ingraft tui dashboard", () => {
       controller
     )
     handleDashboardKey(
-      { name: "2", sequence: "2" } as Parameters<typeof handleDashboardKey>[0],
+      { name: "4", sequence: "4" } as Parameters<typeof handleDashboardKey>[0],
       controller
     )
     handleDashboardKey(
@@ -170,7 +170,7 @@ describe("ingraft tui dashboard", () => {
     )
 
     expect(state.focusedTaskIndex).toBe(1)
-    expect(state.strategy).toBe("submodule")
+    expect(state.strategy).toBe("cache-link")
     expect(didRun).toBe(true)
   })
 })

@@ -2,6 +2,7 @@ import { NodeServices } from "@effect/platform-node"
 import { Layer } from "effect"
 
 import { RepositoryAliasesLive } from "../aliases/service.ts"
+import { IngraftConfigLive } from "../config/ingraft.ts"
 import { IntellijSettingsLive } from "../editors/intellij.ts"
 import { EditorSettingsLive } from "../editors/service.ts"
 import { VscodeSettingsLive } from "../editors/vscode.ts"
@@ -42,7 +43,10 @@ import { ToolIgnoresLive as ToolIgnoresLayerLive } from "../tool-ignores/service
 import { RuntimeConfigLive } from "./runtime.ts"
 
 const PlatformLive = Layer.mergeAll(NodeServices.layer, RuntimeConfigLive)
-const AliasesLive = RepositoryAliasesLive.pipe(Layer.provide(PlatformLive))
+const ConfigLive = IngraftConfigLive.pipe(Layer.provide(PlatformLive))
+const AliasesLive = RepositoryAliasesLive.pipe(
+  Layer.provide(Layer.mergeAll(PlatformLive, ConfigLive))
+)
 const ArtifactsLive = CloudflareArtifactsLive
 const GitLayerLive = GitLive.pipe(Layer.provide(NodeServices.layer))
 const MetadataLive = GitMetadataLive
@@ -88,6 +92,7 @@ const PrmptsLive = PromptsLive
 
 export const LiveLayer = Layer.mergeAll(
   PlatformLive,
+  ConfigLive,
   AliasesLive,
   ArtifactsLive,
   GitLayerLive,

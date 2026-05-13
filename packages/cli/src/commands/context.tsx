@@ -109,14 +109,6 @@ export const contextSourceImpl = ({ target }: ContextSourceCommandParams) =>
     yield* runContextCommandPlan({ cwd, plan })
   })
 
-const contextToolsCmd = Command.make(
-  "tools",
-  {
-    json: contextJsonOption
-  },
-  contextToolsImpl
-).pipe(Command.withDescription("Detect curated optional context tools in this repository."))
-
 const contextPackCmd = Command.make(
   "pack",
   {
@@ -136,9 +128,13 @@ const contextSourceCmd = Command.make(
   Command.withDescription("Run OpenSrc and print the cached source path for a package or repo.")
 )
 
-export const contextCmd = Command.make("context", {}, () => contextToolsImpl({ json: false })).pipe(
+export const contextCmd = Command.make(
+  "context",
+  { json: contextJsonOption },
+  contextToolsImpl
+).pipe(
   Command.withDescription(
-    "Detect or run curated optional context tools that complement vendored source."
+    "Detect curated optional context tools that complement vendored source."
   ),
-  Command.withSubcommands([contextToolsCmd, contextPackCmd, contextSourceCmd])
+  Command.withSubcommands([contextPackCmd, contextSourceCmd])
 )

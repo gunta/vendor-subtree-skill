@@ -7,6 +7,7 @@ import { cleanHelpOutput, isSubcommandHelp, printRootHelp, shouldShowRootHelp } 
 import { ErrorView } from "./app/ink/error-view.tsx"
 import { renderInkOnce } from "./app/ink/render.tsx"
 import { LiveLayer } from "./app/layers.ts"
+import { withCommandTelemetry } from "./app/log.tsx"
 import { RuntimeConfig } from "./app/runtime.ts"
 import { addCmd, addManyImpl } from "./commands/add.tsx"
 import { contextCmd } from "./commands/context.tsx"
@@ -16,11 +17,18 @@ import { initCmd } from "./commands/init.tsx"
 import { listCmd } from "./commands/list.tsx"
 import { refreshCmd } from "./commands/refresh.tsx"
 import { removeCmd } from "./commands/remove.tsx"
-import { openTui, tuiCmd } from "./commands/tui.ts"
 import { updateCmd } from "./commands/update.tsx"
 import { VERSION } from "./domain/constants.ts"
-import { InkRenderFailed, type VendorError, errorPresentation, exitCodeOf } from "./domain/errors.ts"
+import {
+  InkRenderFailed,
+  type VendorError,
+  errorPresentation,
+  exitCodeOf
+} from "./domain/errors.ts"
 import { GitMetadataLive } from "./services/git-metadata.ts"
+import { launchTui } from "./tui/launcher.ts"
+
+const openTui = Effect.promise(() => launchTui()).pipe(Effect.asVoid, withCommandTelemetry("tui"))
 
 const rootTargetsArg = Argument.string("target").pipe(
   Argument.withDescription(
@@ -47,7 +55,7 @@ export const vendorCommand = Command.make("ingraft", { targets: rootTargetsArg }
           ref: Option.none(),
           release: Option.none(),
           repos: targets,
-          strategy: "subtree",
+          strategy: Option.none(),
           syncPackage: Option.none(),
           tag: Option.none()
         })
@@ -58,7 +66,6 @@ export const vendorCommand = Command.make("ingraft", { targets: rootTargetsArg }
   ),
   Command.withSubcommands([
     initCmd,
-    tuiCmd,
     depsCmd,
     addCmd,
     updateCmd,
@@ -96,6 +103,7 @@ const app = Effect.gen(function* () {
     HistoryRewriteToolMissing: handleVendorError,
     InvalidVendorFilter: handleVendorError,
     InvalidAddTargets: handleVendorError,
+    IngraftConfigFileFailed: handleVendorError,
     NotGitRepository: handleVendorError,
     PackageVersionSyncFailed: handleVendorError,
     RepositoryAliasDatabaseInvalid: handleVendorError,
@@ -122,7 +130,10 @@ const app = Effect.gen(function* () {
     TuiLaunchFailed: handleVendorError,
     TuiRendererFailed: handleVendorError,
     TypeScriptParseFailed: handleVendorError,
-    YamlParseFailed: handleVendorError
+    YamlParseFailed: handleVendorError,
+    GitMetadataFailed: handleVendorError,
+    MetadataFetchFailed: handleVendorError,
+    VendorNotesFailed: handleVendorError
   })
 )
 

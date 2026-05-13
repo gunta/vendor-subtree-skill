@@ -1,7 +1,7 @@
 #!/usr/bin/env bun
 import { createCliRenderer } from "@opentui/core"
 
-import { readSnapshot, runCommandPlan } from "./cli-adapter.ts"
+import { emptySnapshot, readSnapshotStreaming, runCommandPlan } from "./cli-adapter.ts"
 import {
   commandPlanForSelection,
   createDashboardState,
@@ -12,7 +12,11 @@ import { handleDashboardKey } from "./keyboard.ts"
 import { colors, renderDashboard } from "./render.ts"
 
 export const runTuiApp = async () => {
-  let state = createDashboardState(readSnapshot().snapshot)
+  let state = createDashboardState(emptySnapshot(), {
+    logLines: ["Opened dashboard; loading repository state in the background."],
+    statusMessage: "Loading vendored repositories and package metadata..."
+  })
+  let snapshotRefreshId = 0
 
   const renderer = await createCliRenderer({
     backgroundColor: colors.background,
@@ -41,15 +45,34 @@ export const runTuiApp = async () => {
     render()
   }
 
-  const refreshSnapshot = (message?: string) => {
-    const refreshed = readSnapshot()
+  const refreshSnapshot = (message = "Refreshing repository and dependency snapshot...") => {
+    const refreshId = (snapshotRefreshId += 1)
     updateState(
       dispatchDashboard(state, {
-        message: message ?? refreshed.message,
-        snapshot: refreshed.snapshot,
+        message,
+        snapshot: state.snapshot,
         type: "refresh"
       })
     )
+    void readSnapshotStreaming((progress) => {
+      if (refreshId !== snapshotRefreshId) return
+      updateState(
+        dispatchDashboard(state, {
+          message: progress.message,
+          snapshot: progress.snapshot,
+          type: "refresh"
+        })
+      )
+    }).catch((cause) => {
+      if (refreshId !== snapshotRefreshId) return
+      updateState(
+        dispatchDashboard(state, {
+          message: cause instanceof Error ? cause.message : String(cause),
+          snapshot: state.snapshot,
+          type: "refresh"
+        })
+      )
+    })
   }
 
   const runSelected = () => {
@@ -64,11 +87,11 @@ export const runTuiApp = async () => {
       updateState(dispatchDashboard(state, { line: `RUN ${plan.label}`, type: "append-log" }))
       updateState(dispatchDashboard(state, { line: runCommandPlan(plan), type: "append-log" }))
     }
-    const refreshed = readSnapshot()
+    refreshSnapshot(`Processed ${plans.length} task(s). Refreshing snapshot...`)
     updateState(
       dispatchDashboard(state, {
-        message: `Processed ${plans.length} task(s). ${refreshed.message}`,
-        snapshot: refreshed.snapshot,
+        message: `Processed ${plans.length} task(s). Refreshing snapshot...`,
+        snapshot: state.snapshot,
         type: "finish-run"
       })
     )
@@ -88,4 +111,5 @@ export const runTuiApp = async () => {
   )
 
   render()
+  setTimeout(() => refreshSnapshot("Loading vendored repositories and project dependencies..."), 0)
 }

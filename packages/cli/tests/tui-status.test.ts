@@ -2,7 +2,7 @@ import { describe, expect, test } from "bun:test"
 
 import { repoRows, summarizeSnapshot, taskRows } from "../src/tui/status.ts"
 
-describe("ingraft tui status", () => {
+describe("tui status", () => {
   test("summarizes dependency and vendoring task state", () => {
     expect(
       summarizeSnapshot({

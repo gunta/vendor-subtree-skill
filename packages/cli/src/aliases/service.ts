@@ -2,24 +2,43 @@ import { fileURLToPath } from "node:url"
 
 import { Context, Effect, FileSystem, Layer, Result, Schema } from "effect"
 
+import { IngraftConfig } from "../config/ingraft.ts"
 import { RepositoryAliasDatabaseInvalid } from "../domain/errors.ts"
+import { hostedRepoFromInput } from "../domain/repo.ts"
+import { type VendorStrategy, VendorStrategySchema } from "../domain/vendor-strategy.ts"
+
+export interface RepositoryAliasTarget {
+  readonly strategy: VendorStrategy | undefined
+  readonly target: string
+}
 
 export interface RepositoryAliasEntry {
   readonly alias: string
   readonly description: string | undefined
-  readonly targets: ReadonlyArray<string>
+  readonly strategy: VendorStrategy | undefined
+  readonly targets: ReadonlyArray<RepositoryAliasTarget>
 }
 
 export interface RepositoryAliasResolvedTarget {
   readonly alias?: string
   readonly input: string
+  readonly strategy?: VendorStrategy
   readonly target: string
 }
+
+const AliasTargetSchema = Schema.Union([
+  Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
+  Schema.Struct({
+    target: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
+    strategy: Schema.optionalKey(VendorStrategySchema)
+  })
+])
 
 const AliasEntrySchema = Schema.Struct({
   alias: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
   description: Schema.optionalKey(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
-  targets: Schema.Array(Schema.String.pipe(Schema.check(Schema.isMinLength(1))))
+  strategy: Schema.optionalKey(VendorStrategySchema),
+  targets: Schema.Array(AliasTargetSchema)
 })
 
 const AliasDatabaseSchema = Schema.Struct({
@@ -34,14 +53,36 @@ const bundledAliasDatabasePath = fileURLToPath(
 
 const normalizeAlias = (value: string): string => value.trim().toLowerCase()
 
-const normalizedTargetKey = (value: string): string =>
-  value
+const normalizedTargetKey = (value: string): string => {
+  const trimmed = value.trim()
+  const hosted = hostedRepoFromInput(trimmed)
+  if (hosted !== null) {
+    return `${hosted.host}/${hosted.path}`.toLowerCase()
+  }
+  return trimmed
     .trim()
     .replace(/\/+$/, "")
     .replace(/\.git$/, "")
     .toLowerCase()
+}
 
 const invalidAliasDatabase = (reason: string) => new RepositoryAliasDatabaseInvalid({ reason })
+
+const normalizeAliasTarget = (
+  target: typeof AliasTargetSchema.Type,
+  inheritedStrategy: VendorStrategy | undefined
+): RepositoryAliasTarget => {
+  if (typeof target === "string") {
+    return {
+      strategy: inheritedStrategy,
+      target: target.trim()
+    }
+  }
+  return {
+    strategy: target.strategy ?? inheritedStrategy,
+    target: target.target.trim()
+  }
+}
 
 export const repositoryAliasEntriesFromDatabase = (database: unknown) =>
   Result.match(decodeAliasDatabase(database), {
@@ -61,7 +102,9 @@ export const repositoryAliasEntriesFromDatabase = (database: unknown) =>
           }
           seen.add(alias)
 
-          const targets = entry.targets.map((target) => target.trim()).filter(Boolean)
+          const targets = entry.targets
+            .map((target) => normalizeAliasTarget(target, entry.strategy))
+            .filter((target) => target.target.length > 0)
           if (targets.length === 0) {
             return yield* Effect.fail(
               invalidAliasDatabase(`Alias '${alias}' must map to at least one target.`)
@@ -71,6 +114,7 @@ export const repositoryAliasEntriesFromDatabase = (database: unknown) =>
           entries.push({
             alias,
             description: entry.description,
+            strategy: entry.strategy,
             targets
           })
         }
@@ -84,6 +128,14 @@ export const expandAliasTargetsWith = (
   inputs: ReadonlyArray<string>
 ): ReadonlyArray<RepositoryAliasResolvedTarget> => {
   const byAlias = new Map(entries.map((entry) => [entry.alias, entry]))
+  const strategyByTarget = new Map<string, VendorStrategy>()
+  for (const entry of entries) {
+    for (const target of entry.targets) {
+      if (target.strategy !== undefined) {
+        strategyByTarget.set(normalizedTargetKey(target.target), target.strategy)
+      }
+    }
+  }
   const seenTargets = new Set<string>()
   const expanded: Array<RepositoryAliasResolvedTarget> = []
 
@@ -92,17 +144,53 @@ export const expandAliasTargetsWith = (
     if (trimmed.length === 0) continue
 
     const alias = byAlias.get(normalizeAlias(trimmed))
-    const targets = alias?.targets ?? [trimmed]
+    const targets = alias?.targets ?? [
+      {
+        strategy: strategyByTarget.get(normalizedTargetKey(trimmed)),
+        target: trimmed
+      }
+    ]
 
     for (const target of targets) {
-      const key = normalizedTargetKey(target)
+      const key = normalizedTargetKey(target.target)
       if (seenTargets.has(key)) continue
       seenTargets.add(key)
-      expanded.push(alias === undefined ? { input, target } : { alias: alias.alias, input, target })
+      const strategy = target.strategy ?? strategyByTarget.get(key)
+      expanded.push({
+        ...(alias === undefined ? {} : { alias: alias.alias }),
+        input,
+        ...(strategy === undefined ? {} : { strategy }),
+        target: target.target
+      })
     }
   }
 
   return expanded
+}
+
+export const mergeAliasEntries = (
+  bundledEntries: ReadonlyArray<RepositoryAliasEntry>,
+  configuredEntries: ReadonlyArray<RepositoryAliasEntry>
+): ReadonlyArray<RepositoryAliasEntry> => {
+  const aliases = new Map<string, RepositoryAliasEntry>()
+  const order: Array<string> = []
+
+  for (const entry of bundledEntries) {
+    aliases.set(entry.alias, entry)
+    order.push(entry.alias)
+  }
+
+  for (const entry of configuredEntries) {
+    if (!aliases.has(entry.alias)) {
+      order.push(entry.alias)
+    }
+    aliases.set(entry.alias, entry)
+  }
+
+  return order.flatMap((alias) => {
+    const entry = aliases.get(alias)
+    return entry === undefined ? [] : [entry]
+  })
 }
 
 const parseJson = (text: string) =>
@@ -140,7 +228,12 @@ export const RepositoryAliasesLive = Layer.effect(
   RepositoryAliases,
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
-    const entries = yield* loadBundledAliasEntries(fs)
+    const config = yield* IngraftConfig
+    const bundledEntries = yield* loadBundledAliasEntries(fs)
+    const configuredEntries = yield* repositoryAliasEntriesFromDatabase({
+      aliases: config.aliases
+    })
+    const entries = mergeAliasEntries(bundledEntries, configuredEntries)
 
     return {
       entries,

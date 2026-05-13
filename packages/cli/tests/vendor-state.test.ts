@@ -143,13 +143,47 @@ describe("vendor state parsing", () => {
         "main",
         "clone-ignore",
         "upsert"
+      ].join("\x00"),
+      [
+        "sha-cache-link",
+        "2026-05-13T00:00:00Z",
+        "vendor/effect-cache",
+        "https://github.com/Effect-TS/effect.git",
+        "main",
+        "cache-link",
+        "upsert"
       ].join("\x00")
     ].join("\x1e")
 
     expect(parseVendoredLog(log).map((repo) => repo.strategy)).toEqual([
       "submodule",
-      "clone-ignore"
+      "clone-ignore",
+      "cache-link"
     ])
+  })
+
+  test("parses resolved ref metadata for cache-link records", () => {
+    const log = [
+      [
+        "sha-cache-link",
+        "2026-05-13T00:00:00Z",
+        "vendor/effect",
+        "https://github.com/Effect-TS/effect.git",
+        "main",
+        "cache-link",
+        "upsert",
+        "",
+        "",
+        "9f3a0d8e6f3a0d8e6f3a0d8e6f3a0d8e6f3a0d8e"
+      ].join("\x00")
+    ].join("\x1e")
+
+    expect(parseVendoredLog(log)[0]).toMatchObject({
+      prefix: "vendor/effect",
+      ref: "main",
+      resolvedRef: "9f3a0d8e6f3a0d8e6f3a0d8e6f3a0d8e6f3a0d8e",
+      strategy: "cache-link"
+    })
   })
 
   test("excludes repos whose latest trailer record is a remove action", () => {

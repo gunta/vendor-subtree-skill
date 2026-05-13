@@ -1,4 +1,4 @@
-import { Schema } from "effect"
+import { Option, Schema } from "effect"
 
 export const VENDOR_STRATEGIES = ["subtree", "submodule", "clone-ignore"] as const
 
@@ -19,11 +19,22 @@ export interface EffectiveVendorStrategyParams {
   readonly requested: VendorStrategy
 }
 
+export interface ResolveVendorStrategyPreferenceParams {
+  readonly recommended: VendorStrategy | undefined
+  readonly requested: Option.Option<VendorStrategy>
+}
+
 export const effectiveVendorStrategy = ({
   jjColocated,
   requested
 }: EffectiveVendorStrategyParams): VendorStrategy =>
   jjColocated && requested !== "clone-ignore" ? "clone-ignore" : requested
+
+export const resolveVendorStrategyPreference = ({
+  recommended,
+  requested
+}: ResolveVendorStrategyPreferenceParams): VendorStrategy =>
+  Option.getOrElse(requested, () => recommended ?? DEFAULT_VENDOR_STRATEGY)
 
 export const strategyLabel = (strategy: VendorStrategy): string => {
   switch (strategy) {

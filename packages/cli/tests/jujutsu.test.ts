@@ -4,9 +4,12 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { NodeServices } from "@effect/platform-node"
-import { Effect } from "effect"
+import { Effect, Option } from "effect"
 
-import { effectiveVendorStrategy } from "../src/domain/vendor-strategy.ts"
+import {
+  effectiveVendorStrategy,
+  resolveVendorStrategyPreference
+} from "../src/domain/vendor-strategy.ts"
 import { Jujutsu, JujutsuLive } from "../src/services/jujutsu.ts"
 
 const withTempWorkspace = async <A>(run: (cwd: string) => Promise<A>): Promise<A> => {
@@ -29,7 +32,31 @@ describe("Jujutsu colocated workspaces", () => {
     expect(effectiveVendorStrategy({ jjColocated: true, requested: "clone-ignore" })).toBe(
       "clone-ignore"
     )
+    expect(effectiveVendorStrategy({ jjColocated: true, requested: "cache-link" })).toBe(
+      "cache-link"
+    )
     expect(effectiveVendorStrategy({ jjColocated: false, requested: "subtree" })).toBe("subtree")
+  })
+
+  test("uses repository strategy recommendations only when no strategy was requested", () => {
+    expect(
+      resolveVendorStrategyPreference({
+        recommended: "submodule",
+        requested: Option.none()
+      })
+    ).toBe("submodule")
+    expect(
+      resolveVendorStrategyPreference({
+        recommended: "submodule",
+        requested: Option.some("subtree")
+      })
+    ).toBe("subtree")
+    expect(
+      resolveVendorStrategyPreference({
+        recommended: undefined,
+        requested: Option.none()
+      })
+    ).toBe("subtree")
   })
 
   test("detects a colocated jj workspace from .jj and .git side by side", async () => {

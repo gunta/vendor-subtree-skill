@@ -32,7 +32,6 @@ const commands: readonly SubcommandEntry[] = [
   },
   { name: "refresh", description: "Re-generate project surfaces from current git state." },
   { name: "context", description: "Detect or run optional context tools (Repomix, OpenSrc)." },
-  { name: "tui", description: "Open the interactive vendoring dashboard." },
   { name: "doctor", description: "Inspect vendored repos and detected tool status." }
 ]
 

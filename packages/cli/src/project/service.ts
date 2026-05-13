@@ -36,7 +36,7 @@ interface ProjectFilesDependencies {
     readonly sync: (params: {
       readonly cwd: string
       readonly repos: ReadonlyArray<VendoredRepo>
-    }) => Effect.Effect<void, unknown>
+    }) => Effect.Effect<void, never>
   }
 }
 

@@ -6,7 +6,7 @@ import { join } from "node:path"
 import { NodeServices } from "@effect/platform-node"
 import { Effect } from "effect"
 
-import { RuntimeConfig, RuntimeConfigLive } from "../src/app/runtime.ts"
+import { RuntimeConfigLive } from "../src/app/runtime.ts"
 import {
   IntellijSettings,
   IntellijSettingsLive,

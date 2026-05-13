@@ -2,6 +2,7 @@ import { Effect, FileSystem, Path } from "effect"
 
 import { packageJsonHasDependency } from "../config/package-json.ts"
 import { VENDOR_DIR } from "../domain/constants.ts"
+import type { GitMetadataFailed } from "../domain/errors.ts"
 
 export const PROJECT_LANGUAGES = [
   "typescript",
@@ -34,7 +35,9 @@ type MutableProjectLanguageUsage = {
 export interface DetectProjectLanguagesParams {
   readonly cwd: string
   readonly fs: FileSystem.FileSystem
-  readonly listProjectFiles: (cwd: string) => Effect.Effect<ReadonlyArray<string>, unknown>
+  readonly listProjectFiles: (
+    cwd: string
+  ) => Effect.Effect<ReadonlyArray<string>, GitMetadataFailed>
   readonly path: Path.Path
 }
 

@@ -3,19 +3,23 @@ import * as nodeFs from "node:fs"
 import { Context, Effect, Layer } from "effect"
 import * as git from "isomorphic-git"
 
+import { GitMetadataFailed } from "../domain/errors.ts"
+
 export interface GitMetadataCommit {
   readonly message: string
   readonly oid: string
   readonly timestamp: number
 }
 
-const findRoot = (cwd: string): Effect.Effect<string, unknown> =>
+const findRoot = (cwd: string): Effect.Effect<string, GitMetadataFailed> =>
   Effect.tryPromise({
     try: () => git.findRoot({ fs: nodeFs, filepath: cwd }),
-    catch: (error) => error
+    catch: (cause) => new GitMetadataFailed({ operation: "findRoot", cwd, cause })
   })
 
-const listCommits = (cwd: string): Effect.Effect<ReadonlyArray<GitMetadataCommit>, unknown> =>
+const listCommits = (
+  cwd: string
+): Effect.Effect<ReadonlyArray<GitMetadataCommit>, GitMetadataFailed> =>
   Effect.tryPromise({
     try: async () => {
       const commits = await git.log({ fs: nodeFs, dir: cwd })
@@ -25,10 +29,12 @@ const listCommits = (cwd: string): Effect.Effect<ReadonlyArray<GitMetadataCommit
         timestamp: entry.commit.committer.timestamp
       }))
     },
-    catch: (error) => error
+    catch: (cause) => new GitMetadataFailed({ operation: "listCommits", cwd, cause })
   })
 
-const listProjectFiles = (cwd: string): Effect.Effect<ReadonlyArray<string>, unknown> =>
+const listProjectFiles = (
+  cwd: string
+): Effect.Effect<ReadonlyArray<string>, GitMetadataFailed> =>
   Effect.tryPromise({
     try: async () => {
       const matrix = await git.statusMatrix({
@@ -38,30 +44,43 @@ const listProjectFiles = (cwd: string): Effect.Effect<ReadonlyArray<string>, unk
       })
       return matrix.map(([filepath]) => String(filepath))
     },
-    catch: (error) => error
+    catch: (cause) => new GitMetadataFailed({ operation: "listProjectFiles", cwd, cause })
   })
 
-const pathKnownToGit = (cwd: string, filepath: string): Effect.Effect<boolean, unknown> =>
+const pathKnownToGit = (
+  cwd: string,
+  filepath: string
+): Effect.Effect<boolean, GitMetadataFailed> =>
   Effect.tryPromise({
     try: async () => {
       const status = await git.status({ fs: nodeFs, dir: cwd, filepath })
       return status !== "absent"
     },
-    catch: (error) => error
+    catch: (cause) => new GitMetadataFailed({ operation: "pathKnownToGit", cwd, filepath, cause })
   })
 
-const isIgnored = (cwd: string, filepath: string): Effect.Effect<boolean, unknown> =>
+const isIgnored = (
+  cwd: string,
+  filepath: string
+): Effect.Effect<boolean, GitMetadataFailed> =>
   Effect.tryPromise({
     try: () => git.isIgnored({ fs: nodeFs, dir: cwd, filepath }),
-    catch: (error) => error
+    catch: (cause) => new GitMetadataFailed({ operation: "isIgnored", cwd, filepath, cause })
   })
 
 export interface GitMetadataShape {
-  readonly findRoot: (cwd: string) => Effect.Effect<string, unknown>
-  readonly isIgnored: (cwd: string, filepath: string) => Effect.Effect<boolean, unknown>
-  readonly listCommits: (cwd: string) => Effect.Effect<ReadonlyArray<GitMetadataCommit>, unknown>
-  readonly listProjectFiles: (cwd: string) => Effect.Effect<ReadonlyArray<string>, unknown>
-  readonly pathKnownToGit: (cwd: string, filepath: string) => Effect.Effect<boolean, unknown>
+  readonly findRoot: (cwd: string) => Effect.Effect<string, GitMetadataFailed>
+  readonly isIgnored: (cwd: string, filepath: string) => Effect.Effect<boolean, GitMetadataFailed>
+  readonly listCommits: (
+    cwd: string
+  ) => Effect.Effect<ReadonlyArray<GitMetadataCommit>, GitMetadataFailed>
+  readonly listProjectFiles: (
+    cwd: string
+  ) => Effect.Effect<ReadonlyArray<string>, GitMetadataFailed>
+  readonly pathKnownToGit: (
+    cwd: string,
+    filepath: string
+  ) => Effect.Effect<boolean, GitMetadataFailed>
 }
 
 export class GitMetadata extends Context.Service<GitMetadata, GitMetadataShape>()(

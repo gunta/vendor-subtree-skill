@@ -2,7 +2,7 @@
 
 Internal development wrapper for the `ingraft` OpenTUI dashboard.
 
-The dashboard ships inside the single published `ingraft` package. Running `ingraft` with no arguments opens it, and `ingraft tui` opens it explicitly.
+The dashboard ships inside the single published `ingraft` package. Running `ingraft` with no arguments opens it.
 
 ```sh
 bun run dev:tui
