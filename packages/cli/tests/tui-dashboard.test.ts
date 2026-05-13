@@ -3,7 +3,9 @@ import { describe, expect, test } from "bun:test"
 import {
   commandPlanForSelection,
   createDashboardState,
+  dashboardTabs,
   dispatchDashboard,
+  visibleRepositoryRows,
   visibleTaskRows
 } from "../src/tui/dashboard.ts"
 import { handleDashboardKey, type DashboardController } from "../src/tui/keyboard.ts"
@@ -19,6 +21,22 @@ const snapshot = {
     {
       packageName: "left-pad",
       status: "missing-repository"
+    }
+  ],
+  repos: [
+    {
+      name: "effect",
+      packageNames: ["effect"],
+      path: "vendor/effect",
+      ref: "main",
+      source: "https://github.com/Effect-TS/effect.git",
+      strategy: "subtree",
+      versions: {
+        local: "effect@3.21.2 (bun-lock)",
+        remote: "effect@3.21.3 (npm latest)",
+        status: "remote-drift",
+        vendor: "effect@3.21.2 (vendored source)"
+      }
     }
   ],
   tasks: [
@@ -54,6 +72,13 @@ const snapshot = {
 } satisfies VendorTuiSnapshot
 
 describe("ingraft tui dashboard", () => {
+  test("includes a vendored repositories tab", () => {
+    expect(dashboardTabs).toContain("repositories")
+    expect(visibleRepositoryRows(snapshot)).toEqual([
+      "effect                       subtree      effect                       effect@3.21.2 (bun-lock)         effect@3.21.2 (vendored source)  effect@3.21.3 (npm latest)       remote-drift"
+    ])
+  })
+
   test("tracks focus and selected task rows independently", () => {
     const selected = dispatchDashboard(
       dispatchDashboard(createDashboardState(snapshot), { type: "move-down" }),

@@ -2,7 +2,25 @@
   "name": "@ingraft/skill",
   "version": "0.3.0",
   "description": "Agent skill wrapper for the ingraft CLI.",
+  "keywords": [
+    "agent-skill",
+    "claude-code",
+    "coding-agents",
+    "ingraft",
+    "skill",
+    "vendor"
+  ],
+  "homepage": "https://ingraft.dev",
+  "bugs": {
+    "url": "https://github.com/gunta/ingraft/issues"
+  },
   "license": "MIT",
+  "author": "Gunther Brunner <gunta85@gmail.com> (https://github.com/gunta)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gunta/ingraft.git",
+    "directory": "packages/skill"
+  },
   "files": [
     "SKILL.md",
     "README.md",

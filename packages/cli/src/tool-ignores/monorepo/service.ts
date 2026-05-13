@@ -1,11 +1,11 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import { buildSystemTools } from "./build-systems/index.ts"
 import {
   type MonorepoToolCategory,
   type MonorepoToolDefinition,
-  type ToolFileContext
+  type ToolFileContext,
+  type ToolIgnoreReport
 } from "./common.ts"
 import { packageManagerTools } from "./package-managers/index.ts"
 import { taskRunnerTools } from "./task-runners/index.ts"
@@ -49,9 +49,18 @@ const refreshWith = (context: ToolFileContext, cwd: string) => {
   )
 }
 
-export class MonorepoTools extends Effect.Service<MonorepoTools>()("ingraft/MonorepoTools", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export interface MonorepoToolsShape {
+  readonly doctor: (cwd: string) => Effect.Effect<ReadonlyArray<ToolIgnoreReport>, unknown>
+  readonly refresh: (cwd: string) => Effect.Effect<ReadonlyArray<string>, unknown>
+}
+
+export class MonorepoTools extends Context.Service<MonorepoTools, MonorepoToolsShape>()(
+  "ingraft/MonorepoTools"
+) {}
+
+export const MonorepoToolsLive = Layer.effect(
+  MonorepoTools,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const context = { fs, path }
@@ -60,4 +69,4 @@ export class MonorepoTools extends Effect.Service<MonorepoTools>()("ingraft/Mono
       refresh: (cwd: string) => refreshWith(context, cwd)
     }
   })
-}) {}
+)

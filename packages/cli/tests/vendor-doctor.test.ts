@@ -18,7 +18,7 @@ describe("vendor doctor", () => {
       }).pipe(
         Effect.provideService(
           ProjectFiles,
-          ProjectFiles.make({
+          ProjectFiles.of({
             refresh: (params) =>
               Effect.sync(() => {
                 calls.push(params)

@@ -1,5 +1,5 @@
 export { mergeBazelIgnoreText, buildSystemTools } from "./monorepo/build-systems/index.ts"
-export { MonorepoTools } from "./monorepo/service.ts"
+export { MonorepoTools, MonorepoToolsLive } from "./monorepo/service.ts"
 export {
   mergeMoonWorkspaceText,
   mergeNxConfigText,

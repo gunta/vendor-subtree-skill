@@ -1,4 +1,3 @@
-import { FileSystem, Path } from "@effect/platform"
 import {
   DOMParser,
   XMLSerializer,
@@ -6,7 +5,7 @@ import {
   type Element as XmlElement,
   type Node as XmlNode
 } from "@xmldom/xmldom"
-import { Effect } from "effect"
+import { Context, Effect, FileSystem, Layer, Path } from "effect"
 
 import { warn } from "../app/log.tsx"
 import { RuntimeConfig, type RuntimeConfigShape } from "../app/runtime.ts"
@@ -262,7 +261,7 @@ const writeMergedFile = ({ fs, merge, path, target }: WriteMergedFileParams) => 
         .makeDirectory(path.dirname(target), { recursive: true })
         .pipe(
           Effect.ignore,
-          Effect.zipRight(
+          Effect.andThen(
             fs.writeFileString(target, merge.text.endsWith("\n") ? merge.text : `${merge.text}\n`)
           ),
           Effect.as([target])
@@ -309,17 +308,22 @@ const refreshIntellijSettingsWith = ({
     return [...scopeWritten, ...fileColorsWritten]
   })
 
-export class IntellijSettings extends Effect.Service<IntellijSettings>()(
-  "ingraft/IntellijSettings",
-  {
-    accessors: true,
-    effect: Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem
-      const path = yield* Path.Path
-      const runtime = yield* RuntimeConfig
-      return {
-        refresh: (cwd: string) => refreshIntellijSettingsWith({ cwd, fs, path, runtime })
-      }
-    })
-  }
+export interface IntellijSettingsShape {
+  readonly refresh: (cwd: string) => Effect.Effect<ReadonlyArray<string>, unknown>
+}
+
+export class IntellijSettings extends Context.Service<IntellijSettings, IntellijSettingsShape>()(
+  "ingraft/IntellijSettings"
 ) {}
+
+export const IntellijSettingsLive = Layer.effect(
+  IntellijSettings,
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    const runtime = yield* RuntimeConfig
+    return {
+      refresh: (cwd: string) => refreshIntellijSettingsWith({ cwd, fs, path, runtime })
+    }
+  })
+)

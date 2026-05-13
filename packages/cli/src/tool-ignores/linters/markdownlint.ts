@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import { packageJsonDependencySpec } from "../../config/package-json.ts"
 import {
@@ -8,7 +7,8 @@ import {
   hasVendorPattern,
   mergeManagedIgnoreSection,
   report,
-  type ToolFileContext
+  type ToolFileContext,
+  type ToolIgnoreIntegration
 } from "../common.ts"
 
 const TOOL = "markdownlint"
@@ -144,18 +144,20 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class MarkdownlintIgnore extends Effect.Service<MarkdownlintIgnore>()(
-  "ingraft/MarkdownlintIgnore",
-  {
-    accessors: true,
-    effect: Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem
-      const path = yield* Path.Path
-      const context = { fs, path }
-      return {
-        doctor: (cwd: string) => doctorWith(context, cwd),
-        refresh: (cwd: string) => refreshWith(context, cwd)
-      }
-    })
-  }
-) {}
+export class MarkdownlintIgnore extends Context.Service<
+  MarkdownlintIgnore,
+  ToolIgnoreIntegration
+>()("ingraft/MarkdownlintIgnore") {}
+
+export const MarkdownlintIgnoreLive = Layer.effect(
+  MarkdownlintIgnore,
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    const context = { fs, path }
+    return {
+      doctor: (cwd: string) => doctorWith(context, cwd),
+      refresh: (cwd: string) => refreshWith(context, cwd)
+    }
+  })
+)

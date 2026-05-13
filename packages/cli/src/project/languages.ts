@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect } from "effect"
+import { Effect, FileSystem, Path } from "effect"
 
 import { packageJsonHasDependency } from "../config/package-json.ts"
 import { VENDOR_DIR } from "../domain/constants.ts"
@@ -14,8 +13,10 @@ export const PROJECT_LANGUAGES = [
   "java",
   "kotlin",
   "swift",
+  "android",
   "php",
   "ruby",
+  "elixir",
   "cpp",
   "csharp",
   "css",
@@ -59,8 +60,10 @@ const LANGUAGE_EXTENSIONS = {
   java: [".java"],
   kotlin: [".kt", ".kts"],
   swift: [".swift"],
+  android: [".aidl"],
   php: [".php"],
   ruby: [".rb"],
+  elixir: [".ex", ".exs"],
   cpp: [".c", ".cc", ".cpp", ".cxx", ".h", ".hh", ".hpp", ".hxx"],
   csharp: [".cs", ".csx"],
   css: [".css", ".scss", ".sass", ".less", ".pcss"],
@@ -77,8 +80,10 @@ const ROOT_MARKERS = {
   java: ["pom.xml", "build.gradle", "settings.gradle"],
   kotlin: ["build.gradle.kts", "settings.gradle.kts"],
   swift: ["Package.swift"],
+  android: ["AndroidManifest.xml", "settings.gradle", "settings.gradle.kts"],
   php: ["composer.json"],
   ruby: ["Gemfile", ".ruby-version"],
+  elixir: ["mix.exs", "mix.lock"],
   cpp: ["CMakeLists.txt", "compile_commands.json", "Makefile"],
   csharp: ["global.json"],
   css: ["postcss.config.js", "postcss.config.cjs", "postcss.config.mjs"],
@@ -145,7 +150,7 @@ const packageJsonUsesTypeScript = ({
     const target = path.resolve(cwd, "package.json")
     if (!(yield* fs.exists(target))) return false
     return packageJsonHasDependency(yield* fs.readFileString(target), ["typescript"])
-  }).pipe(Effect.catchAll(() => Effect.succeed(false)))
+  }).pipe(Effect.catch(() => Effect.succeed(false)))
 
 const rootMarkerUsage = ({
   cwd,
@@ -173,7 +178,7 @@ const listFilesystemProjectFiles = ({
 }: Pick<DetectProjectLanguagesParams, "cwd" | "fs">) =>
   fs
     .readDirectory(cwd, { recursive: true })
-    .pipe(Effect.catchAll(() => Effect.succeed([] as ReadonlyArray<string>)))
+    .pipe(Effect.catch(() => Effect.succeed([] as ReadonlyArray<string>)))
 
 export const detectProjectLanguages = ({
   cwd,
@@ -184,7 +189,7 @@ export const detectProjectLanguages = ({
   Effect.gen(function* () {
     const markers = yield* rootMarkerUsage({ cwd, fs, path })
     const gitFiles = yield* listProjectFiles(cwd).pipe(
-      Effect.catchAll(() => Effect.succeed([] as ReadonlyArray<string>))
+      Effect.catch(() => Effect.succeed([] as ReadonlyArray<string>))
     )
     const projectFiles =
       gitFiles.length > 0 ? gitFiles : yield* listFilesystemProjectFiles({ cwd, fs })

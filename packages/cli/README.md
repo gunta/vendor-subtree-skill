@@ -18,6 +18,16 @@ npx ingraft --help
 bunx ingraft
 ```
 
+Homebrew and Nix package entrypoints are also maintained in this repository:
+
+```sh
+brew tap gunta/ingraft https://github.com/gunta/ingraft
+brew install ingraft
+
+nix run github:gunta/ingraft
+nix profile install github:gunta/ingraft#ingraft
+```
+
 ## Commands
 
 ```sh
@@ -33,6 +43,9 @@ ingraft add effect-smol
 ingraft add convex
 ingraft add Effect-TS/effect
 ingraft add zod @types/node Effect-TS/effect
+ingraft add react:react expo:expo react-native:react-native
+ingraft add swift:apple/swift-argument-parser
+ingraft add android:com.squareup.okhttp3:okhttp
 ingraft add Effect-TS/effect --ref main
 ingraft add Effect-TS/effect --tag v3.21.2
 ingraft add Effect-TS/effect --release latest
@@ -60,7 +73,7 @@ ingraft remove effect --dangerously-rewrite-history
 ingraft refresh
 ```
 
-Running `ingraft` with no arguments opens the interactive dashboard. `ingraft tui` does the same explicitly. Use `ingraft deps` for the non-interactive package scan: it reads project `package.json` manifests, resolves npm repository metadata, groups packages that share the same source repo, and asks which source repos to add or update. Passing positional targets is shorthand for adding them, so `ingraft zod Effect-TS/effect` vendors an npm package and a GitHub repository in one run. Repository aliases expand before npm package resolution, so `ingraft add effect` expands to `Effect-TS/effect`, and `ingraft add convex` expands to the Convex client and helper repositories. `deps --yes` processes every matched task without prompting; `deps --json` prints the detected candidates and planned tasks for tools such as the dashboard.
+Running `ingraft` with no arguments opens the interactive dashboard. `ingraft tui` does the same explicitly. Use `ingraft deps` for the non-interactive package scan: it reads project `package.json`, `mix.exs`, `Package.swift`, Gradle build files, and Gradle version catalogs; resolves npm, Hex, Swift source, and Maven SCM metadata; groups packages that share the same source repo; and asks which source repos to add or update. Passing positional targets is shorthand for adding them, so `ingraft zod hex:jason swift:apple/swift-argument-parser Effect-TS/effect` vendors npm, Hex, Swift, and GitHub sources in one run. Repository aliases expand before package resolution, so `ingraft add effect` expands to `Effect-TS/effect`, and `ingraft add convex` expands to the Convex client and helper repositories. `deps --yes` processes every matched task without prompting; `deps --json` prints the detected candidates and planned tasks for tools such as the dashboard.
 
 ## Repository Aliases
 
@@ -78,8 +91,10 @@ ingraft add convex
 # expands to get-convex/convex-js and get-convex/convex-helpers
 ```
 
-Unknown names still fall through to the existing npm package metadata flow, so
-ordinary package names continue to work.
+Unknown names still fall through to the npm package metadata flow, so ordinary
+package names continue to work. Use `hex:<package>` for Hex, `swift:<owner/repo>`
+or `swift:<url>` for Swift Package sources, and
+`android:<group>:<artifact>` for Maven-backed Android dependencies.
 
 ## Strategies
 
@@ -123,13 +138,14 @@ ingraft add org/repo --release v1.2.3
 ingraft add org/repo --sync-package package-name
 ```
 
-Package sync reads project package manifests, detects the exact package version in the same order as source-reference tools such as opensrc (`node_modules/<package>/package.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, then the manifest range), and maps that installed version to npm `gitHead` metadata or common upstream tag formats.
+Package sync reads project package manifests, detects the exact package version in the same order as source-reference tools such as opensrc (`node_modules/<package>/package.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, then the manifest range), and maps that installed version to npm `gitHead` metadata or common upstream tag formats. React, Expo, and React Native dependencies stay npm-backed while preserving ecosystem-specific sync selectors. For Elixir projects, `mix.exs` dependencies and `mix.lock` versions resolve through Hex metadata and common upstream tag formats. Swift packages read direct `Package.swift` source URLs. Android dependencies read Gradle coordinates and version catalogs, then use Maven POM SCM metadata to find upstream repositories and tags.
 
-Npm package targets are also accepted directly:
+Npm package targets are accepted directly, and app ecosystem targets use explicit prefixes:
 
 ```sh
 ingraft zod
-ingraft add zod @types/node Effect-TS/effect
+ingraft add zod @types/node hex:jason react:react expo:expo react-native:react-native
+ingraft add swift:apple/swift-argument-parser android:com.squareup.okhttp3:okhttp Effect-TS/effect
 ```
 
 ## TUI
@@ -143,7 +159,7 @@ The dashboard is bundled into this package and shows dependency matches and vend
 
 ## Tooling Integration
 
-`refresh` keeps agent docs and detected local tooling configuration in sync. It only writes ignore settings for tools that are present, including common TypeScript, JavaScript, Python, Rust, Zig, CSS, Markdown, editor, code-agent, and monorepo surfaces. `doctor` reports detected languages, editors, agent files, lint/format tools, monorepo tools, vendored repos, ignore status, and version-sync status. `doctor --fix` runs the same generated-file repair pass before reporting, which is the fastest way to repair drift in agent docs, `.gitattributes`, editor excludes, and detected tool ignores.
+`refresh` keeps agent docs and detected local tooling configuration in sync. It only writes ignore settings for tools that are present, including common TypeScript, JavaScript, Python, Rust, Swift, Android, Elixir, Zig, CSS, Markdown, editor, code-agent, and monorepo surfaces. `doctor` reports detected languages, editors, agent files, lint/format tools, monorepo tools, vendored repos, ignore status, and version-sync status. `doctor --fix` runs the same generated-file repair pass before reporting, which is the fastest way to repair drift in agent docs, `.gitattributes`, editor excludes, and detected tool ignores.
 
 Monorepo support covers package-manager workspaces plus Turborepo, Nx/Lerna, pnpm workspaces, moon, Bazel, Rush, Lage, Pants, Buck2, Gradle, Maven reactor projects, and Please. Safe automatic edits are currently applied to `turbo.json`/`turbo.jsonc`, `nx.json`, `pnpm-workspace.yaml`, `.moon/workspace.yml`, `.moon/workspace.yaml`, and `.bazelignore`; the other tools are detected and reported without source-config rewrites.
 

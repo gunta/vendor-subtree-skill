@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Array as Arr, Effect, Option } from "effect"
+import { Array as Arr, Effect, FileSystem, Option, Path } from "effect"
 
 export const GITATTRIBUTES_VENDOR_BEGIN = "# ingraft: github-diff begin"
 export const GITATTRIBUTES_VENDOR_END = "# ingraft: github-diff end"

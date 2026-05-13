@@ -111,7 +111,7 @@ export const hostedRepoFromInput = (input: string): HostedRepository | null => {
 
   return Option.liftThrowable((value: string) => new URL(value))(trimmed).pipe(
     Option.flatMap((url) =>
-      Option.fromNullable(
+      Option.fromNullishOr(
         hostedRepo({
           cloneSpec: trimmed,
           host: url.hostname,
@@ -145,7 +145,7 @@ const pathFromRepoUrl = (value: string): string => {
 }
 
 const nameFromPath = (path: string): Option.Option<string> =>
-  Option.fromNullable(path.replace(/\/+$/, "").split("/").pop()).pipe(
+  Option.fromNullishOr(path.replace(/\/+$/, "").split("/").pop()).pipe(
     Option.filter((name) => name.length > 0)
   )
 

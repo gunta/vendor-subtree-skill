@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import {
   firstExisting,
@@ -8,7 +7,8 @@ import {
   packageHasDependency,
   report,
   VENDOR_IGNORE_DIR,
-  type ToolFileContext
+  type ToolFileContext,
+  type ToolIgnoreIntegration
 } from "../common.ts"
 
 const TOOL = "Prettier"
@@ -82,9 +82,13 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class PrettierIgnore extends Effect.Service<PrettierIgnore>()("ingraft/PrettierIgnore", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export class PrettierIgnore extends Context.Service<PrettierIgnore, ToolIgnoreIntegration>()(
+  "ingraft/PrettierIgnore"
+) {}
+
+export const PrettierIgnoreLive = Layer.effect(
+  PrettierIgnore,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const context = { fs, path }
@@ -93,4 +97,4 @@ export class PrettierIgnore extends Effect.Service<PrettierIgnore>()("ingraft/Pr
       refresh: (cwd: string) => refreshWith(context, cwd)
     }
   })
-}) {}
+)

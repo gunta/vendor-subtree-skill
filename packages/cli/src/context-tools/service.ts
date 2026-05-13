@@ -1,5 +1,5 @@
-import { Command as PlatformCommand, CommandExecutor, FileSystem, Path } from "@effect/platform"
-import { Console, Effect, Option, Stream, pipe } from "effect"
+import { Console, Effect, FileSystem, Option, Path, Stream, pipe } from "effect"
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 import { RuntimeConfig } from "../app/runtime.ts"
 import { packageJsonHasDependency } from "../config/package-json.ts"
@@ -155,7 +155,7 @@ export const detectContextTools = ({ cwd }: DetectContextToolsParams) =>
           ? fs.readFileString(packageJsonPath).pipe(Effect.map(Option.some))
           : Effect.succeed(Option.none<string>())
       ),
-      Effect.catchAll(() => Effect.succeed(Option.none<string>()))
+      Effect.catch(() => Effect.succeed(Option.none<string>()))
     )
     return detectContextToolsFromProject({
       files,
@@ -185,8 +185,11 @@ export const contextSourcePlan = ({ target }: ContextSourcePlanParams): ContextC
 
 const collect = <E, R>(stream: Stream.Stream<Uint8Array, E, R>) =>
   stream.pipe(
-    Stream.decodeText("utf-8"),
-    Stream.runFold("", (a, b) => a + b)
+    Stream.decodeText,
+    Stream.runFold(
+      () => "",
+      (a, b) => a + b
+    )
   )
 
 const shellQuote = (value: string): string =>
@@ -197,13 +200,10 @@ export const formatContextCommandPlan = (plan: ContextCommandPlan): string =>
 
 export const runContextCommandPlan = ({ cwd, plan }: RunContextCommandPlanParams) =>
   Effect.gen(function* () {
-    const executor = yield* CommandExecutor.CommandExecutor
+    const executor = yield* ChildProcessSpawner.ChildProcessSpawner
     const runtime = yield* RuntimeConfig
-    const command = pipe(
-      PlatformCommand.make(plan.command, ...plan.args),
-      PlatformCommand.workingDirectory(cwd)
-    )
-    const proc = yield* executor.start(command)
+    const command = ChildProcess.setCwd(ChildProcess.make(plan.command, plan.args), cwd)
+    const proc = yield* executor.spawn(command)
     const [exitCode, stdout, stderr] = yield* Effect.all(
       [proc.exitCode, collect(proc.stdout), collect(proc.stderr)],
       { concurrency: 3 }

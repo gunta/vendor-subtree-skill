@@ -8,17 +8,18 @@ import { RepositoryHosts } from "../src/services/repository-hosts.ts"
 
 describe("git service", () => {
   test("detects a default branch through an injectable Git service", async () => {
-    const runtime = RuntimeConfig.make({
+    const runtime = RuntimeConfig.of({
       argv: ["bun", "vendor.ts"],
+      colors: false,
       cwd: "/workspace",
-      exit: (code) => Effect.dieMessage(`exit ${code}`)
+      exit: (code) => Effect.die(`exit ${code}`)
     })
 
     const result = await Effect.runPromise(
       detectDefaultBranch("https://github.com/Effect-TS/effect.git").pipe(
         Effect.provideService(
           Git,
-          Git.make({
+          Git.of({
             exec: (args) => {
               expect(args).toEqual([
                 "ls-remote",
@@ -36,7 +37,7 @@ describe("git service", () => {
         ),
         Effect.provideService(
           RepositoryHosts,
-          RepositoryHosts.make({
+          RepositoryHosts.of({
             clone: () => Effect.succeed(Option.none()),
             defaultBranch: () => Effect.succeed(Option.none()),
             identify: () => Effect.succeed(Option.none()),
@@ -51,23 +52,24 @@ describe("git service", () => {
   })
 
   test("uses repository host default branch before git fallback", async () => {
-    const runtime = RuntimeConfig.make({
+    const runtime = RuntimeConfig.of({
       argv: ["bun", "vendor.ts"],
+      colors: false,
       cwd: "/workspace",
-      exit: (code) => Effect.dieMessage(`exit ${code}`)
+      exit: (code) => Effect.die(`exit ${code}`)
     })
 
     const result = await Effect.runPromise(
       detectDefaultBranch("https://github.com/Effect-TS/effect.git").pipe(
         Effect.provideService(
           Git,
-          Git.make({
-            exec: () => Effect.dieMessage("git fallback should not run")
+          Git.of({
+            exec: () => Effect.die("git fallback should not run")
           })
         ),
         Effect.provideService(
           RepositoryHosts,
-          RepositoryHosts.make({
+          RepositoryHosts.of({
             clone: () => Effect.succeed(Option.none()),
             defaultBranch: () => Effect.succeed(Option.some("main")),
             identify: () => Effect.succeed(Option.none()),

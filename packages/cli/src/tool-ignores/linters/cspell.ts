@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import {
   completeMerge,
@@ -14,7 +13,8 @@ import {
   hasVendorPattern,
   packageHasDependency,
   report,
-  type ToolFileContext
+  type ToolFileContext,
+  type ToolIgnoreIntegration
 } from "../common.ts"
 
 const TOOL = "CSpell"
@@ -105,9 +105,13 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class CspellIgnore extends Effect.Service<CspellIgnore>()("ingraft/CspellIgnore", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export class CspellIgnore extends Context.Service<CspellIgnore, ToolIgnoreIntegration>()(
+  "ingraft/CspellIgnore"
+) {}
+
+export const CspellIgnoreLive = Layer.effect(
+  CspellIgnore,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const context = { fs, path }
@@ -116,4 +120,4 @@ export class CspellIgnore extends Effect.Service<CspellIgnore>()("ingraft/Cspell
       refresh: (cwd: string) => refreshWith(context, cwd)
     }
   })
-}) {}
+)

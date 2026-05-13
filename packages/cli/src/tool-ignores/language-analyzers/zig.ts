@@ -1,7 +1,11 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
-import { firstExisting, report, type ToolFileContext } from "../common.ts"
+import {
+  firstExisting,
+  report,
+  type ToolFileContext,
+  type ToolIgnoreIntegration
+} from "../common.ts"
 
 const TOOL = "Zig"
 
@@ -28,9 +32,13 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class ZigIgnore extends Effect.Service<ZigIgnore>()("ingraft/ZigIgnore", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export class ZigIgnore extends Context.Service<ZigIgnore, ToolIgnoreIntegration>()(
+  "ingraft/ZigIgnore"
+) {}
+
+export const ZigIgnoreLive = Layer.effect(
+  ZigIgnore,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const context = { fs, path }
@@ -39,4 +47,4 @@ export class ZigIgnore extends Effect.Service<ZigIgnore>()("ingraft/ZigIgnore", 
       refresh: (_cwd: string) => Effect.succeed(Option.none<string>())
     }
   })
-}) {}
+)

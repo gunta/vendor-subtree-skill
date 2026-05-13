@@ -3,11 +3,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { NodeContext } from "@effect/platform-node"
+import { NodeServices } from "@effect/platform-node"
 import { Effect } from "effect"
 
 import { SECTION_BEGIN, SECTION_END } from "../src/domain/constants.ts"
-import { ProjectSurfaces } from "../src/project/surfaces.ts"
+import { ProjectSurfaces, ProjectSurfacesLive } from "../src/project/surfaces.ts"
 
 const withTempWorkspace = async <A>(run: (cwd: string) => Promise<A>): Promise<A> => {
   const cwd = mkdtempSync(join(tmpdir(), "vendor-surfaces-"))
@@ -68,10 +68,10 @@ describe("project surface detection", () => {
       )
 
       const report = await Effect.runPromise(
-        ProjectSurfaces.doctor({ cwd }).pipe(
-          Effect.provide(ProjectSurfaces.Default),
-          Effect.provide(NodeContext.layer)
-        )
+        Effect.gen(function* () {
+          const svc = yield* ProjectSurfaces
+          return yield* svc.doctor({ cwd })
+        }).pipe(Effect.provide(ProjectSurfacesLive), Effect.provide(NodeServices.layer))
       )
 
       expect(report.agentFiles.find((entry) => entry.name === "AGENTS.md")).toMatchObject({

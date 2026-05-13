@@ -1,8 +1,13 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import { parseSettings } from "../../config/jsonc-settings.ts"
-import { firstExisting, packageHasDependency, report, type ToolFileContext } from "../common.ts"
+import {
+  firstExisting,
+  packageHasDependency,
+  report,
+  type ToolFileContext,
+  type ToolIgnoreIntegration
+} from "../common.ts"
 
 const TOOL = "TypeScript"
 const CONFIG_CANDIDATES = ["tsconfig.json", "jsconfig.json"] as const
@@ -37,7 +42,7 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
                 ? Option.some(`invalid config: ${parsed.message}`)
                 : Option.none<string>()
             }),
-            Effect.catchAll(() => Effect.succeed(Option.some("unreadable config")))
+            Effect.catch(() => Effect.succeed(Option.some("unreadable config")))
           )
     return report({
       ...(configPath === undefined ? {} : { configPath }),
@@ -53,18 +58,19 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class TypeScriptIgnore extends Effect.Service<TypeScriptIgnore>()(
-  "ingraft/TypeScriptIgnore",
-  {
-    accessors: true,
-    effect: Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem
-      const path = yield* Path.Path
-      const context = { fs, path }
-      return {
-        doctor: (cwd: string) => doctorWith(context, cwd),
-        refresh: (_cwd: string) => Effect.succeed(Option.none<string>())
-      }
-    })
-  }
+export class TypeScriptIgnore extends Context.Service<TypeScriptIgnore, ToolIgnoreIntegration>()(
+  "ingraft/TypeScriptIgnore"
 ) {}
+
+export const TypeScriptIgnoreLive = Layer.effect(
+  TypeScriptIgnore,
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    const context = { fs, path }
+    return {
+      doctor: (cwd: string) => doctorWith(context, cwd),
+      refresh: (_cwd: string) => Effect.succeed(Option.none<string>())
+    }
+  })
+)

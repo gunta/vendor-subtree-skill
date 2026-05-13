@@ -50,7 +50,7 @@
     "format:check": "oxfmt . --check",
     "lint": "oxlint .",
     "lint:fix": "oxlint . --fix",
-    "test": "bun test tests",
+    "test": "cd ../.. && bun test packages/cli/tests",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {

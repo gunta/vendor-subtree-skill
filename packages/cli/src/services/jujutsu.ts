@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect } from "effect"
+import { Context, Effect, FileSystem, Layer, Path } from "effect"
 
 export interface JujutsuService {
   readonly isColocated: (cwd: string) => Effect.Effect<boolean, unknown>
@@ -21,13 +20,15 @@ const isColocatedWith = (fs: FileSystem.FileSystem, path: Path.Path, cwd: string
     return target.trim().includes(".git")
   })
 
-export class Jujutsu extends Effect.Service<Jujutsu>()("ingraft/Jujutsu", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export class Jujutsu extends Context.Service<Jujutsu, JujutsuService>()("ingraft/Jujutsu") {}
+
+export const JujutsuLive = Layer.effect(
+  Jujutsu,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     return {
       isColocated: (cwd: string) => isColocatedWith(fs, path, cwd)
     } satisfies JujutsuService
   })
-}) {}
+)

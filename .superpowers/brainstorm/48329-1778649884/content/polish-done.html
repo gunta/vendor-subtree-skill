@@ -1,0 +1,380 @@
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+  .kx-wrap {
+    margin: -24px;
+    padding: 48px 40px 60px;
+    background:
+      radial-gradient(80% 60% at 78% 12%, rgba(255, 60, 121, 0.16) 0%, transparent 60%),
+      radial-gradient(60% 70% at 10% 100%, rgba(120, 30, 160, 0.1) 0%, transparent 60%),
+      linear-gradient(180deg, #06060c, #03030a);
+    color: #ece8d8;
+    font-family: "Geist", "Inter", system-ui, sans-serif;
+    min-height: 80vh;
+    position: relative;
+    overflow: hidden;
+  }
+  .kx-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+    mix-blend-mode: overlay;
+  }
+  .kx {
+    position: relative;
+    z-index: 1;
+    max-width: 1080px;
+    margin: 0 auto;
+  }
+
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(236, 232, 216, 0.16);
+    background: rgba(236, 232, 216, 0.025);
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #ff3c79;
+    margin-bottom: 22px;
+  }
+  .badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #ff3c79;
+    box-shadow: 0 0 10px #ff3c79;
+  }
+  h1 {
+    margin: 0 0 14px;
+    font-size: 50px;
+    font-weight: 700;
+    line-height: 0.95;
+    letter-spacing: -0.035em;
+    color: #f4f4f7;
+  }
+  h1 .a {
+    color: #ff3c79;
+  }
+  .sub {
+    font-size: 17px;
+    line-height: 1.5;
+    color: #9da0a8;
+    max-width: 620px;
+    margin: 0 0 32px;
+  }
+
+  .url-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 16px 20px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 60, 121, 0.32);
+    background: rgba(255, 60, 121, 0.06);
+    box-shadow: 0 24px 60px -32px rgba(255, 60, 121, 0.32);
+    margin-bottom: 36px;
+    text-decoration: none;
+    color: inherit;
+  }
+  .url-block .left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .url-block .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 999px;
+    background: #ff3c79;
+    box-shadow: 0 0 14px #ff3c79;
+    flex-shrink: 0;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(0.85);
+    }
+  }
+  .url-block .label {
+    font-size: 10px;
+    font-family: "Geist Mono", monospace;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: #9da0a8;
+    margin-bottom: 2px;
+  }
+  .url-block .url {
+    font-family: "Geist Mono", monospace;
+    font-size: 16px;
+    font-weight: 500;
+    color: #f4f4f7;
+  }
+
+  /* Stats row */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: rgba(236, 232, 216, 0.12);
+    border: 1px solid rgba(236, 232, 216, 0.14);
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 36px;
+  }
+  @media (max-width: 760px) {
+    .stats {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+  .stat {
+    padding: 18px 18px 16px;
+    background: rgba(12, 12, 20, 0.85);
+    backdrop-filter: blur(10px);
+  }
+  .stat .v {
+    font-family: "Geist", sans-serif;
+    font-size: 26px;
+    font-weight: 700;
+    color: #f4f4f7;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .stat .v .accent {
+    color: #ff3c79;
+  }
+  .stat .k {
+    margin-top: 8px;
+    font-size: 11px;
+    font-family: "Geist Mono", monospace;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #9da0a8;
+  }
+  .stat .delta {
+    display: inline-block;
+    margin-top: 4px;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: #ff79a6;
+  }
+
+  /* Ledger */
+  .ledger {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 720px) {
+    .ledger {
+      grid-template-columns: 1fr;
+    }
+  }
+  .tile {
+    padding: 22px;
+    border-radius: 12px;
+    border: 1px solid rgba(236, 232, 216, 0.14);
+    background: rgba(12, 12, 20, 0.78);
+    backdrop-filter: blur(20px);
+  }
+  .tile h3 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f4f4f7;
+  }
+  .tile h3 .num {
+    color: #ff3c79;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    margin-right: 8px;
+    letter-spacing: 0.12em;
+  }
+  .tile ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .tile li {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 10px;
+    color: #9da0a8;
+    font-size: 13px;
+    line-height: 1.55;
+    padding: 4px 0;
+  }
+  .tile li::before {
+    content: "";
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: #ff3c79;
+    margin-top: 9px;
+    box-shadow: 0 0 6px rgba(255, 60, 121, 0.5);
+  }
+  .tile .mono {
+    font-family: "Geist Mono", monospace;
+    color: #ece8d8;
+    font-size: 12px;
+  }
+
+  .foot {
+    margin-top: 32px;
+    padding-top: 18px;
+    border-top: 1px solid rgba(236, 232, 216, 0.1);
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: #5b6273;
+    letter-spacing: 0.06em;
+  }
+</style>
+
+<div class="kx-wrap">
+  <div class="kx">
+    <div class="badge">Polish complete</div>
+    <h1>Brand revamp is shipped<span class="a">.</span></h1>
+    <p class="sub">
+      Imagery, favicon, source-map cleanup, texture layering, strategy-card overhaul, and PNG crush
+      all landed. Build is green.
+    </p>
+
+    <a class="url-block" href="http://localhost:4321/" target="_blank" rel="noopener">
+      <div class="left">
+        <div class="dot"></div>
+        <div>
+          <div class="label">dev server · live · refresh now</div>
+          <div class="url">http://localhost:4321</div>
+        </div>
+      </div>
+      <div
+        style="
+          font-family: &quot;Geist Mono&quot;, monospace;
+          font-size: 11px;
+          color: #9da0a8;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        "
+      >
+        open ↗
+      </div>
+    </a>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="v">15</div>
+        <div class="k">brand images</div>
+        <div class="delta">all hooked up</div>
+      </div>
+      <div class="stat">
+        <div class="v"><span class="accent">75%</span></div>
+        <div class="k">total PNG savings</div>
+        <div class="delta">~30 MB → ~7.5 MB</div>
+      </div>
+      <div class="stat">
+        <div class="v">896 <span style="font-size: 14px; color: #9da0a8">KB</span></div>
+        <div class="k">hero size</div>
+        <div class="delta">was 4.0 MB</div>
+      </div>
+      <div class="stat">
+        <div class="v">0</div>
+        <div class="k">build errors</div>
+        <div class="delta">43 pages · 2.5 s</div>
+      </div>
+    </div>
+
+    <div class="ledger">
+      <div class="tile">
+        <h3><span class="num">01</span>Imagery wired</h3>
+        <ul>
+          <li>
+            Hero chrome-ribbon fusion with the bloom anchored at the seam — visible behind the
+            wordmark
+          </li>
+          <li>OG card rendered with wordmark + tagline baked in (no post-composite needed)</li>
+          <li>Strategy triptych: fused / pinned / adjacent — all reading as a family</li>
+          <li>Logomark as glossy chrome bar + magenta wedge with smoke wisps</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">02</span>Strategy card overhaul</h3>
+        <ul>
+          <li>Full-bleed image at the top of each tile (1:1, masked fade into content)</li>
+          <li>
+            Top-right state badge: <span class="mono">FUSED</span> /
+            <span class="mono">PINNED</span> / <span class="mono">ADJACENT</span>
+          </li>
+          <li>Hover-bloom preserved on <span class="mono">.tile::after</span></li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">03</span>Substrate</h3>
+        <ul>
+          <li>
+            <span class="mono">texture-blueprint.png</span> tiled at 5 % opacity, screen blend —
+            subtle magenta starfield over the whole shell
+          </li>
+          <li>SVG-turbulence film grain layer retained over the top</li>
+          <li>Radial bloom corners (upper-right magenta, lower-left violet)</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">04</span>Favicon</h3>
+        <ul>
+          <li>Replaced vintage cream-ink-terracotta mark</li>
+          <li>
+            Now: rounded void tile + chrome bar + magenta wedge + radial bloom — same family as the
+            brand logomark
+          </li>
+          <li>Renders crisply at 16 px and 64 px</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">05</span>Cleanup</h3>
+        <ul>
+          <li>Deleted legacy <span class="mono">source-map.svg</span></li>
+          <li>Removed its references from <span class="mono">landing.css</span></li>
+          <li>
+            Hero now stands alone — gradient + bloom + chrome ribbon, no secondary illustration
+          </li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">06</span>Performance crush</h3>
+        <ul>
+          <li><span class="mono">pngquant --quality 78-92 --strip</span> applied to all 15 PNGs</li>
+          <li>Hero: <span class="mono">4.0 MB → 896 KB</span></li>
+          <li>Strategy plates: <span class="mono">1.4 MB → ~500 KB</span></li>
+          <li>Texture: <span class="mono">4.3 MB → 992 KB</span></li>
+          <li>EXIF stripped on every file</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="foot">
+      ready · open the URL above to QA · then say <span style="color: #ff3c79">commit</span> for a
+      clean message and I'll land it
+    </div>
+  </div>
+</div>

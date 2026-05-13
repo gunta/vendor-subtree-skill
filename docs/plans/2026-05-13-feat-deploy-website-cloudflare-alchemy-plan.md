@@ -12,7 +12,7 @@ Migrate the Astro Starlight docs site (`packages/website/`) from GitHub Pages to
 
 ## Current State
 
-- Static Astro Starlight site built with `bun run website:build`
+- Static Astro Starlight site built with `bun run build:website`
 - Deployed via GitHub Pages (`deploy-pages.yml`)
 - Custom domain via `public/CNAME` file containing `ingraft.dev`
 - `astro.config.mjs` has `site: "https://ingraft.dev"`

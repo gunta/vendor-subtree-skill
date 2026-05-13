@@ -1,0 +1,353 @@
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+  .knockout-wrap {
+    margin: -24px;
+    padding: 56px 48px 72px;
+    background:
+      radial-gradient(70% 50% at 80% 15%, rgba(255, 60, 121, 0.18) 0%, transparent 60%),
+      radial-gradient(60% 60% at 10% 100%, rgba(120, 30, 160, 0.1) 0%, transparent 60%),
+      linear-gradient(180deg, #06060c, #03030a);
+    color: #ece8d8;
+    font-family: "Geist", "Inter", system-ui, sans-serif;
+    min-height: 80vh;
+    position: relative;
+    overflow: hidden;
+  }
+  .knockout-wrap::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.4;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+    mix-blend-mode: overlay;
+  }
+  .kx {
+    position: relative;
+    z-index: 1;
+    max-width: 1000px;
+    margin: 0 auto;
+  }
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 11px;
+    border-radius: 999px;
+    border: 1px solid rgba(236, 232, 216, 0.16);
+    background: rgba(236, 232, 216, 0.025);
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #ff3c79;
+    margin-bottom: 22px;
+  }
+  .badge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: #ff3c79;
+    box-shadow: 0 0 10px #ff3c79;
+  }
+  .kx h1 {
+    margin: 0 0 18px;
+    font-size: 56px;
+    font-weight: 700;
+    line-height: 0.96;
+    letter-spacing: -0.035em;
+    color: #f4f4f7;
+  }
+  .kx h1 .a {
+    color: #ff3c79;
+  }
+  .sub {
+    font-size: 18px;
+    line-height: 1.5;
+    color: #9da0a8;
+    max-width: 600px;
+    margin: 0 0 40px;
+  }
+  .url-block {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 18px 22px;
+    border-radius: 12px;
+    border: 1px solid rgba(255, 60, 121, 0.32);
+    background: rgba(255, 60, 121, 0.08);
+    box-shadow: 0 24px 60px -32px rgba(255, 60, 121, 0.32);
+    margin-bottom: 44px;
+  }
+  .url-block .left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .url-block .dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 999px;
+    background: #ff3c79;
+    box-shadow: 0 0 16px #ff3c79;
+    flex-shrink: 0;
+    animation: pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%,
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.6;
+      transform: scale(0.85);
+    }
+  }
+  .url-block .label {
+    font-size: 11px;
+    font-family: "Geist Mono", monospace;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: #9da0a8;
+    margin-bottom: 2px;
+  }
+  .url-block .url {
+    font-family: "Geist Mono", monospace;
+    font-size: 18px;
+    font-weight: 500;
+    color: #f4f4f7;
+  }
+
+  .ledger {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+  }
+  @media (max-width: 720px) {
+    .ledger {
+      grid-template-columns: 1fr;
+    }
+  }
+  .tile {
+    padding: 22px;
+    border-radius: 12px;
+    border: 1px solid rgba(236, 232, 216, 0.14);
+    background: rgba(12, 12, 20, 0.78);
+    backdrop-filter: blur(20px);
+  }
+  .tile h3 {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: #f4f4f7;
+    letter-spacing: -0.005em;
+  }
+  .tile h3 .num {
+    color: #ff3c79;
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    margin-right: 8px;
+    letter-spacing: 0.12em;
+  }
+  .tile ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .tile li {
+    display: grid;
+    grid-template-columns: 14px 1fr;
+    gap: 10px;
+    color: #9da0a8;
+    font-size: 13px;
+    line-height: 1.55;
+    padding: 5px 0;
+  }
+  .tile li::before {
+    content: "";
+    width: 4px;
+    height: 4px;
+    border-radius: 999px;
+    background: #ff3c79;
+    margin-top: 9px;
+    box-shadow: 0 0 6px rgba(255, 60, 121, 0.6);
+  }
+  .tile .mono {
+    font-family: "Geist Mono", monospace;
+    color: #ece8d8;
+    font-size: 12px;
+  }
+
+  .foot {
+    margin-top: 36px;
+    padding-top: 22px;
+    border-top: 1px solid rgba(236, 232, 216, 0.1);
+    font-family: "Geist Mono", monospace;
+    font-size: 11px;
+    color: #5b6273;
+    letter-spacing: 0.06em;
+  }
+
+  /* Mini turnstile preview */
+  .mark-preview {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+  .mark-preview svg {
+    width: 42px;
+    height: 42px;
+  }
+  .mark-preview .word {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: #f4f4f7;
+  }
+</style>
+
+<div class="knockout-wrap">
+  <div class="kx">
+    <div class="mark-preview">
+      <svg viewBox="0 0 40 40" fill="none">
+        <defs>
+          <linearGradient id="prev-bar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f4f4f7" />
+            <stop offset="100%" stop-color="#9da0a8" />
+          </linearGradient>
+          <linearGradient id="prev-wedge" x1="0" y1="0" x2="1" y2="0.5">
+            <stop offset="0%" stop-color="#ff3c79" />
+            <stop offset="100%" stop-color="#ff79a6" />
+          </linearGradient>
+          <filter id="prev-bloom" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="1.8" />
+          </filter>
+        </defs>
+        <rect x="14" y="5" width="3" height="30" rx="0.5" fill="url(#prev-bar)" />
+        <g filter="url(#prev-bloom)" opacity="0.6">
+          <path d="M17 14 L30 20 L17 26 Z" fill="#ff3c79" />
+        </g>
+        <path d="M17 15 L28.5 20 L17 25 Z" fill="url(#prev-wedge)" />
+      </svg>
+      <div class="word">ingraft</div>
+    </div>
+
+    <div class="badge">✓ Knockout shipped</div>
+    <h1>The site is live in the<br />new direction.<span class="a">.</span></h1>
+    <p class="sub">
+      Dev server is running. Open the URL to see tokens, fonts, turnstile mark, magenta-bloom hero,
+      chrome tiles, dark terminal, and the final-band bloom in context.
+    </p>
+
+    <a
+      class="url-block"
+      href="http://localhost:4321/"
+      target="_blank"
+      rel="noopener"
+      style="text-decoration: none; color: inherit"
+    >
+      <div class="left">
+        <div class="dot"></div>
+        <div>
+          <div class="label">dev server · live</div>
+          <div class="url">http://localhost:4321</div>
+        </div>
+      </div>
+      <div
+        style="
+          font-family: &quot;Geist Mono&quot;, monospace;
+          font-size: 11px;
+          color: #9da0a8;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+        "
+      >
+        open ↗
+      </div>
+    </a>
+
+    <div class="ledger">
+      <div class="tile">
+        <h3><span class="num">01</span>Foundation</h3>
+        <ul>
+          <li>
+            <span class="mono">tokens.css</span> — Knockout palette + Geist/Geist Mono via Google
+            Fonts
+          </li>
+          <li><span class="mono">site.css</span> — unchanged import chain (still hub)</li>
+          <li><span class="mono">tooling.css</span> — auto-inherits via Starlight CSS vars</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">02</span>Brand surface</h3>
+        <ul>
+          <li>
+            <span class="mono">logo-light.svg</span> + <span class="mono">logo-dark.svg</span> —
+            turnstile mark
+          </li>
+          <li>
+            <span class="mono">LandingHeader.astro</span> — inline SVG turnstile with gradient +
+            bloom filter
+          </li>
+          <li><span class="mono">favicon.svg</span> — pending</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">03</span>Landing page</h3>
+        <ul>
+          <li><span class="mono">landing.css</span> — full rewrite, ~430 lines</li>
+          <li>Void canvas + grain overlay + radial bloom</li>
+          <li>Chrome tiles, magenta hover bloom, mono kickers</li>
+          <li>Dark terminal with magenta cursor dot</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">04</span>Imagery cookbook</h3>
+        <ul>
+          <li><span class="mono">image-prompts.md</span> — 15 prompts, Knockout preamble</li>
+          <li>
+            <span class="mono">image-batch.json</span> — batch manifest for
+            <span class="mono">uhd-text-to-image</span>
+          </li>
+          <li>OG text composited post-hoc for pixel-perfect legibility</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">05</span>Design spec</h3>
+        <ul>
+          <li>
+            <span class="mono"
+              >docs/superpowers/specs/2026-05-13-knockout-brand-revamp-design.md</span
+            >
+          </li>
+          <li>Palette tokens, type, surfaces, file-level changelog, follow-ups</li>
+          <li>Single source of truth for the visual system</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">06</span>Verification</h3>
+        <ul>
+          <li><span class="mono">astro check</span> — 0 errors, 0 warnings, 0 hints</li>
+          <li><span class="mono">astro build</span> — 43 pages, complete in 2.23 s</li>
+          <li>Dev server live at <span class="mono">:4321</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="foot">
+      next · regenerate 15 brand images · review live site · approve spec → writing-plans for the
+      remaining follow-ups
+    </div>
+  </div>
+</div>

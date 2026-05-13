@@ -6,10 +6,11 @@ import { RuntimeConfig } from "../src/app/runtime.ts"
 
 describe("runtime config service", () => {
   test("can be injected with argv, cwd, and exit behavior", async () => {
-    const runtime = RuntimeConfig.make({
+    const runtime = RuntimeConfig.of({
       argv: ["bun", "vendor.ts", "list"],
+      colors: false,
       cwd: "/workspace",
-      exit: (code) => Effect.dieMessage(`exit ${code}`)
+      exit: (code) => Effect.die(`exit ${code}`)
     })
 
     const result = await Effect.runPromise(

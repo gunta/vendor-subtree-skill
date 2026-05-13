@@ -1,0 +1,173 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  .wrap {
+    margin: -24px;
+    padding: 48px 40px 60px;
+    background:
+      radial-gradient(80% 60% at 78% 12%, rgba(255,60,121,0.18) 0%, transparent 60%),
+      radial-gradient(60% 70% at 12% 100%, rgba(120,30,160,0.10) 0%, transparent 60%),
+      linear-gradient(180deg, #06060c, #03030a);
+    color: #ece8d8;
+    font-family: 'Geist', 'Inter', system-ui, sans-serif;
+    min-height: 80vh; position: relative; overflow: hidden;
+  }
+  .wrap::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.4;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+    mix-blend-mode: overlay; }
+  .kx { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; }
+
+  .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 11px; border-radius: 999px;
+    border: 1px solid rgba(236,232,216,0.16); background: rgba(236,232,216,0.025);
+    font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.16em;
+    text-transform: uppercase; color: #ff3c79; margin-bottom: 22px; }
+  .badge::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: #ff3c79; box-shadow: 0 0 10px #ff3c79; }
+
+  h1 { margin: 0 0 14px; font-size: 50px; font-weight: 700; line-height: 0.95; letter-spacing: -0.035em; color: #f4f4f7; }
+  h1 .a { color: #ff3c79; }
+  .sub { font-size: 17px; line-height: 1.5; color: #9da0a8; max-width: 620px; margin: 0 0 32px; }
+
+  .url-block { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 16px 20px; border-radius: 12px; border: 1px solid rgba(255,60,121,0.32);
+    background: rgba(255,60,121,0.06); box-shadow: 0 24px 60px -32px rgba(255,60,121,0.32);
+    margin-bottom: 36px; text-decoration: none; color: inherit; }
+  .url-block .left { display: flex; align-items: center; gap: 12px; }
+  .url-block .dot { width: 9px; height: 9px; border-radius: 999px; background: #ff3c79;
+    box-shadow: 0 0 14px #ff3c79; flex-shrink: 0; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); } }
+  .url-block .label { font-size: 10px; font-family: 'Geist Mono', monospace; letter-spacing: 0.18em; text-transform: uppercase; color: #9da0a8; margin-bottom: 2px; }
+  .url-block .url { font-family: 'Geist Mono', monospace; font-size: 16px; font-weight: 500; color: #f4f4f7; }
+
+  /* Palette demo */
+  .palette { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-bottom: 28px; padding: 18px; border: 1px solid rgba(236,232,216,0.12); border-radius: 12px; background: rgba(8,8,15,0.7); backdrop-filter: blur(20px); }
+  @media (max-width: 760px) { .palette { grid-template-columns: repeat(4, 1fr); } }
+  .swatch { display: grid; grid-template-rows: 1fr auto; gap: 6px; }
+  .swatch .chip { aspect-ratio: 1.6 / 1; border-radius: 8px; border: 1px solid rgba(236,232,216,0.08); }
+  .swatch .nm { font-family: 'Geist Mono', monospace; font-size: 10px; color: #9da0a8; letter-spacing: 0.06em; text-align: center; }
+
+  /* Ledger */
+  .ledger { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .ledger { grid-template-columns: 1fr; } }
+  .tile { padding: 22px; border-radius: 12px; border: 1px solid rgba(236,232,216,0.14); background: rgba(12,12,20,0.78); backdrop-filter: blur(20px); }
+  .tile h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #f4f4f7; }
+  .tile h3 .num { color: #ff3c79; font-family: 'Geist Mono', monospace; font-size: 11px; margin-right: 8px; letter-spacing: 0.12em; }
+  .tile ul { list-style: none; padding: 0; margin: 0; }
+  .tile li { display: grid; grid-template-columns: 14px 1fr; gap: 10px; color: #9da0a8; font-size: 13px; line-height: 1.55; padding: 4px 0; }
+  .tile li::before { content: ""; width: 4px; height: 4px; border-radius: 999px; background: #ff3c79; margin-top: 9px; box-shadow: 0 0 6px rgba(255,60,121,0.5); }
+  .tile .mono { font-family: 'Geist Mono', monospace; color: #ece8d8; font-size: 12px; }
+
+  /* Tiny terminal preview */
+  .term-mini { margin: 28px 0; padding: 18px 20px; border-radius: 10px; border: 1px solid rgba(236,232,216,0.12); background: #08080f; font-family: 'Geist Mono', monospace; font-size: 12.5px; line-height: 1.65; }
+  .term-mini .p { color: #ff3c79; }
+  .term-mini .c { color: #f4f4f7; }
+  .term-mini .a { color: #c4a8fa; }
+  .term-mini .s { color: #a5e8b4; }
+  .term-mini .n { color: #fcd07f; }
+  .term-mini .f { color: #7ad9f0; }
+  .term-mini .o { color: #7be0a6; }
+  .term-mini .d { color: #6a6f7a; }
+  .term-mini .k { color: #ff79a6; }
+
+  .foot { margin-top: 32px; padding-top: 18px; border-top: 1px solid rgba(236,232,216,0.10); font-family: 'Geist Mono', monospace; font-size: 11px; color: #5b6273; letter-spacing: 0.06em; }
+</style>
+
+<div class="wrap">
+  <div class="kx">
+
+    <div class="badge">Alive layer · shipped</div>
+    <h1>The page now has<br/>a pulse<span class="a">.</span></h1>
+    <p class="sub">More colors (disciplined), Lucide icons throughout, real syntax-highlighted code via a custom Shiki theme, and a new <em>Real code, local</em> section showing what your agent actually sees.</p>
+
+    <a class="url-block" href="http://localhost:4321/" target="_blank" rel="noopener">
+      <div class="left">
+        <div class="dot"></div>
+        <div>
+          <div class="label">dev server · refresh now</div>
+          <div class="url">http://localhost:4321</div>
+        </div>
+      </div>
+      <div style="font-family:'Geist Mono',monospace;font-size:11px;color:#9da0a8;letter-spacing:0.14em;text-transform:uppercase;">open ↗</div>
+    </a>
+
+    <!-- Mini terminal demo -->
+    <div class="term-mini">
+      <span class="p">$</span> <span class="c">ingraft</span> <span class="a">add</span> <span class="s">effect-ts/effect</span><br/>
+      <span class="o">✓ resolved</span>  <span class="f">effect</span><span class="d">@</span><span class="n">3.21.2</span> → <span class="s">Effect-TS/effect</span><span class="d">#</span><span class="n">v3.21.2</span><br/>
+      <span style="color:#fcd07f">↳ strategy</span>  <span class="k">subtree</span> <span class="d">(default)</span><br/>
+      <span class="o">✓ wrote</span>     <span class="s">vendor/effect</span> <span class="d">·</span> <span class="n">2,481</span> <span class="d">files,</span> <span class="n">38.6</span> <span class="d">MB</span>
+    </div>
+
+    <!-- Syntax palette -->
+    <div class="palette">
+      <div class="swatch"><div class="chip" style="background:#6a6f7a"></div><div class="nm">comment</div></div>
+      <div class="swatch"><div class="chip" style="background:#c4a8fa"></div><div class="nm">keyword</div></div>
+      <div class="swatch"><div class="chip" style="background:#a5e8b4"></div><div class="nm">string</div></div>
+      <div class="swatch"><div class="chip" style="background:#fcd07f"></div><div class="nm">number</div></div>
+      <div class="swatch"><div class="chip" style="background:#7ad9f0"></div><div class="nm">function</div></div>
+      <div class="swatch"><div class="chip" style="background:#ff79a6"></div><div class="nm">type</div></div>
+      <div class="swatch"><div class="chip" style="background:#ff3c79; box-shadow:0 0 18px rgba(255,60,121,0.4)"></div><div class="nm">brand</div></div>
+    </div>
+
+    <div class="ledger">
+      <div class="tile">
+        <h3><span class="num">01</span>Icons (Lucide)</h3>
+        <ul>
+          <li><span class="mono">Icon.astro</span> registry with 24 inline SVGs</li>
+          <li>Wired into signals, problem cards, hero foot, CTAs, header, terminal, agent window</li>
+          <li>CTA hover slides the trailing arrow 2 px right</li>
+          <li>Header carries a live <span class="mono">v0.3</span> pill with pulsing chrome-green dot</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">02</span>Syntax highlight (Shiki)</h3>
+        <ul>
+          <li>Custom <span class="mono">knockout-theme.ts</span> matching brand syntax tokens</li>
+          <li>TerminalDemo gets proper highlighting: prompt magenta, command chrome, args violet, paths mint, numbers amber</li>
+          <li>CodeWindow component for any code block</li>
+          <li>Real TypeScript syntax in the agent-window peek</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">03</span>New section · Real code, local</h3>
+        <ul>
+          <li>3 command tiles: <span class="mono">add</span>, <span class="mono">refresh</span>, <span class="mono">doctor</span> — each with icon, copy, code window</li>
+          <li>Agent-window peek showing <span class="mono">vendor/effect/src/Effect.ts</span> with status pills</li>
+          <li>Demonstrates the actual product value visually</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">04</span>Color discipline (extended)</h3>
+        <ul>
+          <li>Brand canvas stays <span class="mono">chrome + magenta</span>; nothing else</li>
+          <li>Status tokens added: <span class="mono">--kn-ok</span> mint, <span class="mono">--kn-warn</span> amber, <span class="mono">--kn-info</span> cyan</li>
+          <li>Syntax tokens muted enough to never compete with magenta</li>
+          <li>Used in pulse dots, terminal output, code highlights</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">05</span>Micro-interactions</h3>
+        <ul>
+          <li>Header version dot · 2.4 s slow pulse</li>
+          <li>Terminal "live" badge · 1.8 s pulse with cyan glow</li>
+          <li>CTA arrows translate on hover</li>
+          <li>Tile icon brightens magenta-soft on hover</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">06</span>Verification</h3>
+        <ul>
+          <li><span class="mono">astro build</span> · 43 pages · 2.44 s · zero errors</li>
+          <li>Custom Shiki theme prerenders cleanly</li>
+          <li>Dev server hot at <span class="mono">:4321</span></li>
+          <li>Page still feels disciplined — brand magenta still the only attention-grabbing color</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="foot">
+      ready · refresh <span style="color:#ff3c79">localhost:4321</span> · QA the new commands section + agent-window peek
+    </div>
+  </div>
+</div>

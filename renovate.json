@@ -1,0 +1,100 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "timezone": "Asia/Tokyo",
+  "dependencyDashboard": true,
+  "labels": [
+    "dependencies"
+  ],
+  "prConcurrentLimit": 10,
+  "rangeStrategy": "bump",
+  "ignorePaths": [
+    "vendor/**"
+  ],
+  "lockFileMaintenance": {
+    "enabled": true,
+    "schedule": [
+      "before 9am on monday"
+    ]
+  },
+  "packageRules": [
+    {
+      "description": [
+        "Group non-major JavaScript dependency updates across Bun and npm."
+      ],
+      "matchManagers": [
+        "bun",
+        "npm"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "JavaScript minor and patch dependencies"
+    },
+    {
+      "description": [
+        "Keep Effect packages together so API migrations land in one PR."
+      ],
+      "matchPackageNames": [
+        "/^@effect\\//",
+        "effect"
+      ],
+      "groupName": "Effect packages"
+    },
+    {
+      "description": [
+        "Keep Astro and Starlight website packages together."
+      ],
+      "matchPackageNames": [
+        "/^@astrojs\\//",
+        "astro"
+      ],
+      "groupName": "Astro packages"
+    },
+    {
+      "description": [
+        "Group workflow action updates."
+      ],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": [
+        "Group Nix input updates."
+      ],
+      "matchManagers": [
+        "nix"
+      ],
+      "groupName": "Nix inputs"
+    },
+    {
+      "description": [
+        "Require dashboard approval before major updates."
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Update Bun runtime pins in GitHub Actions workflows.",
+      "managerFilePatterns": [
+        "/^\\.github\\/workflows\\/[^/]+\\.ya?ml$/"
+      ],
+      "matchStrings": [
+        "bun-version:\\s*[\"']?(?<currentValue>\\d+\\.\\d+\\.\\d+)[\"']?"
+      ],
+      "depNameTemplate": "bun",
+      "datasourceTemplate": "npm",
+      "versioningTemplate": "npm"
+    }
+  ]
+}

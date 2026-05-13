@@ -15,6 +15,16 @@ export interface VendorTuiTaskVersions {
   readonly vendor: string
 }
 
+export interface VendorTuiRepo {
+  readonly name: string
+  readonly packageNames: ReadonlyArray<string>
+  readonly path: string
+  readonly ref: string
+  readonly source: string
+  readonly strategy: string
+  readonly versions?: VendorTuiTaskVersions
+}
+
 export interface VendorTuiCandidate {
   readonly packageName: string
   readonly repositoryUrl?: string
@@ -23,6 +33,7 @@ export interface VendorTuiCandidate {
 
 export interface VendorTuiSnapshot {
   readonly candidates: ReadonlyArray<VendorTuiCandidate>
+  readonly repos: ReadonlyArray<VendorTuiRepo>
   readonly tasks: ReadonlyArray<VendorTuiTask>
 }
 
@@ -48,3 +59,22 @@ export const taskRows = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
     const status = task.versions === undefined ? "" : ` [${task.versions.status}]`
     return `${task.action.toUpperCase()} ${packages} -> ${target}${status}`
   })
+
+const repoPackages = (repo: VendorTuiRepo): string =>
+  repo.packageNames.length === 0 ? "-" : repo.packageNames.join(", ")
+
+const repoVersion = (repo: VendorTuiRepo, key: "local" | "remote" | "status" | "vendor"): string =>
+  repo.versions?.[key] ?? "-"
+
+export const repoRows = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
+  snapshot.repos.map((repo) =>
+    [
+      repo.name.padEnd(28, " "),
+      repo.strategy.padEnd(12, " "),
+      repoPackages(repo).padEnd(28, " "),
+      repoVersion(repo, "local").padEnd(32, " "),
+      repoVersion(repo, "vendor").padEnd(32, " "),
+      repoVersion(repo, "remote").padEnd(32, " "),
+      repoVersion(repo, "status")
+    ].join(" ")
+  )

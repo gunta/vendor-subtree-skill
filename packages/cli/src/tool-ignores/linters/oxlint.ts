@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import { jsObjectHasArrayValue } from "../../config/javascript-source.ts"
 import {
@@ -16,7 +15,8 @@ import {
   packageHasDependency,
   report,
   VENDOR_GLOB,
-  type ToolFileContext
+  type ToolFileContext,
+  type ToolIgnoreIntegration
 } from "../common.ts"
 
 const TOOL = "Oxlint"
@@ -136,9 +136,13 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class OxlintIgnore extends Effect.Service<OxlintIgnore>()("ingraft/OxlintIgnore", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export class OxlintIgnore extends Context.Service<OxlintIgnore, ToolIgnoreIntegration>()(
+  "ingraft/OxlintIgnore"
+) {}
+
+export const OxlintIgnoreLive = Layer.effect(
+  OxlintIgnore,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const context = { fs, path }
@@ -147,4 +151,4 @@ export class OxlintIgnore extends Effect.Service<OxlintIgnore>()("ingraft/Oxlint
       refresh: (cwd: string) => refreshWith(context, cwd)
     }
   })
-}) {}
+)

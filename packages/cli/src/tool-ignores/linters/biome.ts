@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import {
   completeMerge,
@@ -14,7 +13,8 @@ import {
   packageHasDependency,
   report,
   VENDOR_NEGATED_GLOB,
-  type ToolFileContext
+  type ToolFileContext,
+  type ToolIgnoreIntegration
 } from "../common.ts"
 
 const TOOL = "Biome"
@@ -96,9 +96,13 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class BiomeIgnore extends Effect.Service<BiomeIgnore>()("ingraft/BiomeIgnore", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export class BiomeIgnore extends Context.Service<BiomeIgnore, ToolIgnoreIntegration>()(
+  "ingraft/BiomeIgnore"
+) {}
+
+export const BiomeIgnoreLive = Layer.effect(
+  BiomeIgnore,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const context = { fs, path }
@@ -107,4 +111,4 @@ export class BiomeIgnore extends Effect.Service<BiomeIgnore>()("ingraft/BiomeIgn
       refresh: (cwd: string) => refreshWith(context, cwd)
     }
   })
-}) {}
+)

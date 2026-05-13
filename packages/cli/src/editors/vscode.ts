@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import { warn } from "../app/log.tsx"
 import { RuntimeConfig, type RuntimeConfigShape } from "../app/runtime.ts"
@@ -14,7 +13,7 @@ import {
 } from "../config/jsonc-settings.ts"
 import { VENDOR_DIR } from "../domain/constants.ts"
 import { detectProjectLanguages, type ProjectLanguageUsage } from "../project/languages.ts"
-import { GitMetadata } from "../services/git-metadata.ts"
+import { GitMetadata, type GitMetadataShape } from "../services/git-metadata.ts"
 
 const VENDOR_GLOB = `${VENDOR_DIR}/**`
 const MATERIAL_ICON_FOLDER_ASSOCIATIONS = "material-icon-theme.folders.associations"
@@ -137,7 +136,7 @@ const detectVscodeLanguageUsage = ({
   )
 
 const gitProjectFiles =
-  (gitMetadata: GitMetadata) =>
+  (gitMetadata: GitMetadataShape) =>
   (cwd: string): Effect.Effect<ReadonlyArray<string>, unknown> =>
     gitMetadata.listProjectFiles(cwd)
 
@@ -178,9 +177,17 @@ const updateVscodeSettingsWith = ({
     }
   })
 
-export class VscodeSettings extends Effect.Service<VscodeSettings>()("ingraft/VscodeSettings", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export interface VscodeSettingsShape {
+  readonly refresh: (cwd: string) => Effect.Effect<Option.Option<string>, unknown>
+}
+
+export class VscodeSettings extends Context.Service<VscodeSettings, VscodeSettingsShape>()(
+  "ingraft/VscodeSettings"
+) {}
+
+export const VscodeSettingsLive = Layer.effect(
+  VscodeSettings,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const gitMetadata = yield* GitMetadata
     const path = yield* Path.Path
@@ -196,4 +203,4 @@ export class VscodeSettings extends Effect.Service<VscodeSettings>()("ingraft/Vs
         })
     }
   })
-}) {}
+)

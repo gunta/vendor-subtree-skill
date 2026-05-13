@@ -3,11 +3,11 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { NodeContext } from "@effect/platform-node"
+import { NodeServices } from "@effect/platform-node"
 import { Effect } from "effect"
 
 import { effectiveVendorStrategy } from "../src/domain/vendor-strategy.ts"
-import { Jujutsu } from "../src/services/jujutsu.ts"
+import { Jujutsu, JujutsuLive } from "../src/services/jujutsu.ts"
 
 const withTempWorkspace = async <A>(run: (cwd: string) => Promise<A>): Promise<A> => {
   const cwd = mkdtempSync(join(tmpdir(), "vendor-jj-"))
@@ -39,10 +39,10 @@ describe("Jujutsu colocated workspaces", () => {
       writeFileSync(join(cwd, ".jj/repo/store/git_target"), "../../../.git")
 
       const detected = await Effect.runPromise(
-        Jujutsu.isColocated(cwd).pipe(
-          Effect.provide(Jujutsu.Default),
-          Effect.provide(NodeContext.layer)
-        )
+        Effect.gen(function* () {
+          const svc = yield* Jujutsu
+          return yield* svc.isColocated(cwd)
+        }).pipe(Effect.provide(JujutsuLive), Effect.provide(NodeServices.layer))
       )
 
       expect(detected).toBe(true)
@@ -54,10 +54,10 @@ describe("Jujutsu colocated workspaces", () => {
       mkdirSync(join(cwd, ".git"), { recursive: true })
 
       const detected = await Effect.runPromise(
-        Jujutsu.isColocated(cwd).pipe(
-          Effect.provide(Jujutsu.Default),
-          Effect.provide(NodeContext.layer)
-        )
+        Effect.gen(function* () {
+          const svc = yield* Jujutsu
+          return yield* svc.isColocated(cwd)
+        }).pipe(Effect.provide(JujutsuLive), Effect.provide(NodeServices.layer))
       )
 
       expect(detected).toBe(false)

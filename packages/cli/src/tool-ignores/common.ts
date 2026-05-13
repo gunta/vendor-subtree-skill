@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Effect, FileSystem, Option, Path } from "effect"
 
 import { packageJsonHasDependency } from "../config/package-json.ts"
 import { VENDOR_DIR } from "../domain/constants.ts"

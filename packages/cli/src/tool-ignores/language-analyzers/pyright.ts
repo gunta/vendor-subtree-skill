@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import {
   completeMerge,
@@ -14,7 +13,8 @@ import {
   packageHasDependency,
   report,
   VENDOR_DIR,
-  type ToolFileContext
+  type ToolFileContext,
+  type ToolIgnoreIntegration
 } from "../common.ts"
 
 const TOOL = "Pyright"
@@ -84,9 +84,13 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class PyrightIgnore extends Effect.Service<PyrightIgnore>()("ingraft/PyrightIgnore", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export class PyrightIgnore extends Context.Service<PyrightIgnore, ToolIgnoreIntegration>()(
+  "ingraft/PyrightIgnore"
+) {}
+
+export const PyrightIgnoreLive = Layer.effect(
+  PyrightIgnore,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const context = { fs, path }
@@ -95,4 +99,4 @@ export class PyrightIgnore extends Effect.Service<PyrightIgnore>()("ingraft/Pyri
       refresh: (cwd: string) => refreshWith(context, cwd)
     }
   })
-}) {}
+)

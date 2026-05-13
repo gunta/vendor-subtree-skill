@@ -82,34 +82,30 @@ export const resolveVersion = ({ selector, url }: ResolveVersionParams) => {
     case "Tag":
       return Effect.succeed(Option.some(selector.value))
     case "Release":
-      return RepositoryHosts.releaseTag({
-        input: url,
-        release: selector.value
-      }).pipe(
-        Effect.flatMap((tag) =>
-          Option.isSome(tag)
-            ? Effect.succeed(Option.some(tag.value))
-            : selector.value === "latest"
-              ? Effect.fail(
-                  new VersionResolutionFailed({
-                    selector: "--release latest",
-                    url
-                  })
-                )
-              : tagExists(url, selector.value).pipe(
-                  Effect.flatMap((exists) =>
-                    exists
-                      ? Effect.succeed(Option.some(selector.value))
-                      : Effect.fail(
-                          new VersionResolutionFailed({
-                            selector: `--release ${selector.value}`,
-                            url
-                          })
-                        )
-                  )
-                )
+      return Effect.gen(function* () {
+        const repoHosts = yield* RepositoryHosts
+        const tag = yield* repoHosts.releaseTag({
+          input: url,
+          release: selector.value
+        })
+        if (Option.isSome(tag)) return Option.some(tag.value)
+        if (selector.value === "latest") {
+          return yield* Effect.fail(
+            new VersionResolutionFailed({
+              selector: "--release latest",
+              url
+            })
+          )
+        }
+        const exists = yield* tagExists(url, selector.value)
+        if (exists) return Option.some(selector.value)
+        return yield* Effect.fail(
+          new VersionResolutionFailed({
+            selector: `--release ${selector.value}`,
+            url
+          })
         )
-      )
+      })
     case "SyncPackage":
       return Effect.fail(
         new VersionResolutionFailed({

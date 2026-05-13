@@ -28,10 +28,27 @@ type Workflow = {
 }
 
 type PackageJson = {
+  readonly bugs?: {
+    readonly url?: string
+  }
+  readonly devDependencies?: Record<string, string>
+  readonly homepage?: string
   readonly private?: boolean
   readonly publishConfig?: {
     readonly access?: string
   }
+  readonly repository?: {
+    readonly directory?: string
+    readonly type?: string
+    readonly url?: string
+  }
+  readonly version?: string
+}
+
+type PackageLockJson = {
+  readonly name: string
+  readonly packages: Record<string, unknown>
+  readonly version: string
 }
 
 const readWorkflow = async (path: string): Promise<Workflow> =>
@@ -124,6 +141,71 @@ describe("release automation workflows", () => {
 
     expect(text).not.toContain("NPM_TOKEN")
     expect(text).not.toContain("NODE_AUTH_TOKEN")
+  })
+
+  test("keeps package metadata usable outside npm", async () => {
+    const cliPackage = await readJson<PackageJson>("packages/cli/package.json")
+    const skillPackage = await readJson<PackageJson>("packages/skill/package.json")
+    const lock = await readJson<PackageLockJson>("packages/cli/package-lock.json")
+    const lockText = await workflowText("packages/cli/package-lock.json")
+
+    expect(cliPackage).toMatchObject({
+      homepage: "https://ingraft.dev",
+      bugs: { url: "https://github.com/gunta/ingraft/issues" },
+      repository: {
+        type: "git",
+        url: "git+https://github.com/gunta/ingraft.git",
+        directory: "packages/cli"
+      }
+    })
+    expect(skillPackage.repository?.directory).toBe("packages/skill")
+    expect(cliPackage.devDependencies).toMatchObject({
+      "@types/node": expect.any(String),
+      typescript: expect.any(String)
+    })
+    expect(lock.name).toBe("ingraft")
+    expect(lock.version).toBe(cliPackage.version!)
+    expect(lock.packages[""]).toMatchObject({ name: "ingraft", version: cliPackage.version })
+    expect(lockText).not.toContain(".bun")
+    expect(lockText).not.toContain("private/var")
+    expect(lockText).not.toContain("workspace:")
+  })
+
+  test("ships Homebrew and Nix package definitions", async () => {
+    const formula = await workflowText("Formula/ingraft.rb")
+    const flake = await workflowText("flake.nix")
+    const nixPackage = await workflowText("nix/package.nix")
+
+    expect(formula).toContain("class Ingraft < Formula")
+    expect(formula).toContain('url "https://registry.npmjs.org/ingraft/-/ingraft-0.3.0.tgz"')
+    expect(formula).toMatch(/sha256 "[a-f0-9]{64}"/)
+    expect(formula).toContain('depends_on "bun"')
+    expect(formula).toContain('depends_on "git"')
+    expect(formula).toContain('depends_on "node"')
+    expect(formula).toContain('system "npm", "install", *std_npm_args')
+    expect(formula).toContain('bin.install_symlink libexec.glob("bin/*")')
+
+    expect(flake).toContain('nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable"')
+    expect(flake).toContain("overlays.default")
+    expect(nixPackage).toContain("buildNpmPackage")
+    expect(nixPackage).toContain("importNpmLock")
+    expect(nixPackage).toContain("nodejs_24")
+    expect(nixPackage).toContain("makeWrapperArgs")
+  })
+
+  test("documents skills.sh installation and badge", async () => {
+    const rootReadme = await workflowText("README.md")
+    const skillReadme = await workflowText("packages/skill/README.md")
+    const rootSkill = await workflowText("SKILL.md")
+
+    for (const text of [rootReadme, skillReadme]) {
+      expect(text).toContain("[![skills.sh](https://skills.sh/b/gunta/ingraft)]")
+      expect(text).toContain("https://skills.sh/gunta/ingraft")
+    }
+
+    for (const text of [rootReadme, skillReadme, rootSkill]) {
+      expect(text).toContain("npx skills add gunta/ingraft")
+    }
   })
 
   test("deploys the Astro site through the Cloudflare website workflow", async () => {

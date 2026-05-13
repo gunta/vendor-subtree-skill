@@ -1,6 +1,5 @@
-import { Args, Command as Cli, Options } from "@effect/cli"
-import { FileSystem, Path } from "@effect/platform"
-import { Array as Arr, Effect, Option } from "effect"
+import { Array as Arr, Effect, FileSystem, Option, Path } from "effect"
+import { Argument, Command, Flag } from "effect/unstable/cli"
 
 import { error, info, ok, warn, withCommandTelemetry } from "../app/log.tsx"
 import {
@@ -54,14 +53,14 @@ interface StrategyGitFailureParams {
   readonly strategy: VendorStrategy
 }
 
-const updateNameArg = Args.text({ name: "name" }).pipe(
-  Args.withDescription("Name (or prefix path) of the vendored repository to update."),
-  Args.optional
+const updateNameArg = Argument.string("name").pipe(
+  Argument.withDescription("Name (or prefix path) of the vendored repository to update."),
+  Argument.optional
 )
 
-const updateAllOption = Options.boolean("all").pipe(
-  Options.withAlias("a"),
-  Options.withDescription("Update every vendored repository.")
+const updateAllOption = Flag.boolean("all").pipe(
+  Flag.withAlias("a"),
+  Flag.withDescription("Update every vendored repository.")
 )
 
 type UpdateTargetSelectionError = UpdateTargetMissing | VendoredRepoNotFound
@@ -84,7 +83,7 @@ export const selectUpdateTargets = ({
       onSome: Effect.succeed
     })
     const repo = yield* Option.match(
-      Option.fromNullable(repos.find((repo) => repo.name === value || repo.prefix === value)),
+      Option.fromNullishOr(repos.find((repo) => repo.name === value || repo.prefix === value)),
       {
         onNone: () => Effect.fail(new VendoredRepoNotFound({ name: value })),
         onSome: Effect.succeed
@@ -189,7 +188,8 @@ const updateCloneIgnore = (params: VendoredRepoCommandParams) =>
     const exists = yield* fs.exists(target)
     if (!exists) {
       yield* fs.makeDirectory(path.dirname(target), { recursive: true }).pipe(Effect.ignore)
-      const hostResult = yield* RepositoryHosts.clone({
+      const repoHosts = yield* RepositoryHosts
+      const hostResult = yield* repoHosts.clone({
         cwd: params.cwd,
         input: params.repo.url,
         target: params.repo.prefix
@@ -275,23 +275,22 @@ const updateByStrategy = (params: VendoredRepoCommandParams) => {
 }
 
 const resolveRepoForUpdate = ({ cwd, repo }: VendoredRepoCommandParams) => {
-  if (repo.syncPackage === undefined) return Effect.succeed(repo)
+  const syncPackage = repo.syncPackage
+  if (syncPackage === undefined) return Effect.succeed(repo)
 
-  return info(`Resolving package-synced ref for ${repo.name} from ${repo.syncPackage}...`).pipe(
-    Effect.zipRight(
-      PackageVersionSync.resolve({
-        cwd,
-        packageName: repo.syncPackage,
-        repoUrl: repo.url
-      })
-    ),
-    Effect.tap((resolution) =>
-      info(
-        `Using ${resolution.ref} from package.json ${repo.syncPackage}@${resolution.version} (${resolution.source}).`
-      )
-    ),
-    Effect.map((resolution) => ({ ...repo, ref: resolution.ref }))
-  )
+  return Effect.gen(function* () {
+    const pkgSync = yield* PackageVersionSync
+    yield* info(`Resolving package-synced ref for ${repo.name} from ${syncPackage}...`)
+    const resolution = yield* pkgSync.resolve({
+      cwd,
+      packageName: syncPackage,
+      repoUrl: repo.url
+    })
+    yield* info(
+      `Using ${resolution.ref} from package.json ${syncPackage}@${resolution.version} (${resolution.source}).`
+    )
+    return { ...repo, ref: resolution.ref }
+  })
 }
 
 const updateOne = ({ cwd, repo }: VendoredRepoCommandParams) =>
@@ -302,14 +301,14 @@ const updateOne = ({ cwd, repo }: VendoredRepoCommandParams) =>
     Effect.flatMap((resolvedRepo) =>
       updateByStrategy({ cwd, repo: resolvedRepo }).pipe(Effect.as(resolvedRepo))
     ),
-    Effect.either,
+    Effect.result,
     Effect.flatMap((result) =>
-      result._tag === "Right"
-        ? ok(`updated ${result.right.name}`).pipe(Effect.as(Option.none<string>()))
+      result._tag === "Success"
+        ? ok(`updated ${result.success.name}`).pipe(Effect.as(Option.none<string>()))
         : error(
             `failed: ${lastGitLine({
               stdout: "",
-              stderr: failureOutput(result.left)
+              stderr: failureOutput(result.failure)
             })}`
           ).pipe(Effect.as(Option.some(repo.name)))
     )
@@ -317,8 +316,9 @@ const updateOne = ({ cwd, repo }: VendoredRepoCommandParams) =>
 
 const refreshAfterUpdate = (cwd: string) =>
   Effect.gen(function* () {
+    const projectFiles = yield* ProjectFiles
     const reposAfter = yield* listVendored(cwd)
-    yield* ProjectFiles.refresh({
+    yield* projectFiles.refresh({
       cwd,
       repos: reposAfter,
       commitMessage: "vendor: refresh project vendor files after update",
@@ -350,8 +350,8 @@ export const updateImpl = ({ all, name }: UpdateCommandParams) =>
     })
   }).pipe(withCommandTelemetry("update"))
 
-export const updateCmd = Cli.make(
+export const updateCmd = Command.make(
   "update",
   { name: updateNameArg, all: updateAllOption },
   updateImpl
-).pipe(Cli.withDescription("Pull upstream changes for one or all vendored repositories."))
+).pipe(Command.withDescription("Pull upstream changes for one or all vendored repositories."))

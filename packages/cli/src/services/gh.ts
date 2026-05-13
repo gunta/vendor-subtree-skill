@@ -1,5 +1,5 @@
-import { Command as PlatformCommand, CommandExecutor } from "@effect/platform"
-import { Effect, Option, Stream, pipe } from "effect"
+import { Context, Effect, Layer, Option, Stream, pipe } from "effect"
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 import { RuntimeConfig } from "../app/runtime.ts"
 import { githubRepoFromInput, type GitHubRepository } from "../domain/repo.ts"
@@ -28,18 +28,21 @@ export interface GitHubCloneFromInputParams {
 
 const collect = <E, R>(stream: Stream.Stream<Uint8Array, E, R>) =>
   stream.pipe(
-    Stream.decodeText("utf-8"),
-    Stream.runFold("", (a, b) => a + b)
+    Stream.decodeText,
+    Stream.runFold(
+      () => "",
+      (a, b) => a + b
+    )
   )
 
 const makeGitHubCliExec =
-  (executor: CommandExecutor.CommandExecutor) =>
+  (executor: ChildProcessSpawner.ChildProcessSpawner["Service"]) =>
   (args: ReadonlyArray<string>, options: GitHubCliOptions = {}) =>
     Effect.scoped(
       Effect.gen(function* () {
-        const base = PlatformCommand.make("gh", ...args)
-        const cmd = options.cwd ? pipe(base, PlatformCommand.workingDirectory(options.cwd)) : base
-        const proc = yield* executor.start(cmd)
+        const base = ChildProcess.make("gh", Array.from(args))
+        const cmd = options.cwd ? ChildProcess.setCwd(base, options.cwd) : base
+        const proc = yield* executor.spawn(cmd)
         const [exitCode, stdout, stderr] = yield* Effect.all(
           [proc.exitCode, collect(proc.stdout), collect(proc.stderr)],
           { concurrency: 3 }
@@ -52,34 +55,43 @@ const makeGitHubCliExec =
       })
     )
 
-export class GitHubCli extends Effect.Service<GitHubCli>()("ingraft/GitHubCli", {
-  accessors: true,
-  effect: Effect.gen(function* () {
-    const executor = yield* CommandExecutor.CommandExecutor
+export interface GitHubCliShape {
+  readonly exec: (
+    args: ReadonlyArray<string>,
+    options?: GitHubCliOptions
+  ) => Effect.Effect<GitHubCliResult, unknown>
+}
+
+export class GitHubCli extends Context.Service<GitHubCli, GitHubCliShape>()("ingraft/GitHubCli") {}
+
+export const GitHubCliLive = Layer.effect(
+  GitHubCli,
+  Effect.gen(function* () {
+    const executor = yield* ChildProcessSpawner.ChildProcessSpawner
     return {
       exec: makeGitHubCliExec(executor)
     }
   })
-}) {}
+)
 
 export const gh = (args: ReadonlyArray<string>, options: GitHubCliOptions = {}) =>
-  RuntimeConfig.pipe(
-    Effect.flatMap((runtime) => {
-      const cwd = options.cwd ?? runtime.cwd
-      return GitHubCli.exec(args, options).pipe(
-        Effect.withSpan("gh.exec", {
-          attributes: {
-            args: args.join(" "),
-            cwd
-          }
-        }),
-        Effect.annotateLogs({
-          gh: `gh ${args.join(" ")}`,
+  Effect.gen(function* () {
+    const runtime = yield* RuntimeConfig
+    const githubCli = yield* GitHubCli
+    const cwd = options.cwd ?? runtime.cwd
+    return yield* githubCli.exec(args, options).pipe(
+      Effect.withSpan("gh.exec", {
+        attributes: {
+          args: args.join(" "),
           cwd
-        })
-      )
-    })
-  )
+        }
+      }),
+      Effect.annotateLogs({
+        gh: `gh ${args.join(" ")}`,
+        cwd
+      })
+    )
+  })
 
 export const ghDefaultBranch = (repo: GitHubRepository) =>
   gh([
@@ -100,7 +112,7 @@ export const ghDefaultBranch = (repo: GitHubRepository) =>
   )
 
 export const ghDefaultBranchFromInput = (input: string) =>
-  Option.fromNullable(githubRepoFromInput(input)).pipe(
+  Option.fromNullishOr(githubRepoFromInput(input)).pipe(
     Option.match({
       onNone: () => Effect.succeed(Option.none<string>()),
       onSome: ghDefaultBranch
@@ -111,7 +123,7 @@ export const ghRepoClone = ({ cwd, repo, target }: GitHubCloneParams) =>
   gh(["repo", "clone", repo.nameWithOwner, target], { cwd })
 
 export const ghRepoCloneFromInput = ({ cwd, input, target }: GitHubCloneFromInputParams) =>
-  Option.fromNullable(githubRepoFromInput(input)).pipe(
+  Option.fromNullishOr(githubRepoFromInput(input)).pipe(
     Option.match({
       onNone: () => Effect.succeed(Option.none<GitHubCliResult>()),
       onSome: (repo) => ghRepoClone({ cwd, repo, target }).pipe(Effect.map(Option.some))

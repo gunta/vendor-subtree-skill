@@ -1,7 +1,13 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Array as Arr, Effect, Option } from "effect"
+import { Array as Arr, Effect, FileSystem, Option, Path } from "effect"
 
-import { AGENT_DOCS, SECTION_BEGIN, SECTION_END, VENDOR_DIR } from "../domain/constants.ts"
+import {
+  AGENT_DOC_FILES,
+  AGENT_DOC_RULE_DIRECTORIES,
+  DEFAULT_AGENT_DOC,
+  SECTION_BEGIN,
+  SECTION_END,
+  VENDOR_DIR
+} from "../domain/constants.ts"
 import { hasVendorFilter } from "../domain/vendor-filter.ts"
 import type { VendoredRepo } from "../domain/vendor-state.ts"
 
@@ -38,6 +44,10 @@ interface AgentDocTargetsParams {
   readonly path: Path.Path
 }
 
+interface AgentDocRuleDirectoryTargetsParams extends AgentDocTargetsParams {
+  readonly directory: (typeof AGENT_DOC_RULE_DIRECTORIES)[number]
+}
+
 interface WriteSectionIfChangedParams {
   readonly fs: FileSystem.FileSystem
   readonly section: string
@@ -45,6 +55,48 @@ interface WriteSectionIfChangedParams {
 }
 
 const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+
+const isFileTarget = (fs: FileSystem.FileSystem, target: string) =>
+  fs.stat(target).pipe(
+    Effect.map((info) => info.type !== "Directory"),
+    Effect.catch(() => Effect.succeed(false))
+  )
+
+const existingAgentDocFileTargets = ({ cwd, fs, path }: AgentDocTargetsParams) =>
+  Effect.filter(
+    AGENT_DOC_FILES.map((spec) => path.resolve(cwd, spec.path)),
+    (target) => isFileTarget(fs, target)
+  )
+
+const normalizePath = (value: string): string => value.replaceAll("\\", "/")
+
+const matchesRuleFile = (
+  relativePath: string,
+  directory: (typeof AGENT_DOC_RULE_DIRECTORIES)[number]
+) => {
+  const normalized = normalizePath(relativePath)
+  return directory.suffixes.some((suffix) => normalized.endsWith(suffix))
+}
+
+const agentDocRuleDirectoryTargets = ({
+  cwd,
+  directory,
+  fs,
+  path
+}: AgentDocRuleDirectoryTargetsParams): Effect.Effect<ReadonlyArray<string>> =>
+  Effect.gen(function* () {
+    const absoluteDirectory = path.resolve(cwd, directory.path)
+    const info = yield* fs.stat(absoluteDirectory).pipe(Effect.option)
+    if (Option.isNone(info) || info.value.type !== "Directory") return []
+
+    const entries = yield* fs
+      .readDirectory(absoluteDirectory, { recursive: true })
+      .pipe(Effect.catch(() => Effect.succeed([] as ReadonlyArray<string>)))
+
+    return entries
+      .filter((entry) => matchesRuleFile(entry, directory))
+      .map((entry) => path.resolve(absoluteDirectory, entry))
+  })
 
 const vendorRepoLines = (
   invocation: string,
@@ -103,13 +155,16 @@ export const injectSection = ({ content, section }: InjectSectionParams): string
 }
 
 const agentDocTargets = ({ cwd, fs, path }: AgentDocTargetsParams) =>
-  Effect.filter(AGENT_DOCS, (name) => fs.exists(path.resolve(cwd, name))).pipe(
-    Effect.map((names) =>
-      names.length > 0
-        ? names.map((name) => path.resolve(cwd, name))
-        : [path.resolve(cwd, "AGENTS.md")]
+  Effect.gen(function* () {
+    const fileTargets = yield* existingAgentDocFileTargets({ cwd, fs, path })
+    const directoryTargets = yield* Effect.forEach(
+      AGENT_DOC_RULE_DIRECTORIES,
+      (directory) => agentDocRuleDirectoryTargets({ cwd, directory, fs, path }),
+      { concurrency: 4 }
     )
-  )
+    const targets = [...fileTargets, ...directoryTargets.flat()]
+    return targets.length > 0 ? targets : [path.resolve(cwd, DEFAULT_AGENT_DOC)]
+  })
 
 const targetWithRealPath = ({ fs, target }: TargetWithRealPathParams) =>
   fs.exists(target).pipe(
@@ -123,13 +178,20 @@ const uniqueTargets = (targets: ReadonlyArray<AgentDocTarget>): ReadonlyArray<Ag
   targets.filter((target, index) => targets.findIndex((it) => it.real === target.real) === index)
 
 const writeSectionIfChanged = ({ fs, section, target }: WriteSectionIfChangedParams) =>
-  fs.exists(target).pipe(
-    Effect.flatMap((exists) => (exists ? fs.readFileString(target) : Effect.succeed(""))),
-    Effect.flatMap((content) => {
-      const next = injectSection({ content, section })
-      return next === content
-        ? Effect.succeed(Option.none())
-        : fs.writeFileString(target, next).pipe(Effect.as(Option.some(target)))
+  fs.stat(target).pipe(
+    Effect.option,
+    Effect.flatMap((info) => {
+      if (Option.isSome(info) && info.value.type === "Directory") {
+        return Effect.succeed(Option.none<string>())
+      }
+      return (Option.isSome(info) ? fs.readFileString(target) : Effect.succeed("")).pipe(
+        Effect.flatMap((content) => {
+          const next = injectSection({ content, section })
+          return next === content
+            ? Effect.succeed(Option.none<string>())
+            : fs.writeFileString(target, next).pipe(Effect.as(Option.some(target)))
+        })
+      )
     })
   )
 

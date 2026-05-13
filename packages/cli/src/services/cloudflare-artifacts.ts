@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect"
+import { Context, Effect, Layer, Option } from "effect"
 
 import {
   CloudflareArtifactsConfigMissing,
@@ -186,12 +186,20 @@ const importRepo = (params: CloudflareArtifactsImportParams) =>
     return result.value
   })
 
-export class CloudflareArtifacts extends Effect.Service<CloudflareArtifacts>()(
-  "ingraft/CloudflareArtifacts",
-  {
-    accessors: true,
-    sync: () => ({
-      importRepo
-    })
-  }
-) {}
+export interface CloudflareArtifactsShape {
+  readonly importRepo: (
+    params: CloudflareArtifactsImportParams
+  ) => Effect.Effect<
+    CloudflareArtifactImportResult,
+    CloudflareArtifactsConfigMissing | CloudflareArtifactsRequestFailed
+  >
+}
+
+export class CloudflareArtifacts extends Context.Service<
+  CloudflareArtifacts,
+  CloudflareArtifactsShape
+>()("ingraft/CloudflareArtifacts") {}
+
+export const CloudflareArtifactsLive = Layer.sync(CloudflareArtifacts, () => ({
+  importRepo
+}))

@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect"
+import { Context, Effect, Layer, Option } from "effect"
 
 import { IntellijSettings } from "./intellij.ts"
 import { VscodeSettings } from "./vscode.ts"
@@ -14,9 +14,19 @@ const optionToArray = <A>(option: Option.Option<A>): ReadonlyArray<A> =>
     onSome: (value) => [value]
   })
 
-export class EditorSettings extends Effect.Service<EditorSettings>()("ingraft/EditorSettings", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export interface EditorSettingsShape {
+  readonly refresh: (
+    params: RefreshEditorSettingsParams
+  ) => Effect.Effect<ReadonlyArray<string>, unknown>
+}
+
+export class EditorSettings extends Context.Service<EditorSettings, EditorSettingsShape>()(
+  "ingraft/EditorSettings"
+) {}
+
+export const EditorSettingsLive = Layer.effect(
+  EditorSettings,
+  Effect.gen(function* () {
     const intellij = yield* IntellijSettings
     const vscode = yield* VscodeSettings
     const zed = yield* ZedSettings
@@ -39,4 +49,4 @@ export class EditorSettings extends Effect.Service<EditorSettings>()("ingraft/Ed
         )
     }
   })
-}) {}
+)

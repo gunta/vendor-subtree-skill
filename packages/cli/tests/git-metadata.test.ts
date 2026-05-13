@@ -7,7 +7,7 @@ import { join } from "node:path"
 import { Effect } from "effect"
 import * as git from "isomorphic-git"
 
-import { GitMetadata } from "../src/services/git-metadata.ts"
+import { GitMetadata, GitMetadataLive } from "../src/services/git-metadata.ts"
 
 const withTempRepo = async <A>(run: (cwd: string) => Promise<A>): Promise<A> => {
   const cwd = mkdtempSync(join(tmpdir(), "vendor-git-metadata-"))
@@ -40,7 +40,10 @@ describe("isomorphic-git metadata service", () => {
       mkdirSync(nested, { recursive: true })
 
       const root = await Effect.runPromise(
-        GitMetadata.findRoot(nested).pipe(Effect.provide(GitMetadata.Default))
+        Effect.gen(function* () {
+          const svc = yield* GitMetadata
+          return yield* svc.findRoot(nested)
+        }).pipe(Effect.provide(GitMetadataLive))
       )
 
       expect(root).toBe(cwd)
@@ -56,7 +59,10 @@ describe("isomorphic-git metadata service", () => {
       writeFileSync(join(cwd, "ignored.js"), "export const ignored = true\n")
 
       const files = await Effect.runPromise(
-        GitMetadata.listProjectFiles(cwd).pipe(Effect.provide(GitMetadata.Default))
+        Effect.gen(function* () {
+          const svc = yield* GitMetadata
+          return yield* svc.listProjectFiles(cwd)
+        }).pipe(Effect.provide(GitMetadataLive))
       )
 
       expect(files).toEqual(expect.arrayContaining([".gitignore", "src/index.ts", "src/new.js"]))
@@ -70,10 +76,16 @@ describe("isomorphic-git metadata service", () => {
       unlinkSync(join(cwd, ".gitattributes"))
 
       const tracked = await Effect.runPromise(
-        GitMetadata.pathKnownToGit(cwd, ".gitattributes").pipe(Effect.provide(GitMetadata.Default))
+        Effect.gen(function* () {
+          const svc = yield* GitMetadata
+          return yield* svc.pathKnownToGit(cwd, ".gitattributes")
+        }).pipe(Effect.provide(GitMetadataLive))
       )
       const missing = await Effect.runPromise(
-        GitMetadata.pathKnownToGit(cwd, ".missing").pipe(Effect.provide(GitMetadata.Default))
+        Effect.gen(function* () {
+          const svc = yield* GitMetadata
+          return yield* svc.pathKnownToGit(cwd, ".missing")
+        }).pipe(Effect.provide(GitMetadataLive))
       )
 
       expect(tracked).toBe(true)

@@ -1,7 +1,11 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
-import { AGENT_DOCS, SECTION_BEGIN, SECTION_END } from "../domain/constants.ts"
+import {
+  AGENT_DOC_FILES,
+  AGENT_DOC_RULE_DIRECTORIES,
+  SECTION_BEGIN,
+  SECTION_END
+} from "../domain/constants.ts"
 import type { VendoredRepo } from "../domain/vendor-state.ts"
 import { mergeIntellijFileColorsText, mergeIntellijVendorScopeText } from "../editors/intellij.ts"
 import { mergeVscodeSettingsText } from "../editors/vscode.ts"
@@ -41,6 +45,7 @@ interface SurfaceSpec {
   readonly kind: ProjectSurfaceKind
   readonly name: string
   readonly path: string
+  readonly expectedType?: "directory" | "file"
   readonly detector?: (content: string) => Pick<ProjectSurfaceReport, "message" | "status">
 }
 
@@ -51,49 +56,33 @@ interface DetectSurfaceParams {
   readonly spec: SurfaceSpec
 }
 
-const markdownAgentSpecs: ReadonlyArray<SurfaceSpec> = AGENT_DOCS.map((name) => ({
+const managedMarkdownAgentDetector = (content: string) =>
+  content.includes(SECTION_BEGIN) && content.includes(SECTION_END)
+    ? {
+        message: "managed vendor section present",
+        status: "managed" as const
+      }
+    : {
+        message: "present without managed vendor section",
+        status: "present" as const
+      }
+
+const markdownAgentSpecs: ReadonlyArray<SurfaceSpec> = AGENT_DOC_FILES.map((spec) => ({
   kind: "agent" as const,
-  name,
-  path: name,
-  detector: (content) =>
-    content.includes(SECTION_BEGIN) && content.includes(SECTION_END)
-      ? {
-          message: "managed vendor section present",
-          status: "managed" as const
-        }
-      : {
-          message: "present without managed vendor section",
-          status: "present" as const
-        }
+  name: spec.name,
+  path: spec.path,
+  expectedType: "file" as const,
+  detector: managedMarkdownAgentDetector
 }))
 
 const agentSpecs: ReadonlyArray<SurfaceSpec> = [
   ...markdownAgentSpecs,
-  {
-    kind: "agent",
-    name: "GEMINI.md",
-    path: "GEMINI.md"
-  },
-  {
-    kind: "agent",
-    name: "Cursor rules",
-    path: ".cursor/rules"
-  },
-  {
-    kind: "agent",
-    name: ".cursorrules",
-    path: ".cursorrules"
-  },
-  {
-    kind: "agent",
-    name: "Copilot instructions",
-    path: ".github/copilot-instructions.md"
-  },
-  {
-    kind: "agent",
-    name: "Windsurf rules",
-    path: ".windsurfrules"
-  }
+  ...AGENT_DOC_RULE_DIRECTORIES.map((directory) => ({
+    kind: "agent" as const,
+    name: directory.name,
+    path: directory.path,
+    expectedType: "directory" as const
+  }))
 ]
 
 const vscodeDetector = (content: string): Pick<ProjectSurfaceReport, "message" | "status"> => {
@@ -266,10 +255,18 @@ const presentReport = (
 const detectSurface = ({ cwd, fs, path, spec }: DetectSurfaceParams) =>
   Effect.gen(function* () {
     const target = path.resolve(cwd, spec.path)
-    if (!(yield* fs.exists(target))) return absentReport(target, spec)
-    const content = spec.detector
-      ? yield* fs.readFileString(target).pipe(Effect.orElseSucceed(() => ""))
-      : ""
+    const info = yield* fs.stat(target).pipe(Effect.option)
+    if (Option.isNone(info)) return absentReport(target, spec)
+    if (spec.expectedType === "directory" && info.value.type !== "Directory") {
+      return absentReport(target, spec)
+    }
+    if (spec.expectedType === "file" && info.value.type === "Directory") {
+      return absentReport(target, spec)
+    }
+    const content =
+      spec.detector && info.value.type !== "Directory"
+        ? yield* fs.readFileString(target).pipe(Effect.orElseSucceed(() => ""))
+        : ""
     return presentReport(target, spec, content)
   })
 
@@ -290,13 +287,23 @@ const detectSurfacesWith = (
     return { agentFiles, editorFiles, repositoryFiles } satisfies ProjectSurfacesReport
   })
 
-export class ProjectSurfaces extends Effect.Service<ProjectSurfaces>()("ingraft/ProjectSurfaces", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export interface ProjectSurfacesShape {
+  readonly doctor: (
+    params: ProjectSurfacesDoctorParams
+  ) => Effect.Effect<ProjectSurfacesReport, unknown>
+}
+
+export class ProjectSurfaces extends Context.Service<ProjectSurfaces, ProjectSurfacesShape>()(
+  "ingraft/ProjectSurfaces"
+) {}
+
+export const ProjectSurfacesLive = Layer.effect(
+  ProjectSurfaces,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     return {
       doctor: (params: ProjectSurfacesDoctorParams) => detectSurfacesWith(fs, path, params)
     }
   })
-}) {}
+)

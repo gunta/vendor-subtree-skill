@@ -1,6 +1,6 @@
 import * as nodeFs from "node:fs"
 
-import { Effect } from "effect"
+import { Context, Effect, Layer } from "effect"
 import * as git from "isomorphic-git"
 
 export interface GitMetadataCommit {
@@ -56,13 +56,22 @@ const isIgnored = (cwd: string, filepath: string): Effect.Effect<boolean, unknow
     catch: (error) => error
   })
 
-export class GitMetadata extends Effect.Service<GitMetadata>()("ingraft/GitMetadata", {
-  accessors: true,
-  sync: () => ({
-    findRoot,
-    isIgnored,
-    listCommits,
-    listProjectFiles,
-    pathKnownToGit
-  })
-}) {}
+export interface GitMetadataShape {
+  readonly findRoot: (cwd: string) => Effect.Effect<string, unknown>
+  readonly isIgnored: (cwd: string, filepath: string) => Effect.Effect<boolean, unknown>
+  readonly listCommits: (cwd: string) => Effect.Effect<ReadonlyArray<GitMetadataCommit>, unknown>
+  readonly listProjectFiles: (cwd: string) => Effect.Effect<ReadonlyArray<string>, unknown>
+  readonly pathKnownToGit: (cwd: string, filepath: string) => Effect.Effect<boolean, unknown>
+}
+
+export class GitMetadata extends Context.Service<GitMetadata, GitMetadataShape>()(
+  "ingraft/GitMetadata"
+) {}
+
+export const GitMetadataLive = Layer.sync(GitMetadata, () => ({
+  findRoot,
+  isIgnored,
+  listCommits,
+  listProjectFiles,
+  pathKnownToGit
+}))

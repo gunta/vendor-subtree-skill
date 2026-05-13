@@ -1,8 +1,13 @@
-import type { VendorTuiCandidate, VendorTuiSnapshot, VendorTuiTask } from "./status.ts"
+import {
+  repoRows,
+  type VendorTuiCandidate,
+  type VendorTuiSnapshot,
+  type VendorTuiTask
+} from "./status.ts"
 
 export type VendorTuiStrategy = "subtree" | "submodule" | "clone-ignore"
 
-export type DashboardTab = "tasks" | "dependencies" | "activity" | "help"
+export type DashboardTab = "tasks" | "repositories" | "dependencies" | "activity" | "help"
 
 export type DashboardMode = "browsing" | "confirming-run" | "running"
 
@@ -40,6 +45,7 @@ export type DashboardAction =
 
 export const dashboardTabs = [
   "tasks",
+  "repositories",
   "dependencies",
   "activity",
   "help"
@@ -104,6 +110,9 @@ export const visibleTaskRows = (state: DashboardState): ReadonlyArray<string> =>
 
 export const visibleCandidateRows = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
   snapshot.candidates.map((candidate) => formatCandidateRow(candidate))
+
+export const visibleRepositoryRows = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
+  snapshot.repos.length === 0 ? ["No vendored repositories detected."] : repoRows(snapshot)
 
 const candidateStatusLabel = (candidate: VendorTuiCandidate): string => {
   switch (candidate.status) {

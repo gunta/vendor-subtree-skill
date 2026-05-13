@@ -5,6 +5,7 @@ import {
   dashboardTabs,
   vendorStrategies,
   visibleCandidateRows,
+  visibleRepositoryRows,
   visibleTaskRows,
   type DashboardState
 } from "./dashboard.ts"
@@ -29,7 +30,14 @@ export const colors = {
 const tabLabel = (state: DashboardState): string =>
   dashboardTabs
     .map((tab) => {
-      const label = tab === "dependencies" ? "deps" : tab === "activity" ? "log" : tab
+      const label =
+        tab === "dependencies"
+          ? "deps"
+          : tab === "repositories"
+            ? "repos"
+            : tab === "activity"
+              ? "log"
+              : tab
       return tab === state.activeTab ? `[${label.toUpperCase()}]` : label
     })
     .join("  ")
@@ -46,7 +54,7 @@ const compactSummary = (snapshot: VendorTuiSnapshot): string => {
   const matched = snapshot.candidates.filter((candidate) => candidate.status === "matched").length
   const adds = snapshot.tasks.filter((task) => task.action === "add").length
   const updates = snapshot.tasks.filter((task) => task.action === "update").length
-  return `${snapshot.candidates.length} deps | ${matched} repos | ${adds} add | ${updates} update`
+  return `${snapshot.candidates.length} deps | ${matched} matches | ${snapshot.repos.length} vendored | ${adds} add | ${updates} update`
 }
 
 const selectedLabel = (state: DashboardState): string => {
@@ -61,6 +69,8 @@ const leftPaneTitle = (state: DashboardState): string => {
       return "Activity"
     case "dependencies":
       return "Dependencies"
+    case "repositories":
+      return "Vendored Repositories"
     case "help":
       return "Keys"
     case "tasks":
@@ -74,6 +84,8 @@ const activePaneLines = (state: DashboardState): ReadonlyArray<string> => {
       return state.logLines.length === 0 ? ["No activity yet."] : state.logLines
     case "dependencies":
       return visibleCandidateRows(state.snapshot)
+    case "repositories":
+      return visibleRepositoryRows(state.snapshot)
     case "help":
       return [
         "j/down, k/up       move task focus",

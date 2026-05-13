@@ -3,13 +3,16 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { NodeContext } from "@effect/platform-node"
+import { NodeServices } from "@effect/platform-node"
 import { Effect } from "effect"
 
-import { RuntimeConfig } from "../src/app/runtime.ts"
-import { mergeVscodeSettingsText } from "../src/editors/vscode.ts"
-import { VscodeSettings } from "../src/editors/vscode.ts"
-import { GitMetadata } from "../src/services/git-metadata.ts"
+import { RuntimeConfigLive } from "../src/app/runtime.ts"
+import {
+  mergeVscodeSettingsText,
+  VscodeSettings,
+  VscodeSettingsLive
+} from "../src/editors/vscode.ts"
+import { GitMetadataLive } from "../src/services/git-metadata.ts"
 
 const withTempWorkspace = async <A>(run: (cwd: string) => Promise<A>): Promise<A> => {
   const cwd = mkdtempSync(join(tmpdir(), "vendor-vscode-"))
@@ -81,11 +84,14 @@ describe("VS Code settings", () => {
       writeFileSync(join(cwd, "tsconfig.json"), "{}\n")
 
       const written = await Effect.runPromise(
-        VscodeSettings.refresh(cwd).pipe(
-          Effect.provide(VscodeSettings.Default),
-          Effect.provide(RuntimeConfig.Default),
-          Effect.provide(GitMetadata.Default),
-          Effect.provide(NodeContext.layer)
+        Effect.gen(function* () {
+          const svc = yield* VscodeSettings
+          return yield* svc.refresh(cwd)
+        }).pipe(
+          Effect.provide(VscodeSettingsLive),
+          Effect.provide(RuntimeConfigLive),
+          Effect.provide(GitMetadataLive),
+          Effect.provide(NodeServices.layer)
         )
       )
 
@@ -102,11 +108,14 @@ describe("VS Code settings", () => {
       writeFileSync(join(cwd, "src/index.js"), "export const value = 1\n")
 
       await Effect.runPromise(
-        VscodeSettings.refresh(cwd).pipe(
-          Effect.provide(VscodeSettings.Default),
-          Effect.provide(RuntimeConfig.Default),
-          Effect.provide(GitMetadata.Default),
-          Effect.provide(NodeContext.layer)
+        Effect.gen(function* () {
+          const svc = yield* VscodeSettings
+          return yield* svc.refresh(cwd)
+        }).pipe(
+          Effect.provide(VscodeSettingsLive),
+          Effect.provide(RuntimeConfigLive),
+          Effect.provide(GitMetadataLive),
+          Effect.provide(NodeServices.layer)
         )
       )
 

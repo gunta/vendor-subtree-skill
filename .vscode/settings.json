@@ -12,7 +12,5 @@
   "material-icon-theme.folders.associations": {
     "vendor": "packages"
   },
-  "javascript.preferences.autoImportFileExcludePatterns": [
-    "vendor/**"
-  ]
+  "javascript.preferences.autoImportFileExcludePatterns": ["vendor/**"]
 }

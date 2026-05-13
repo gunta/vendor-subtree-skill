@@ -8,10 +8,11 @@ import { Git } from "../src/services/git.ts"
 import { RepositoryHosts } from "../src/services/repository-hosts.ts"
 
 describe("version selectors", () => {
-  const runtime = RuntimeConfig.make({
+  const runtime = RuntimeConfig.of({
     argv: ["bun", "vendor.ts"],
+    colors: false,
     cwd: "/workspace",
-    exit: (code) => Effect.dieMessage(`exit ${code}`)
+    exit: (code) => Effect.die(`exit ${code}`)
   })
 
   test("rejects ambiguous version selectors", async () => {
@@ -62,7 +63,7 @@ describe("version selectors", () => {
       }).pipe(
         Effect.provideService(
           RepositoryHosts,
-          RepositoryHosts.make({
+          RepositoryHosts.of({
             clone: () => Effect.succeed(Option.none()),
             defaultBranch: () => Effect.succeed(Option.none()),
             identify: () => Effect.succeed(Option.none()),
@@ -71,8 +72,8 @@ describe("version selectors", () => {
         ),
         Effect.provideService(
           Git,
-          Git.make({
-            exec: () => Effect.dieMessage("git tag fallback should not run")
+          Git.of({
+            exec: () => Effect.die("git tag fallback should not run")
           })
         ),
         Effect.provideService(RuntimeConfig, runtime)
@@ -90,7 +91,7 @@ describe("version selectors", () => {
       }).pipe(
         Effect.provideService(
           RepositoryHosts,
-          RepositoryHosts.make({
+          RepositoryHosts.of({
             clone: () => Effect.succeed(Option.none()),
             defaultBranch: () => Effect.succeed(Option.none()),
             identify: () => Effect.succeed(Option.none()),
@@ -99,7 +100,7 @@ describe("version selectors", () => {
         ),
         Effect.provideService(
           Git,
-          Git.make({
+          Git.of({
             exec: (args) => {
               expect(args).toEqual([
                 "ls-remote",

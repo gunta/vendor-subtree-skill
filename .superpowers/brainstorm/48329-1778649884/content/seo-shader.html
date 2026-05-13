@@ -1,0 +1,197 @@
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<style>
+  .wrap {
+    margin: -24px;
+    padding: 48px 40px 60px;
+    background:
+      radial-gradient(80% 60% at 78% 12%, rgba(255,60,121,0.16) 0%, transparent 60%),
+      radial-gradient(60% 70% at 12% 100%, rgba(120,30,160,0.10) 0%, transparent 60%),
+      linear-gradient(180deg, #06060c, #03030a);
+    color: #ece8d8;
+    font-family: 'Geist', 'Inter', system-ui, sans-serif;
+    min-height: 80vh; position: relative; overflow: hidden;
+  }
+  .wrap::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0.4;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='220' height='220'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+    mix-blend-mode: overlay; }
+  .kx { position: relative; z-index: 1; max-width: 1080px; margin: 0 auto; }
+
+  .badge { display: inline-flex; align-items: center; gap: 8px; padding: 6px 11px; border-radius: 999px;
+    border: 1px solid rgba(236,232,216,0.16); background: rgba(236,232,216,0.025);
+    font-family: 'Geist Mono', monospace; font-size: 11px; font-weight: 500; letter-spacing: 0.16em;
+    text-transform: uppercase; color: #ff3c79; margin-bottom: 22px; }
+  .badge::before { content: ""; width: 6px; height: 6px; border-radius: 999px; background: #ff3c79; box-shadow: 0 0 10px #ff3c79; }
+
+  h1 { margin: 0 0 14px; font-size: 48px; font-weight: 700; line-height: 0.95; letter-spacing: -0.035em; color: #f4f4f7; }
+  h1 .a { color: #ff3c79; }
+  .sub { font-size: 17px; line-height: 1.5; color: #9da0a8; max-width: 640px; margin: 0 0 32px; }
+
+  .url-block { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 16px 20px; border-radius: 12px; border: 1px solid rgba(255,60,121,0.32);
+    background: rgba(255,60,121,0.06); box-shadow: 0 24px 60px -32px rgba(255,60,121,0.32);
+    margin-bottom: 36px; text-decoration: none; color: inherit; }
+  .url-block .left { display: flex; align-items: center; gap: 12px; }
+  .url-block .dot { width: 9px; height: 9px; border-radius: 999px; background: #ff3c79;
+    box-shadow: 0 0 14px #ff3c79; flex-shrink: 0; animation: pulse 1.6s ease-in-out infinite; }
+  @keyframes pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(0.85); } }
+  .url-block .label { font-size: 10px; font-family: 'Geist Mono', monospace; letter-spacing: 0.18em; text-transform: uppercase; color: #9da0a8; margin-bottom: 2px; }
+  .url-block .url { font-family: 'Geist Mono', monospace; font-size: 16px; font-weight: 500; color: #f4f4f7; }
+
+  /* OG card preview */
+  .og-preview {
+    position: relative; margin: 0 0 36px; padding: 18px;
+    border: 1px solid rgba(236,232,216,0.14); border-radius: 14px;
+    background: rgba(12,12,20,0.78); backdrop-filter: blur(20px);
+  }
+  .og-preview .label { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-family: 'Geist Mono', monospace; font-size: 10.5px; letter-spacing: 0.16em; text-transform: uppercase; color: #9da0a8; }
+  .og-preview .label .ok { color: #7be0a6; }
+  .og-frame { aspect-ratio: 1.91 / 1; border-radius: 10px; overflow: hidden; border: 1px solid rgba(236,232,216,0.1); position: relative; }
+  .og-frame img { display: block; width: 100%; height: 100%; object-fit: cover; }
+  .og-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; font-family: 'Geist Mono', monospace; font-size: 11px; }
+  .og-meta span { padding: 3px 8px; border: 1px solid rgba(236,232,216,0.12); border-radius: 6px; color: #ece8d8; }
+  .og-meta span.k { color: #ff79a6; }
+
+  /* Ledger */
+  .ledger { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  @media (max-width: 720px) { .ledger { grid-template-columns: 1fr; } }
+  .tile { padding: 22px; border-radius: 12px; border: 1px solid rgba(236,232,216,0.14); background: rgba(12,12,20,0.78); backdrop-filter: blur(20px); }
+  .tile h3 { margin: 0 0 12px; font-size: 14px; font-weight: 600; color: #f4f4f7; }
+  .tile h3 .num { color: #ff3c79; font-family: 'Geist Mono', monospace; font-size: 11px; margin-right: 8px; letter-spacing: 0.12em; }
+  .tile ul { list-style: none; padding: 0; margin: 0; }
+  .tile li { display: grid; grid-template-columns: 14px 1fr; gap: 10px; color: #9da0a8; font-size: 13px; line-height: 1.55; padding: 4px 0; }
+  .tile li::before { content: ""; width: 4px; height: 4px; border-radius: 999px; background: #ff3c79; margin-top: 9px; box-shadow: 0 0 6px rgba(255,60,121,0.5); }
+  .tile .mono { font-family: 'Geist Mono', monospace; color: #ece8d8; font-size: 12px; }
+  .tile .ok { color: #7be0a6; }
+
+  /* Faux shader animation preview */
+  .shader-strip {
+    position: relative; height: 120px; border-radius: 12px; overflow: hidden;
+    margin: 28px 0; border: 1px solid rgba(236,232,216,0.12);
+    background:
+      conic-gradient(from 220deg at 30% 60%, #06060c 0%, #1a0612 25%, #ff3c79 45%, #2a0820 65%, #9d3cff 85%, #06060c 100%);
+    animation: shader 12s linear infinite;
+    filter: blur(1px) saturate(1.1);
+  }
+  .shader-strip::after {
+    content: ""; position: absolute; inset: 0;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='240' height='240'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.5'/></svg>");
+    mix-blend-mode: overlay; opacity: 0.5;
+  }
+  @keyframes shader {
+    0%   { background-position: 0% 50%; transform: scale(1.0); }
+    50%  { background-position: 100% 50%; transform: scale(1.05); }
+    100% { background-position: 0% 50%; transform: scale(1.0); }
+  }
+
+  .foot { margin-top: 32px; padding-top: 18px; border-top: 1px solid rgba(236,232,216,0.10); font-family: 'Geist Mono', monospace; font-size: 11px; color: #5b6273; letter-spacing: 0.06em; }
+</style>
+
+<div class="wrap">
+  <div class="kx">
+
+    <div class="badge">SEO + Shader · shipped</div>
+    <h1>Built for sharing.<br/>Built for crawlers.<br/>Built for the eye<span class="a">.</span></h1>
+    <p class="sub">Comprehensive OGP / Twitter / JSON-LD landed across both the marketing layout and Starlight docs. PWA manifest + 5 favicon variants + robots.txt + AI-crawler allow-list. The final CTA band now has a live Paper Design WebGL shader (<span style="color:#f4f4f7">MeshGradient</span>) running on <span style="color:#f4f4f7;font-family:'Geist Mono',monospace">client:visible</span>.</p>
+
+    <a class="url-block" href="http://localhost:4321/" target="_blank" rel="noopener">
+      <div class="left">
+        <div class="dot"></div>
+        <div>
+          <div class="label">dev server · scroll to bottom to see the shader</div>
+          <div class="url">http://localhost:4321</div>
+        </div>
+      </div>
+      <div style="font-family:'Geist Mono',monospace;font-size:11px;color:#9da0a8;letter-spacing:0.14em;text-transform:uppercase;">open ↗</div>
+    </a>
+
+    <!-- Faux shader strip preview -->
+    <div class="shader-strip"></div>
+
+    <!-- OG Card preview -->
+    <div class="og-preview">
+      <div class="label">
+        <span>og:image · 1200 × 630 · 336 KB · already produced</span>
+        <span class="ok">✓ verified live</span>
+      </div>
+      <div class="og-frame">
+        <img src="http://localhost:4321/visuals/og-default.png" alt="" />
+      </div>
+      <div class="og-meta">
+        <span class="k">og:site_name</span>
+        <span class="k">og:locale</span>
+        <span class="k">og:image:secure_url</span>
+        <span class="k">og:image:alt</span>
+        <span class="k">twitter:creator</span>
+        <span class="k">twitter:image:alt</span>
+        <span class="k">canonical</span>
+      </div>
+    </div>
+
+    <div class="ledger">
+      <div class="tile">
+        <h3><span class="num">01</span>OGP / sharing</h3>
+        <ul>
+          <li>14 og: + twitter: meta tags per page</li>
+          <li>Per-page <span class="mono">title</span>, <span class="mono">description</span>, <span class="mono">og:url</span></li>
+          <li>Absolute URLs via <span class="mono">new URL(path, Astro.site)</span></li>
+          <li><span class="mono">og:image:alt</span> + <span class="mono">twitter:image:alt</span> for a11y</li>
+          <li><span class="mono">summary_large_image</span> · <span class="mono">@gunta85</span> · <span class="mono">og:type</span> per page</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">02</span>SEO foundation</h3>
+        <ul>
+          <li><span class="mono">canonical</span> link on every page</li>
+          <li><span class="mono">robots: index, follow, max-image-preview:large, max-snippet:-1</span></li>
+          <li><span class="mono">robots.txt</span> with explicit allow for ClaudeBot, GPTBot, PerplexityBot, Google-Extended, CCBot</li>
+          <li><span class="mono">sitemap-index.xml</span> already produced by @astrojs/sitemap</li>
+          <li>Title hierarchy and lang attribute set</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">03</span>JSON-LD structured data</h3>
+        <ul>
+          <li><span class="mono">SoftwareApplication</span> on home — name, downloadUrl, license, sameAs, offers</li>
+          <li><span class="mono">WebSite</span> on home — name, url, language</li>
+          <li>Rich-result eligible in Google Search Console</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">04</span>PWA + icons</h3>
+        <ul>
+          <li><span class="mono">manifest.webmanifest</span> — name, short_name, theme/bg color, 3 icon sizes</li>
+          <li>Favicons regenerated from the new SVG: 16, 32, 180 (apple-touch), 192, 512 (maskable)</li>
+          <li><span class="mono">mask-icon</span> for legacy Safari</li>
+          <li><span class="mono">theme-color: #06060c</span> for browser chrome</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">05</span>Paper Design shader</h3>
+        <ul>
+          <li><span class="mono">@paper-design/shaders-react</span> · <span class="mono">@astrojs/react</span> installed</li>
+          <li><span class="mono">BrandShader.tsx</span> exports <span class="mono">FinalShader</span> + <span class="mono">HeroShader</span></li>
+          <li>MeshGradient: void → magenta → violet, speed 0.35, distortion 0.85, grain 0.6</li>
+          <li>Wired with <span class="mono">client:visible</span> · only hydrates when scrolled into view</li>
+          <li>Edge mask + inner fade so the shader blends into the page rather than collides</li>
+        </ul>
+      </div>
+      <div class="tile">
+        <h3><span class="num">06</span>Verification</h3>
+        <ul>
+          <li><span class="mono">astro build</span> · 43 pages · 2.73 s · zero errors</li>
+          <li><span class="ok">✓</span> meta tags rendered in HTML (verified via curl)</li>
+          <li><span class="ok">✓</span> robots.txt, manifest, favicons, OG image all return HTTP 200</li>
+          <li><span class="ok">✓</span> astro-island for the shader is in the DOM (hydrates on scroll)</li>
+          <li>tsconfig.json added (Astro strict + React JSX)</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="foot">
+      ready · scroll to the bottom of <span style="color:#ff3c79">localhost:4321</span> to see the live mesh-gradient shader · validate with <span style="color:#f4f4f7">opengraph.dev</span> or <span style="color:#f4f4f7">cards-dev.twitter.com</span>
+    </div>
+  </div>
+</div>

@@ -9,14 +9,17 @@ describe("project files service", () => {
     let cwd = ""
 
     await Effect.runPromise(
-      ProjectFiles.refresh({
-        commitMessage: "vendor: test",
-        cwd: "/workspace",
-        repos: []
+      Effect.gen(function* () {
+        const service = yield* ProjectFiles
+        yield* service.refresh({
+          commitMessage: "vendor: test",
+          cwd: "/workspace",
+          repos: []
+        })
       }).pipe(
         Effect.provideService(
           ProjectFiles,
-          ProjectFiles.make({
+          ProjectFiles.of({
             refresh: (params) =>
               Effect.sync(() => {
                 cwd = params.cwd

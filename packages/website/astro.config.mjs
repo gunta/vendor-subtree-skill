@@ -17,12 +17,12 @@ const PORTLESS_ORIGIN = (() => {
     return undefined
   }
 })()
-const PORTLESS_CLIENT_PORT =
-  PORTLESS_ORIGIN?.port !== ""
-    ? Number.parseInt(PORTLESS_ORIGIN.port, 10)
-    : PORTLESS_ORIGIN?.protocol === "https:"
-      ? 443
-      : 80
+const portlessClientPort = (origin) => {
+  if (!origin) return undefined
+  if (origin.port !== "") return Number.parseInt(origin.port, 10)
+  return origin.protocol === "https:" ? 443 : 80
+}
+const PORTLESS_CLIENT_PORT = portlessClientPort(PORTLESS_ORIGIN)
 
 export default defineConfig({
   site: SITE,

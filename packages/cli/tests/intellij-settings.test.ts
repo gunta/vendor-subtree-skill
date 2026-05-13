@@ -3,12 +3,13 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync } from "node:fs"
 import { tmpdir } from "node:os"
 import { join } from "node:path"
 
-import { NodeContext } from "@effect/platform-node"
+import { NodeServices } from "@effect/platform-node"
 import { Effect } from "effect"
 
-import { RuntimeConfig } from "../src/app/runtime.ts"
+import { RuntimeConfig, RuntimeConfigLive } from "../src/app/runtime.ts"
 import {
   IntellijSettings,
+  IntellijSettingsLive,
   mergeIntellijFileColorsText,
   mergeIntellijVendorScopeText
 } from "../src/editors/intellij.ts"
@@ -74,20 +75,26 @@ describe("IntelliJ settings", () => {
   test("refresh writes JetBrains project files only when .idea exists", async () => {
     await withTempWorkspace(async (cwd) => {
       const missing = await Effect.runPromise(
-        IntellijSettings.refresh(cwd).pipe(
-          Effect.provide(IntellijSettings.Default),
-          Effect.provide(RuntimeConfig.Default),
-          Effect.provide(NodeContext.layer)
+        Effect.gen(function* () {
+          const svc = yield* IntellijSettings
+          return yield* svc.refresh(cwd)
+        }).pipe(
+          Effect.provide(IntellijSettingsLive),
+          Effect.provide(RuntimeConfigLive),
+          Effect.provide(NodeServices.layer)
         )
       )
       expect(missing).toEqual([])
 
       mkdirSync(join(cwd, ".idea"), { recursive: true })
       const written = await Effect.runPromise(
-        IntellijSettings.refresh(cwd).pipe(
-          Effect.provide(IntellijSettings.Default),
-          Effect.provide(RuntimeConfig.Default),
-          Effect.provide(NodeContext.layer)
+        Effect.gen(function* () {
+          const svc = yield* IntellijSettings
+          return yield* svc.refresh(cwd)
+        }).pipe(
+          Effect.provide(IntellijSettingsLive),
+          Effect.provide(RuntimeConfigLive),
+          Effect.provide(NodeServices.layer)
         )
       )
 

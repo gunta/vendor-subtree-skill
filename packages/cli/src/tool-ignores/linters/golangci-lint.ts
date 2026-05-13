@@ -1,12 +1,12 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import {
   VENDOR_DIR,
   firstExisting,
   hasVendorPattern,
   report,
-  type ToolFileContext
+  type ToolFileContext,
+  type ToolIgnoreIntegration
 } from "../common.ts"
 
 const TOOL = "golangci-lint"
@@ -69,18 +69,20 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class GolangciLintIgnore extends Effect.Service<GolangciLintIgnore>()(
-  "ingraft/GolangciLintIgnore",
-  {
-    accessors: true,
-    effect: Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem
-      const path = yield* Path.Path
-      const context = { fs, path }
-      return {
-        doctor: (cwd: string) => doctorWith(context, cwd),
-        refresh: (_cwd: string) => Effect.succeed(Option.none<string>())
-      }
-    })
-  }
-) {}
+export class GolangciLintIgnore extends Context.Service<
+  GolangciLintIgnore,
+  ToolIgnoreIntegration
+>()("ingraft/GolangciLintIgnore") {}
+
+export const GolangciLintIgnoreLive = Layer.effect(
+  GolangciLintIgnore,
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const path = yield* Path.Path
+    const context = { fs, path }
+    return {
+      doctor: (cwd: string) => doctorWith(context, cwd),
+      refresh: (_cwd: string) => Effect.succeed(Option.none<string>())
+    }
+  })
+)

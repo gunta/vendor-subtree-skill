@@ -1,6 +1,5 @@
-import { Args, Command as Cli, Options } from "@effect/cli"
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Effect, FileSystem, Option, Path } from "effect"
+import { Argument, Command, Flag } from "effect/unstable/cli"
 
 import { info, ok, withCommandTelemetry } from "../app/log.tsx"
 import {
@@ -52,12 +51,12 @@ interface RemoveCloneIgnoreParams {
   readonly target: VendoredRepo
 }
 
-const removeNameArg = Args.text({ name: "name" }).pipe(
-  Args.withDescription("Name (or prefix path) of the vendored repository to remove.")
+const removeNameArg = Argument.string("name").pipe(
+  Argument.withDescription("Name (or prefix path) of the vendored repository to remove.")
 )
 
-const dangerouslyRewriteHistoryOption = Options.boolean("dangerously-rewrite-history").pipe(
-  Options.withDescription(
+const dangerouslyRewriteHistoryOption = Flag.boolean("dangerously-rewrite-history").pipe(
+  Flag.withDescription(
     "DANGER: after removing the vendor, rewrite every local ref with git-filter-repo so the vendor path disappears from all repository history. This changes commit SHAs and requires coordinated force-pushes/re-clones."
   )
 )
@@ -187,8 +186,9 @@ export const removeImpl = ({ dangerouslyRewriteHistory, name }: RemoveCommandPar
       yield* gitChecked(["commit", "-m", removeMessage(target)], { cwd })
     }
 
+    const projectFiles = yield* ProjectFiles
     const reposAfter = yield* listVendored(cwd)
-    yield* ProjectFiles.refresh({
+    yield* projectFiles.refresh({
       cwd,
       repos: reposAfter,
       commitMessage: `vendor: refresh project vendor files after removing ${target.name}`,
@@ -206,11 +206,11 @@ export const removeImpl = ({ dangerouslyRewriteHistory, name }: RemoveCommandPar
     yield* ok(`Removed '${target.name}'.`)
   }).pipe(withCommandTelemetry("remove"))
 
-export const removeCmd = Cli.make(
+export const removeCmd = Command.make(
   "remove",
   {
     dangerouslyRewriteHistory: dangerouslyRewriteHistoryOption,
     name: removeNameArg
   },
   removeImpl
-).pipe(Cli.withDescription("Remove a vendored repository."))
+).pipe(Command.withDescription("Remove a vendored repository."))

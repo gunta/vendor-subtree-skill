@@ -1,7 +1,8 @@
-import { Command as PlatformCommand, CommandExecutor, FileSystem } from "@effect/platform"
-import { Effect, Option, Stream, pipe } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Stream } from "effect"
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 import { RuntimeConfig } from "../app/runtime.ts"
+import { AGENT_DOCS } from "../domain/constants.ts"
 import { DirtyWorkingTree, GitCommandFailed, NotGitRepository } from "../domain/errors.ts"
 import { GitMetadata } from "./git-metadata.ts"
 import { RepositoryHosts } from "./repository-hosts.ts"
@@ -14,8 +15,11 @@ export interface GitResult {
 
 const collect = <E, R>(stream: Stream.Stream<Uint8Array, E, R>) =>
   stream.pipe(
-    Stream.decodeText("utf-8"),
-    Stream.runFold("", (a, b) => a + b)
+    Stream.decodeText,
+    Stream.runFold(
+      () => "",
+      (a, b) => a + b
+    )
   )
 
 export interface GitOptions {
@@ -26,6 +30,7 @@ export interface GitOptions {
 export interface CommitConfigChangesParams {
   readonly cwd: string
   readonly message: string
+  readonly paths?: ReadonlyArray<string>
 }
 
 export interface CommitPathsIfChangedParams {
@@ -40,6 +45,14 @@ export interface EmptyCommitParams {
 }
 
 const gitCommandLabel = (args: ReadonlyArray<string>) => `git ${args.join(" ")}`
+
+const normalizeStagePath = (cwd: string, value: string): string => {
+  const root = cwd.endsWith("/") ? cwd.slice(0, -1) : cwd
+  return value.startsWith(`${root}/`) ? value.slice(root.length + 1) : value
+}
+
+const uniquePaths = (paths: ReadonlyArray<string>): ReadonlyArray<string> =>
+  paths.filter((path, index) => paths.indexOf(path) === index)
 
 const gitOutput = (result: GitResult) =>
   result.stderr.trim() || result.stdout.trim() || "unknown error"
@@ -59,13 +72,13 @@ const nonZeroExit = (
 }
 
 const makeGitExec =
-  (executor: CommandExecutor.CommandExecutor) =>
+  (executor: ChildProcessSpawner.ChildProcessSpawner["Service"]) =>
   (args: ReadonlyArray<string>, options: GitOptions = {}) =>
     Effect.scoped(
       Effect.gen(function* () {
-        const base = PlatformCommand.make("git", ...args)
-        const cmd = options.cwd ? pipe(base, PlatformCommand.workingDirectory(options.cwd)) : base
-        const proc = yield* executor.start(cmd)
+        const base = ChildProcess.make("git", Array.from(args))
+        const cmd = options.cwd ? ChildProcess.setCwd(base, options.cwd) : base
+        const proc = yield* executor.spawn(cmd)
         const [exitCode, stdout, stderr] = yield* Effect.all(
           [proc.exitCode, collect(proc.stdout), collect(proc.stderr)],
           { concurrency: 3 }
@@ -74,35 +87,44 @@ const makeGitExec =
       })
     )
 
-export class Git extends Effect.Service<Git>()("ingraft/Git", {
-  accessors: true,
-  effect: Effect.gen(function* () {
-    const executor = yield* CommandExecutor.CommandExecutor
+export interface GitShape {
+  readonly exec: (
+    args: ReadonlyArray<string>,
+    options?: GitOptions
+  ) => Effect.Effect<GitResult, unknown>
+}
+
+export class Git extends Context.Service<Git, GitShape>()("ingraft/Git") {}
+
+export const GitLive = Layer.effect(
+  Git,
+  Effect.gen(function* () {
+    const executor = yield* ChildProcessSpawner.ChildProcessSpawner
     return {
       exec: makeGitExec(executor)
     }
   })
-}) {}
+)
 
 export const git = (args: ReadonlyArray<string>, options: GitOptions = {}) =>
-  RuntimeConfig.pipe(
-    Effect.flatMap((runtime) => {
-      const cwd = options.cwd ?? runtime.cwd
-      const logArgs = options.redactedArgs ?? args
-      return Git.exec(args, options).pipe(
-        Effect.withSpan("git.exec", {
-          attributes: {
-            args: logArgs.join(" "),
-            cwd
-          }
-        }),
-        Effect.annotateLogs({
-          git: gitCommandLabel(logArgs),
+  Effect.gen(function* () {
+    const runtime = yield* RuntimeConfig
+    const gitService = yield* Git
+    const cwd = options.cwd ?? runtime.cwd
+    const logArgs = options.redactedArgs ?? args
+    return yield* gitService.exec(args, options).pipe(
+      Effect.withSpan("git.exec", {
+        attributes: {
+          args: logArgs.join(" "),
           cwd
-        })
-      )
-    })
-  )
+        }
+      }),
+      Effect.annotateLogs({
+        git: gitCommandLabel(logArgs),
+        cwd
+      })
+    )
+  })
 
 export const gitChecked = (args: ReadonlyArray<string>, options: GitOptions = {}) =>
   git(args, options).pipe(
@@ -112,22 +134,22 @@ export const gitChecked = (args: ReadonlyArray<string>, options: GitOptions = {}
     )
   )
 
-export const repoRoot = RuntimeConfig.pipe(
-  Effect.flatMap((runtime) =>
-    GitMetadata.findRoot(runtime.cwd).pipe(
-      Effect.withSpan("git.findRoot", {
-        attributes: {
-          cwd: runtime.cwd
-        }
-      }),
-      Effect.annotateLogs({
-        git: "isomorphic-git findRoot",
+export const repoRoot = Effect.gen(function* () {
+  const runtime = yield* RuntimeConfig
+  const gitMetadata = yield* GitMetadata
+  return yield* gitMetadata.findRoot(runtime.cwd).pipe(
+    Effect.withSpan("git.findRoot", {
+      attributes: {
         cwd: runtime.cwd
-      }),
-      Effect.catchAll(() => Effect.fail(new NotGitRepository()))
-    )
+      }
+    }),
+    Effect.annotateLogs({
+      git: "isomorphic-git findRoot",
+      cwd: runtime.cwd
+    }),
+    Effect.catch(() => Effect.fail(new NotGitRepository()))
   )
-)
+})
 
 export const assertCleanTree = (cwd: string) =>
   gitChecked(["status", "--porcelain", "--untracked-files=no"], { cwd }).pipe(
@@ -139,24 +161,21 @@ export const assertCleanTree = (cwd: string) =>
   )
 
 export const detectDefaultBranch = (url: string) =>
-  RepositoryHosts.defaultBranch(url).pipe(
-    Effect.flatMap((branch) =>
-      Option.isSome(branch)
-        ? Effect.succeed(branch)
-        : git(["ls-remote", "--symref", url, "HEAD"]).pipe(
-            Effect.map((result) => {
-              if (result.exitCode !== 0) return Option.none<string>()
-              const match = result.stdout.match(/^ref:\s+refs\/heads\/(\S+)\s+HEAD/m)
-              return match?.[1] ? Option.some(match[1]) : Option.none<string>()
-            })
-          )
-    )
-  )
+  Effect.gen(function* () {
+    const repoHosts = yield* RepositoryHosts
+    const branch = yield* repoHosts.defaultBranch(url)
+    if (Option.isSome(branch)) return branch
+    const result = yield* git(["ls-remote", "--symref", url, "HEAD"])
+    if (result.exitCode !== 0) return Option.none<string>()
+    const match = result.stdout.match(/^ref:\s+refs\/heads\/(\S+)\s+HEAD/m)
+    return match?.[1] ? Option.some(match[1]) : Option.none<string>()
+  })
 
-export const commitConfigChanges = ({ cwd, message }: CommitConfigChangesParams) =>
+export const commitConfigChanges = ({ cwd, message, paths = [] }: CommitConfigChangesParams) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
-    const candidates = [
+    const gitMetadata = yield* GitMetadata
+    const candidates = uniquePaths([
       ".gitignore",
       ".ignore",
       ".bazelignore",
@@ -181,9 +200,9 @@ export const commitConfigChanges = ({ cwd, message }: CommitConfigChangesParams)
       "stylelint.config.json",
       "turbo.json",
       "turbo.jsonc",
-      "AGENTS.md",
-      "CLAUDE.md"
-    ]
+      ...AGENT_DOCS,
+      ...paths.map((path) => normalizeStagePath(cwd, path))
+    ])
     const toStage = yield* Effect.filter(candidates, (relativePath) =>
       fs
         .exists(`${cwd}/${relativePath}`)
@@ -191,9 +210,9 @@ export const commitConfigChanges = ({ cwd, message }: CommitConfigChangesParams)
           Effect.flatMap((exists) =>
             exists
               ? Effect.succeed(true)
-              : GitMetadata.pathKnownToGit(cwd, relativePath).pipe(
-                  Effect.catchAll(() => Effect.succeed(false))
-                )
+              : gitMetadata
+                  .pathKnownToGit(cwd, relativePath)
+                  .pipe(Effect.catch(() => Effect.succeed(false)))
           )
         )
     )

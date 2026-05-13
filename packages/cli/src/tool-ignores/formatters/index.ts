@@ -1,1 +1,1 @@
-export { PrettierIgnore, mergePrettierIgnoreText } from "./prettier.ts"
+export { PrettierIgnore, PrettierIgnoreLive, mergePrettierIgnoreText } from "./prettier.ts"

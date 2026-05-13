@@ -48,6 +48,7 @@ describe("dependency vendoring tasks", () => {
         primaryPackageName: "effect",
         repositoryUrl: "https://github.com/Effect-TS/effect.git",
         suggestedName: "effect",
+        syncPackage: "effect",
         versions: {
           local: "effect@1.0.0 (bun-lock)",
           remote: "effect@1.1.0 (npm latest)",
@@ -85,6 +86,7 @@ describe("dependency vendoring tasks", () => {
         primaryPackageName: "effect",
         repositoryUrl: "https://github.com/Effect-TS/effect.git",
         suggestedName: "effect",
+        syncPackage: "effect",
         versions: {
           local: "effect@1.0.0 (bun-lock)",
           remote: "effect@1.1.0 (npm latest)",
@@ -122,5 +124,68 @@ describe("dependency vendoring tasks", () => {
       status: "synced",
       vendor: "effect@3.21.2 (vendored source)"
     })
+  })
+
+  test("preserves ecosystem-prefixed sync package selectors for Hex candidates", () => {
+    expect(
+      dependencyVendorTasks(
+        [
+          {
+            ...matched("jason", "https://github.com/michalmuskala/jason", "1.4.5", "1.4.5"),
+            manifestPath: "mix.exs",
+            packageSpec: "~> 1.4",
+            section: "deps",
+            source: "hex",
+            syncPackage: "hex:jason",
+            versionSource: "mix-lock"
+          }
+        ],
+        []
+      )[0]?.syncPackage
+    ).toBe("hex:jason")
+  })
+
+  test("preserves ecosystem-prefixed sync package selectors for app ecosystems", () => {
+    expect(
+      dependencyVendorTasks(
+        [
+          {
+            ...matched(
+              "react-native",
+              "https://github.com/facebook/react-native",
+              "0.82.0",
+              "0.82.0"
+            ),
+            source: "react-native",
+            syncPackage: "react-native:react-native"
+          },
+          {
+            ...matched(
+              "swift-argument-parser",
+              "https://github.com/apple/swift-argument-parser",
+              "1.4.0"
+            ),
+            manifestPath: "Package.swift",
+            section: "package",
+            source: "swift",
+            syncPackage: "swift:swift-argument-parser",
+            versionSource: "package-swift"
+          },
+          {
+            ...matched("com.squareup.okhttp3:okhttp", "https://github.com/square/okhttp", "4.12.0"),
+            manifestPath: "app/build.gradle.kts",
+            section: "implementation",
+            source: "android",
+            syncPackage: "android:com.squareup.okhttp3:okhttp",
+            versionSource: "gradle"
+          }
+        ],
+        []
+      ).map((task) => task.syncPackage)
+    ).toEqual([
+      "react-native:react-native",
+      "swift:swift-argument-parser",
+      "android:com.squareup.okhttp3:okhttp"
+    ])
   })
 })

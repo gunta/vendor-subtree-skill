@@ -5,10 +5,11 @@ import { Effect, Option } from "effect"
 import { RuntimeConfig } from "../src/app/runtime.ts"
 import { GitHubCli, ghRepoCloneFromInput } from "../src/services/gh.ts"
 
-const runtime = RuntimeConfig.make({
+const runtime = RuntimeConfig.of({
   argv: ["bun", "vendor.ts"],
+  colors: false,
   cwd: "/workspace",
-  exit: (code) => Effect.dieMessage(`exit ${code}`)
+  exit: (code) => Effect.die(`exit ${code}`)
 })
 
 describe("GitHub CLI service", () => {
@@ -21,7 +22,7 @@ describe("GitHub CLI service", () => {
       }).pipe(
         Effect.provideService(
           GitHubCli,
-          GitHubCli.make({
+          GitHubCli.of({
             exec: (args, options) => {
               expect(args).toEqual(["repo", "clone", "Effect-TS/effect", "vendor/effect"])
               expect(options?.cwd).toBe("/workspace")
@@ -45,8 +46,8 @@ describe("GitHub CLI service", () => {
       }).pipe(
         Effect.provideService(
           GitHubCli,
-          GitHubCli.make({
-            exec: () => Effect.dieMessage("gh should not run")
+          GitHubCli.of({
+            exec: () => Effect.die("gh should not run")
           })
         ),
         Effect.provideService(RuntimeConfig, runtime)

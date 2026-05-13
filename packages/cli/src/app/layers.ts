@@ -1,106 +1,104 @@
-import { NodeContext } from "@effect/platform-node"
+import { NodeServices } from "@effect/platform-node"
 import { Layer } from "effect"
 
-import { RepositoryAliases } from "../aliases/service.ts"
-import { IntellijSettings } from "../editors/intellij.ts"
-import { EditorSettings } from "../editors/service.ts"
-import { VscodeSettings } from "../editors/vscode.ts"
-import { ZedSettings } from "../editors/zed.ts"
-import { PackageVersionSync } from "../package-sync/service.ts"
-import { ProjectFiles } from "../project/service.ts"
-import { ProjectSurfaces } from "../project/surfaces.ts"
-import { CloudflareArtifacts } from "../services/cloudflare-artifacts.ts"
-import { GitHubCli } from "../services/gh.ts"
-import { GitMetadata } from "../services/git-metadata.ts"
-import { Git } from "../services/git.ts"
-import { GitLabCli } from "../services/glab.ts"
-import { Jujutsu } from "../services/jujutsu.ts"
-import { Prompts } from "../services/prompts.tsx"
-import { RepositoryHosts } from "../services/repository-hosts.ts"
-import { VendorNotes } from "../services/vendor-notes.ts"
-import { PrettierIgnore } from "../tool-ignores/formatters/index.ts"
+import { RepositoryAliasesLive } from "../aliases/service.ts"
+import { IntellijSettingsLive } from "../editors/intellij.ts"
+import { EditorSettingsLive } from "../editors/service.ts"
+import { VscodeSettingsLive } from "../editors/vscode.ts"
+import { ZedSettingsLive } from "../editors/zed.ts"
+import { PackageVersionSyncLive } from "../package-sync/service.ts"
+import { ProjectFilesLive } from "../project/service.ts"
+import { ProjectSurfacesLive } from "../project/surfaces.ts"
+import { CloudflareArtifactsLive } from "../services/cloudflare-artifacts.ts"
+import { GitHubCliLive } from "../services/gh.ts"
+import { GitMetadataLive } from "../services/git-metadata.ts"
+import { GitLive } from "../services/git.ts"
+import { GitLabCliLive } from "../services/glab.ts"
+import { JujutsuLive } from "../services/jujutsu.ts"
+import { PromptsLive } from "../services/prompts.tsx"
+import { RepositoryHostsLive } from "../services/repository-hosts.ts"
+import { VendorNotesLive } from "../services/vendor-notes.ts"
+import { PrettierIgnoreLive } from "../tool-ignores/formatters/index.ts"
 import {
-  CargoIgnore,
-  MypyIgnore,
-  PyrightIgnore,
-  TypeScriptIgnore,
-  ZigIgnore
+  CargoIgnoreLive,
+  ElixirIgnoreLive,
+  MypyIgnoreLive,
+  PyrightIgnoreLive,
+  TypeScriptIgnoreLive,
+  ZigIgnoreLive
 } from "../tool-ignores/language-analyzers/index.ts"
 import {
-  BiomeIgnore,
-  CspellIgnore,
-  EslintIgnore,
-  GolangciLintIgnore,
-  MarkdownlintIgnore,
-  OxlintIgnore,
-  RuffIgnore,
-  StylelintIgnore
+  BiomeIgnoreLive,
+  CspellIgnoreLive,
+  EslintIgnoreLive,
+  GolangciLintIgnoreLive,
+  MarkdownlintIgnoreLive,
+  OxlintIgnoreLive,
+  RuffIgnoreLive,
+  StylelintIgnoreLive
 } from "../tool-ignores/linters/index.ts"
-import { MonorepoTools } from "../tool-ignores/monorepo.ts"
-import { ToolIgnores } from "../tool-ignores/service.ts"
-import { RuntimeConfig } from "./runtime.ts"
+import { MonorepoToolsLive } from "../tool-ignores/monorepo.ts"
+import { ToolIgnoresLive as ToolIgnoresLayerLive } from "../tool-ignores/service.ts"
+import { RuntimeConfigLive } from "./runtime.ts"
 
-const PlatformLive = Layer.mergeAll(NodeContext.layer, RuntimeConfig.Default)
-const RepositoryAliasesLive = RepositoryAliases.Default.pipe(Layer.provide(PlatformLive))
-const CloudflareArtifactsLive = CloudflareArtifacts.Default
-const GitLive = Git.Default.pipe(Layer.provide(NodeContext.layer))
-const GitMetadataLive = GitMetadata.Default
-const GitHubCliLive = GitHubCli.Default.pipe(Layer.provide(NodeContext.layer))
-const GitLabCliLive = GitLabCli.Default.pipe(Layer.provide(NodeContext.layer))
-const JujutsuLive = Jujutsu.Default.pipe(Layer.provide(PlatformLive))
-const VendorNotesLive = VendorNotes.Default
-const IntellijSettingsLive = IntellijSettings.Default.pipe(Layer.provide(PlatformLive))
-const VscodeSettingsLive = VscodeSettings.Default.pipe(
-  Layer.provide(Layer.mergeAll(PlatformLive, GitMetadataLive))
+const PlatformLive = Layer.mergeAll(NodeServices.layer, RuntimeConfigLive)
+const AliasesLive = RepositoryAliasesLive.pipe(Layer.provide(PlatformLive))
+const ArtifactsLive = CloudflareArtifactsLive
+const GitLayerLive = GitLive.pipe(Layer.provide(NodeServices.layer))
+const MetadataLive = GitMetadataLive
+const GhLive = GitHubCliLive.pipe(Layer.provide(NodeServices.layer))
+const GlabLive = GitLabCliLive.pipe(Layer.provide(NodeServices.layer))
+const JjLive = JujutsuLive.pipe(Layer.provide(PlatformLive))
+const NotesLive = VendorNotesLive
+const IntellijLive = IntellijSettingsLive.pipe(Layer.provide(PlatformLive))
+const VscodeLive = VscodeSettingsLive.pipe(
+  Layer.provide(Layer.mergeAll(PlatformLive, MetadataLive))
 )
-const ZedSettingsLive = ZedSettings.Default.pipe(Layer.provide(PlatformLive))
+const ZedLive = ZedSettingsLive.pipe(Layer.provide(PlatformLive))
 const ToolIgnoreProvidersLive = Layer.mergeAll(
-  BiomeIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  CspellIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  EslintIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  GolangciLintIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  MarkdownlintIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  MonorepoTools.Default.pipe(Layer.provide(NodeContext.layer)),
-  MypyIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  OxlintIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  PrettierIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  PyrightIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  RuffIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  StylelintIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  TypeScriptIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  CargoIgnore.Default.pipe(Layer.provide(NodeContext.layer)),
-  ZigIgnore.Default.pipe(Layer.provide(NodeContext.layer))
+  BiomeIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  CspellIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  EslintIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  GolangciLintIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  MarkdownlintIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  MonorepoToolsLive.pipe(Layer.provide(NodeServices.layer)),
+  MypyIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  OxlintIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  PrettierIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  PyrightIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  RuffIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  StylelintIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  TypeScriptIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  CargoIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  ElixirIgnoreLive.pipe(Layer.provide(NodeServices.layer)),
+  ZigIgnoreLive.pipe(Layer.provide(NodeServices.layer))
 )
-const ToolIgnoresLive = ToolIgnores.Default.pipe(Layer.provide(ToolIgnoreProvidersLive))
-const EditorToolsLive = Layer.mergeAll(IntellijSettingsLive, VscodeSettingsLive, ZedSettingsLive)
-const EditorSettingsLive = EditorSettings.Default.pipe(Layer.provide(EditorToolsLive))
-const ProjectFilesLive = ProjectFiles.Default.pipe(
-  Layer.provide(
-    Layer.mergeAll(PlatformLive, GitLive, EditorSettingsLive, ToolIgnoresLive, VendorNotesLive)
-  )
+const ToolIgnoresLive = ToolIgnoresLayerLive.pipe(Layer.provide(ToolIgnoreProvidersLive))
+const EditorToolsLive = Layer.mergeAll(IntellijLive, VscodeLive, ZedLive)
+const EditorsLive = EditorSettingsLive.pipe(Layer.provide(EditorToolsLive))
+const FilesLive = ProjectFilesLive.pipe(
+  Layer.provide(Layer.mergeAll(PlatformLive, GitLayerLive, EditorsLive, ToolIgnoresLive, NotesLive))
 )
-const ProjectSurfacesLive = ProjectSurfaces.Default.pipe(Layer.provide(PlatformLive))
-const RepositoryHostsLive = RepositoryHosts.Default.pipe(
-  Layer.provide(Layer.mergeAll(GitHubCliLive, GitLabCliLive))
+const SurfacesLive = ProjectSurfacesLive.pipe(Layer.provide(PlatformLive))
+const HostsLive = RepositoryHostsLive.pipe(Layer.provide(Layer.mergeAll(GhLive, GlabLive)))
+const PkgSyncLive = PackageVersionSyncLive.pipe(
+  Layer.provide(Layer.mergeAll(PlatformLive, GitLayerLive))
 )
-const PackageVersionSyncLive = PackageVersionSync.Default.pipe(
-  Layer.provide(Layer.mergeAll(PlatformLive, GitLive))
-)
-const PromptsLive = Prompts.Default
+const PrmptsLive = PromptsLive
 
 export const LiveLayer = Layer.mergeAll(
   PlatformLive,
-  RepositoryAliasesLive,
-  CloudflareArtifactsLive,
-  GitLive,
-  GitMetadataLive,
-  JujutsuLive,
-  EditorSettingsLive,
-  ProjectFilesLive,
-  ProjectSurfacesLive,
+  AliasesLive,
+  ArtifactsLive,
+  GitLayerLive,
+  MetadataLive,
+  JjLive,
+  EditorsLive,
+  FilesLive,
+  SurfacesLive,
   ToolIgnoresLive,
-  RepositoryHostsLive,
-  VendorNotesLive,
-  PackageVersionSyncLive,
-  PromptsLive
+  HostsLive,
+  NotesLive,
+  PkgSyncLive,
+  PrmptsLive
 )

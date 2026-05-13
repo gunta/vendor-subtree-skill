@@ -33,7 +33,7 @@ export const VendorFilterSchema = Schema.Struct({
   exclude: Schema.Array(Schema.String),
   excludeDirs: Schema.Array(Schema.String),
   excludeExtensions: Schema.Array(Schema.String),
-  maxFileSizeBytes: Schema.Union(Schema.Number, Schema.Null)
+  maxFileSizeBytes: Schema.NullOr(Schema.Number)
 })
 
 export const EMPTY_VENDOR_FILTER: VendorFilter = {

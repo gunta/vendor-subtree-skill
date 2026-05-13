@@ -1,6 +1,6 @@
 import * as nodeFs from "node:fs"
 
-import { Effect } from "effect"
+import { Context, Effect, Layer } from "effect"
 import * as git from "isomorphic-git"
 
 import type { VendoredRepo } from "../domain/vendor-state.ts"
@@ -55,7 +55,7 @@ const readNote = ({ cwd, oid }: Omit<WriteVendorNoteParams, "note">) =>
 
 const write = ({ cwd, note, oid }: WriteVendorNoteParams) =>
   readNote({ cwd, oid }).pipe(
-    Effect.catchAll(() => Effect.succeed("")),
+    Effect.catch(() => Effect.succeed("")),
     Effect.flatMap((current) =>
       current === note
         ? Effect.void
@@ -83,17 +83,23 @@ const sync = ({ cwd, repos }: SyncVendorNotesParams) =>
     repos,
     (repo) =>
       write({ cwd, oid: repo.sha, note: vendorNotePayload(repo) }).pipe(
-        Effect.catchAll((error) =>
+        Effect.catch((error) =>
           Effect.logDebug(`Could not write vendor git note: ${String(error)}`)
         )
       ),
     { discard: true }
   )
 
-export class VendorNotes extends Effect.Service<VendorNotes>()("ingraft/VendorNotes", {
-  accessors: true,
-  sync: () => ({
-    sync,
-    write
-  })
-}) {}
+export interface VendorNotesShape {
+  readonly sync: (params: SyncVendorNotesParams) => Effect.Effect<void, unknown>
+  readonly write: (params: WriteVendorNoteParams) => Effect.Effect<void, unknown>
+}
+
+export class VendorNotes extends Context.Service<VendorNotes, VendorNotesShape>()(
+  "ingraft/VendorNotes"
+) {}
+
+export const VendorNotesLive = Layer.sync(VendorNotes, () => ({
+  sync,
+  write
+}))

@@ -1,4 +1,4 @@
-import { Effect } from "effect"
+import { Context, Effect, Layer } from "effect"
 
 import {
   doctorToolCategories,
@@ -8,6 +8,7 @@ import {
 import { PrettierIgnore } from "./formatters/index.ts"
 import {
   CargoIgnore,
+  ElixirIgnore,
   MypyIgnore,
   PyrightIgnore,
   TypeScriptIgnore,
@@ -29,9 +30,22 @@ export interface RefreshToolIgnoresParams {
   readonly cwd: string
 }
 
-export class ToolIgnores extends Effect.Service<ToolIgnores>()("ingraft/ToolIgnores", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export interface ToolIgnoresShape {
+  readonly doctor: (
+    params: RefreshToolIgnoresParams
+  ) => Effect.Effect<ReadonlyArray<import("./common.ts").ToolIgnoreReport>, unknown>
+  readonly refresh: (
+    params: RefreshToolIgnoresParams
+  ) => Effect.Effect<ReadonlyArray<string>, unknown>
+}
+
+export class ToolIgnores extends Context.Service<ToolIgnores, ToolIgnoresShape>()(
+  "ingraft/ToolIgnores"
+) {}
+
+export const ToolIgnoresLive = Layer.effect(
+  ToolIgnores,
+  Effect.gen(function* () {
     const biome = yield* BiomeIgnore
     const cspell = yield* CspellIgnore
     const eslint = yield* EslintIgnore
@@ -46,6 +60,7 @@ export class ToolIgnores extends Effect.Service<ToolIgnores>()("ingraft/ToolIgno
     const stylelint = yield* StylelintIgnore
     const typescript = yield* TypeScriptIgnore
     const cargo = yield* CargoIgnore
+    const elixir = yield* ElixirIgnore
     const zig = yield* ZigIgnore
     const toolCategories = [
       {
@@ -58,7 +73,7 @@ export class ToolIgnores extends Effect.Service<ToolIgnores>()("ingraft/ToolIgno
       },
       {
         name: "language-analyzers",
-        tools: [mypy, pyright, typescript, cargo, zig]
+        tools: [mypy, pyright, typescript, cargo, elixir, zig]
       }
     ] as const satisfies ReadonlyArray<ToolIgnoreCategory>
 
@@ -75,4 +90,4 @@ export class ToolIgnores extends Effect.Service<ToolIgnores>()("ingraft/ToolIgno
         }).pipe(Effect.map(([toolPaths, monorepoPaths]) => [...toolPaths, ...monorepoPaths]))
     }
   })
-}) {}
+)

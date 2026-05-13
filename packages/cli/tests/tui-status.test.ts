@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 
-import { summarizeSnapshot, taskRows } from "../src/tui/status.ts"
+import { repoRows, summarizeSnapshot, taskRows } from "../src/tui/status.ts"
 
 describe("ingraft tui status", () => {
   test("summarizes dependency and vendoring task state", () => {
@@ -10,6 +10,7 @@ describe("ingraft tui status", () => {
           { packageName: "effect", status: "matched" },
           { packageName: "left-pad", status: "missing-repository" }
         ],
+        repos: [],
         tasks: [
           {
             action: "add",
@@ -39,6 +40,7 @@ describe("ingraft tui status", () => {
     expect(
       taskRows({
         candidates: [],
+        repos: [],
         tasks: [
           {
             action: "update",
@@ -56,5 +58,32 @@ describe("ingraft tui status", () => {
         ]
       })
     ).toEqual(["UPDATE effect, @effect/platform -> effect [remote-drift]"])
+  })
+
+  test("renders vendored repo rows with local vendor and remote versions", () => {
+    expect(
+      repoRows({
+        candidates: [],
+        repos: [
+          {
+            name: "effect",
+            packageNames: ["effect"],
+            path: "vendor/effect",
+            ref: "main",
+            source: "https://github.com/Effect-TS/effect.git",
+            strategy: "subtree",
+            versions: {
+              local: "effect@3.21.2 (bun-lock)",
+              remote: "effect@3.21.3 (npm latest)",
+              status: "remote-drift",
+              vendor: "effect@3.21.2 (vendored source)"
+            }
+          }
+        ],
+        tasks: []
+      })
+    ).toEqual([
+      "effect                       subtree      effect                       effect@3.21.2 (bun-lock)         effect@3.21.2 (vendored source)  effect@3.21.3 (npm latest)       remote-drift"
+    ])
   })
 })

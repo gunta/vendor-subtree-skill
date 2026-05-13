@@ -34,17 +34,17 @@ CLI public behavior is unchanged: same flags, same exit codes, same output. This
 
 ## Current state (v4 migration status)
 
-| v3 idiom | Files remaining |
-| --- | --- |
-| `Effect.Service` | 0 |
-| `@effect/cli` imports | 0 |
-| `@effect/platform"` (core, non-`-node`) | 0 |
-| `@effect/schema` | 0 |
-| `Context.Tag` / `Context.GenericTag` | 0 |
-| `Either` (renamed to `Result`) | 0 |
-| `Scope.extend` | 0 |
-| `FiberRef` (renamed to `Context.Reference`) | 0 |
-| `Effect.catchAll` → `Effect.catch` | **9 files, 22 sites** |
+| v3 idiom                                            | Files remaining                                                                                                             |
+| --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `Effect.Service`                                    | 0                                                                                                                           |
+| `@effect/cli` imports                               | 0                                                                                                                           |
+| `@effect/platform"` (core, non-`-node`)             | 0                                                                                                                           |
+| `@effect/schema`                                    | 0                                                                                                                           |
+| `Context.Tag` / `Context.GenericTag`                | 0                                                                                                                           |
+| `Either` (renamed to `Result`)                      | 0                                                                                                                           |
+| `Scope.extend`                                      | 0                                                                                                                           |
+| `FiberRef` (renamed to `Context.Reference`)         | 0                                                                                                                           |
+| `Effect.catchAll` → `Effect.catch`                  | **9 files, 22 sites**                                                                                                       |
 | `Effect.promise` (prefer typed `Effect.tryPromise`) | 10 sites (9 Ink renderer wrappers + 1 prompt input read; `commands/tui.ts:7` is the TUI launcher and disappears in Phase 5) |
 
 Files still using `Effect.catchAll`:
@@ -61,16 +61,16 @@ Files still using `Effect.catchAll`:
 
 ## Signature conventions
 
-| Original shape | New shape | Notes |
-| --- | --- | --- |
-| `(args) => X` pure deterministic | `(args) => Effect.Effect<X>` via `Effect.sync` | Adds `yield*` at call sites. |
-| `(args) => Option<X>` from a parser | `(args) => Effect.Effect<X, ParseError>` | Surfaces previously-swallowed parse failures. Tagged error replaces `Option.none`. |
-| `(args) => boolean` swallowing parse errors | `(args) => Effect.Effect<boolean, ParseError>` | Callers that want the swallow can `Effect.orElseSucceed(() => false)`. |
-| `async (args) => Promise<X>` | `(args) => Effect.Effect<X, TaggedError, R>` via `Effect.tryPromise` or platform service | No bare `Effect.promise` for fallible work. |
-| Mutable `let state` in long-lived flow | `SubscriptionRef<State>` | Required for `Stream`-driven updates. |
-| Imperative event listeners | `Stream<Event>` via `Stream.async` | Composable, cancellation-aware. |
-| Acquired resources | `Effect.acquireRelease` inside `Scope` | Guaranteed cleanup via `Layer.scoped`. |
-| Named service methods | `Effect.fn("ServiceName.method")(...)` | Better v4 stack traces. |
+| Original shape                              | New shape                                                                                | Notes                                                                              |
+| ------------------------------------------- | ---------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| `(args) => X` pure deterministic            | `(args) => Effect.Effect<X>` via `Effect.sync`                                           | Adds `yield*` at call sites.                                                       |
+| `(args) => Option<X>` from a parser         | `(args) => Effect.Effect<X, ParseError>`                                                 | Surfaces previously-swallowed parse failures. Tagged error replaces `Option.none`. |
+| `(args) => boolean` swallowing parse errors | `(args) => Effect.Effect<boolean, ParseError>`                                           | Callers that want the swallow can `Effect.orElseSucceed(() => false)`.             |
+| `async (args) => Promise<X>`                | `(args) => Effect.Effect<X, TaggedError, R>` via `Effect.tryPromise` or platform service | No bare `Effect.promise` for fallible work.                                        |
+| Mutable `let state` in long-lived flow      | `SubscriptionRef<State>`                                                                 | Required for `Stream`-driven updates.                                              |
+| Imperative event listeners                  | `Stream<Event>` via `Stream.async`                                                       | Composable, cancellation-aware.                                                    |
+| Acquired resources                          | `Effect.acquireRelease` inside `Scope`                                                   | Guaranteed cleanup via `Layer.scoped`.                                             |
+| Named service methods                       | `Effect.fn("ServiceName.method")(...)`                                                   | Better v4 stack traces.                                                            |
 
 ## Non-negotiable invariants
 
@@ -116,7 +116,9 @@ export class TuiRendererFailed extends Data.TaggedError("TuiRendererFailed")<{
   readonly cause: unknown
 }> {}
 
-export class BunRuntimeMissing extends Data.TaggedError("BunRuntimeMissing")<Record<string, never>> {}
+export class BunRuntimeMissing extends Data.TaggedError("BunRuntimeMissing")<
+  Record<string, never>
+> {}
 
 export class ToolIgnoreCheckFailed extends Data.TaggedError("ToolIgnoreCheckFailed")<{
   readonly tool: string
@@ -139,35 +141,42 @@ export interface TuiRendererShape {
   readonly requestExit: (code: number) => Effect.Effect<void>
 }
 
-export class TuiRenderer extends Context.Service<TuiRenderer, TuiRendererShape>()("ingraft/TuiRenderer") {}
+export class TuiRenderer extends Context.Service<TuiRenderer, TuiRendererShape>()(
+  "ingraft/TuiRenderer"
+) {}
 
 export const TuiRendererLive = Layer.scoped(
   TuiRenderer,
   Effect.gen(function* () {
     const renderer = yield* Effect.acquireRelease(
       Effect.tryPromise({
-        try: () => createCliRenderer({
-          backgroundColor: colors.background,
-          clearOnShutdown: true,
-          enableMouseMovement: true,
-          exitOnCtrlC: true,
-          screenMode: "alternate-screen",
-          targetFps: 30,
-          useMouse: true
-        }),
+        try: () =>
+          createCliRenderer({
+            backgroundColor: colors.background,
+            clearOnShutdown: true,
+            enableMouseMovement: true,
+            exitOnCtrlC: true,
+            screenMode: "alternate-screen",
+            targetFps: 30,
+            useMouse: true
+          }),
         catch: (cause) => new TuiRendererFailed({ phase: "acquire", cause })
       }),
       (r) => Effect.sync(() => r.destroy?.())
     )
     return TuiRenderer.of({
       render: Effect.fn("TuiRenderer.render")((node) =>
-        Effect.sync(() => { /* mount/replace node and requestRender */ })
+        Effect.sync(() => {
+          /* mount/replace node and requestRender */
+        })
       ),
       terminalSize: Effect.sync(() => ({
         width: renderer.terminalWidth,
         height: renderer.terminalHeight
       })),
-      keyEvents: Stream.async<KeyEvent>((emit) => { /* attach handler; cleanup */ }),
+      keyEvents: Stream.async<KeyEvent>((emit) => {
+        /* attach handler; cleanup */
+      }),
       resizeEvents: Stream.async<{ width: number; height: number }>(/* … */),
       requestExit: (code) => Effect.sync(() => renderer.requestExit?.(code))
     })
@@ -303,15 +312,15 @@ Add to CI (custom grep step in `bun run check` or oxlint plugin if available). F
 
 ## Risks
 
-| Risk | Likelihood | Mitigation |
-| --- | --- | --- |
-| TUI Ctrl+C / signal handling regresses. `Scope`-managed renderer must release cleanly on SIGINT. | Medium | `NodeRuntime.runMain` handles SIGINT/SIGTERM → fiber interrupt → scope finalizers. Add explicit `Effect.addFinalizer` calling `renderer.destroy()`. Manual verify: `bun run tui`, Ctrl+C, clean terminal. |
-| Parser behavior change: bad TOML now fails-fast instead of silently returning `false`. | Medium | Audit every call site as part of Phase 3. Sites that want the swallow get explicit `Effect.orElseSucceed(() => false)`. Tests assert the swallow behavior at chosen sites. |
-| Call-site churn cascade from wrapping pure helpers. | Medium | Verified pre-Phase-2 that all consumers of `script.ts` and `config/*` are in `Effect.gen`. Any non-Effect consumer becomes part of Phase 4. |
-| `Data.TaggedEnum` migration of `SettingsMergeResult`/`ParsedSettings`/`DashboardAction`. | Low | Constructors are mechanically substitutable. Tests verify shape. |
-| Anti-idiomatic verbosity at call sites for wrapped pure helpers. | High (by design) | Acknowledged tradeoff for chosen approach. Lint guards keep it consistent. |
-| `Effect.fn` adoption introduces span overhead. | Low | CLI is not latency-sensitive. Use `Effect.fnUntraced` for any inner hot loop if measured. |
-| Schema decoding errors are now surfaced where they were swallowed. | Low | `SchemaDecodeFailed` is registered in `Effect.catchTags`; user sees a clear error rather than silent fallback. |
+| Risk                                                                                             | Likelihood       | Mitigation                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------------------------ | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| TUI Ctrl+C / signal handling regresses. `Scope`-managed renderer must release cleanly on SIGINT. | Medium           | `NodeRuntime.runMain` handles SIGINT/SIGTERM → fiber interrupt → scope finalizers. Add explicit `Effect.addFinalizer` calling `renderer.destroy()`. Manual verify: `bun run tui`, Ctrl+C, clean terminal. |
+| Parser behavior change: bad TOML now fails-fast instead of silently returning `false`.           | Medium           | Audit every call site as part of Phase 3. Sites that want the swallow get explicit `Effect.orElseSucceed(() => false)`. Tests assert the swallow behavior at chosen sites.                                |
+| Call-site churn cascade from wrapping pure helpers.                                              | Medium           | Verified pre-Phase-2 that all consumers of `script.ts` and `config/*` are in `Effect.gen`. Any non-Effect consumer becomes part of Phase 4.                                                               |
+| `Data.TaggedEnum` migration of `SettingsMergeResult`/`ParsedSettings`/`DashboardAction`.         | Low              | Constructors are mechanically substitutable. Tests verify shape.                                                                                                                                          |
+| Anti-idiomatic verbosity at call sites for wrapped pure helpers.                                 | High (by design) | Acknowledged tradeoff for chosen approach. Lint guards keep it consistent.                                                                                                                                |
+| `Effect.fn` adoption introduces span overhead.                                                   | Low              | CLI is not latency-sensitive. Use `Effect.fnUntraced` for any inner hot loop if measured.                                                                                                                 |
+| Schema decoding errors are now surfaced where they were swallowed.                               | Low              | `SchemaDecodeFailed` is registered in `Effect.catchTags`; user sees a clear error rather than silent fallback.                                                                                            |
 
 ## Rollback
 
@@ -320,6 +329,7 @@ Each phase is its own PR. Phases 0–4 are independent — any can be reverted w
 ## File inventory
 
 **In scope (~40–50 files across 5 phases):**
+
 - Phase 0: 9 files (`Effect.catchAll` sites) + 1 lint config.
 - Phase 1: `domain/errors.ts`, `cli.tsx`, `app/runtime.ts`, `app/log.tsx`, `commands/{deps,doctor,add,list}.tsx`, `services/prompts.tsx`. (10 files; covers new errors, `Config`-based color, 9 Ink-render conversions, 1 prompt-input conversion.)
 - Phase 2: `project/script.ts` + ~5 call-site files.
@@ -328,6 +338,7 @@ Each phase is its own PR. Phases 0–4 are independent — any can be reverted w
 - Phase 5: `tui/*.ts` (8 files) + `app/layers.ts` (TuiLayer export) + 2 updated tests + 1 new test.
 
 **Out of scope (not touched):**
+
 - `app/ink/*.tsx` (4 files): React presentational.
 - `tool-ignores/monorepo/**/*.ts` (13 files): static data exports.
 - All `index.ts` re-export barrels.

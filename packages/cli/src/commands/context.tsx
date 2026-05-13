@@ -1,5 +1,5 @@
-import { Args, Command as Cli, Options } from "@effect/cli"
 import { Console, Effect } from "effect"
+import { Argument, Command, Flag } from "effect/unstable/cli"
 
 import {
   contextPackPlan,
@@ -24,21 +24,23 @@ export interface ContextSourceCommandParams {
   readonly target: string
 }
 
-const contextJsonOption = Options.boolean("json").pipe(
-  Options.withDescription("Output machine-readable JSON to stdout.")
+const contextJsonOption = Flag.boolean("json").pipe(
+  Flag.withDescription("Output machine-readable JSON to stdout.")
 )
 
-const contextCompressOption = Options.boolean("compress").pipe(
-  Options.withDescription("Ask Repomix to use Tree-sitter compression.")
+const contextCompressOption = Flag.boolean("compress").pipe(
+  Flag.withDescription("Ask Repomix to use Tree-sitter compression.")
 )
 
-const contextPackPathsArg = Args.text({ name: "path" }).pipe(
-  Args.withDescription("Path to pack. Defaults to vendor/."),
-  Args.repeated
+const contextPackPathsArg = Argument.string("path").pipe(
+  Argument.withDescription("Path to pack. Defaults to vendor/."),
+  Argument.variadic()
 )
 
-const contextSourceTargetArg = Args.text({ name: "target" }).pipe(
-  Args.withDescription("OpenSrc package or repository target, for example zod or pypi:requests.")
+const contextSourceTargetArg = Argument.string("target").pipe(
+  Argument.withDescription(
+    "OpenSrc package or repository target, for example zod or pypi:requests."
+  )
 )
 
 const statusLabel = (tool: ContextToolReport): string => (tool.detected ? tool.status : "available")
@@ -107,34 +109,36 @@ export const contextSourceImpl = ({ target }: ContextSourceCommandParams) =>
     yield* runContextCommandPlan({ cwd, plan })
   })
 
-const contextToolsCmd = Cli.make(
+const contextToolsCmd = Command.make(
   "tools",
   {
     json: contextJsonOption
   },
   contextToolsImpl
-).pipe(Cli.withDescription("Detect curated optional context tools in this repository."))
+).pipe(Command.withDescription("Detect curated optional context tools in this repository."))
 
-const contextPackCmd = Cli.make(
+const contextPackCmd = Command.make(
   "pack",
   {
     compress: contextCompressOption,
     paths: contextPackPathsArg
   },
   contextPackImpl
-).pipe(Cli.withDescription("Run Repomix against vendor/ or selected paths."))
+).pipe(Command.withDescription("Run Repomix against vendor/ or selected paths."))
 
-const contextSourceCmd = Cli.make(
+const contextSourceCmd = Command.make(
   "source",
   {
     target: contextSourceTargetArg
   },
   contextSourceImpl
-).pipe(Cli.withDescription("Run OpenSrc and print the cached source path for a package or repo."))
+).pipe(
+  Command.withDescription("Run OpenSrc and print the cached source path for a package or repo.")
+)
 
-export const contextCmd = Cli.make("context", {}, () => contextToolsImpl({ json: false })).pipe(
-  Cli.withDescription(
+export const contextCmd = Command.make("context", {}, () => contextToolsImpl({ json: false })).pipe(
+  Command.withDescription(
     "Detect or run curated optional context tools that complement vendored source."
   ),
-  Cli.withSubcommands([contextToolsCmd, contextPackCmd, contextSourceCmd])
+  Command.withSubcommands([contextToolsCmd, contextPackCmd, contextSourceCmd])
 )

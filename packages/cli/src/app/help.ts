@@ -13,23 +13,36 @@ interface SubcommandEntry {
 }
 
 const commands: readonly SubcommandEntry[] = [
-  { name: "add", args: "<repo>...", description: "Add vendored repositories, aliases, or npm packages." },
-  { name: "update", args: "[<name>]", description: "Pull upstream changes for one or all vendored repos." },
+  {
+    name: "add",
+    args: "<repo>...",
+    description: "Add vendored repositories, aliases, or npm packages."
+  },
+  {
+    name: "update",
+    args: "[<name>]",
+    description: "Pull upstream changes for one or all vendored repos."
+  },
   { name: "remove", args: "<name>", description: "Remove a vendored repository." },
   { name: "list", description: "List vendored repositories." },
   { name: "deps", description: "Scan package manifests and vendor matched dependency sources." },
-  { name: "init", description: "Bootstrap agent docs, gitignore, editor settings, and tool ignores." },
+  {
+    name: "init",
+    description: "Bootstrap agent docs, gitignore, editor settings, and tool ignores."
+  },
   { name: "refresh", description: "Re-generate project surfaces from current git state." },
   { name: "context", description: "Detect or run optional context tools (Repomix, OpenSrc)." },
   { name: "tui", description: "Open the interactive vendoring dashboard." },
-  { name: "doctor", description: "Inspect vendored repos and detected tool status." },
+  { name: "doctor", description: "Inspect vendored repos and detected tool status." }
 ]
 
 export function printRootHelp(): void {
   const lines: string[] = []
 
   lines.push("")
-  lines.push(`  ${bold("ingraft")} ${dim(`v${VERSION}`)} ${dim("— git reference manager for coding agents")}`)
+  lines.push(
+    `  ${bold("ingraft")} ${dim(`v${VERSION}`)} ${dim("— git reference manager for coding agents")}`
+  )
   lines.push("")
   lines.push(`  ${bold("USAGE")}`)
   lines.push("")
@@ -45,7 +58,9 @@ export function printRootHelp(): void {
   for (const cmd of commands) {
     const rawLabel = cmd.args ? `${cmd.name} ${cmd.args}` : cmd.name
     const padding = " ".repeat(maxName - rawLabel.length + 2)
-    lines.push(`    ${green(cmd.name)}${cmd.args ? ` ${dim(cmd.args)}` : ""}${padding}${dim(cmd.description)}`)
+    lines.push(
+      `    ${green(cmd.name)}${cmd.args ? ` ${dim(cmd.args)}` : ""}${padding}${dim(cmd.description)}`
+    )
   }
 
   lines.push("")
@@ -66,7 +81,7 @@ const noisePatterns = [
   /^\s*This setting is optional\.$/,
   /^\s*This argument (?:may|must) be repeated.*$/,
   /^\s*This option may be repeated.*$/,
-  /^\s*One of the following:.*$/,
+  /^\s*One of the following:.*$/
 ]
 
 export function cleanHelpOutput(text: string): string {

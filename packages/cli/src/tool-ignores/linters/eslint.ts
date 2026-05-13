@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Option } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path } from "effect"
 
 import {
   completeMerge,
@@ -16,7 +15,8 @@ import {
   mergeManagedIgnoreSection,
   packageHasDependency,
   report,
-  type ToolFileContext
+  type ToolFileContext,
+  type ToolIgnoreIntegration
 } from "../common.ts"
 
 const TOOL = "ESLint"
@@ -163,9 +163,13 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     })
   })
 
-export class EslintIgnore extends Effect.Service<EslintIgnore>()("ingraft/EslintIgnore", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export class EslintIgnore extends Context.Service<EslintIgnore, ToolIgnoreIntegration>()(
+  "ingraft/EslintIgnore"
+) {}
+
+export const EslintIgnoreLive = Layer.effect(
+  EslintIgnore,
+  Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
     const context = { fs, path }
@@ -174,4 +178,4 @@ export class EslintIgnore extends Effect.Service<EslintIgnore>()("ingraft/Eslint
       refresh: (cwd: string) => refreshWith(context, cwd)
     }
   })
-}) {}
+)

@@ -16,62 +16,62 @@
 
 ### Created
 
-| Path | Responsibility | Phase |
-| --- | --- | --- |
-| `packages/cli/scripts/check-v4-idioms.ts` | CI guard rejecting v3 API names, untyped error channels, raw `process.*` outside `runtime.ts`. Wired into `bun run check`. | 0 |
-| `packages/cli/src/tui/renderer.ts` | `TuiRenderer` `Context.Service` + `TuiRendererLive` `Layer.scoped` wrapping `@opentui/core`. | 5 |
-| `packages/cli/tests/tui-runtime.test.ts` | Integration test driving `runTuiApp` through a stubbed `TuiRenderer` layer. | 5 |
+| Path                                      | Responsibility                                                                                                             | Phase |
+| ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `packages/cli/scripts/check-v4-idioms.ts` | CI guard rejecting v3 API names, untyped error channels, raw `process.*` outside `runtime.ts`. Wired into `bun run check`. | 0     |
+| `packages/cli/src/tui/renderer.ts`        | `TuiRenderer` `Context.Service` + `TuiRendererLive` `Layer.scoped` wrapping `@opentui/core`.                               | 5     |
+| `packages/cli/tests/tui-runtime.test.ts`  | Integration test driving `runTuiApp` through a stubbed `TuiRenderer` layer.                                                | 5     |
 
 ### Modified
 
-| Path | Why | Phase |
-| --- | --- | --- |
-| `packages/cli/src/services/git.ts` | `Effect.catchAll → Effect.catch` (2 sites). `Effect.fn` for service methods. | 0, 4 |
-| `packages/cli/src/services/repository-hosts.ts` | `Effect.catchAll → Effect.catch` (1). | 0 |
-| `packages/cli/src/services/vendor-notes.ts` | `Effect.catchAll → Effect.catch` (2). | 0 |
-| `packages/cli/src/domain/vendor-state.ts` | `Effect.catchAll → Effect.catch` (1). | 0 |
-| `packages/cli/src/context-tools/service.ts` | `Effect.catchAll → Effect.catch` (1). | 0 |
-| `packages/cli/src/package-sync/service.ts` | `Effect.catchAll → Effect.catch` (10). `Effect.fn` for service methods. | 0, 4 |
-| `packages/cli/src/package-sync/version-detect.ts` | `Effect.catchAll → Effect.catch` (1). | 0 |
-| `packages/cli/src/project/languages.ts` | `Effect.catchAll → Effect.catch` (3). | 0 |
-| `packages/cli/src/tool-ignores/language-analyzers/typescript.ts` | `Effect.catchAll → Effect.catch` (1). | 0 |
-| `packages/cli/package.json` | Add `check:idioms` script wired into `check`. | 0 |
-| `packages/cli/src/domain/errors.ts` | New `Data.TaggedError` classes (`TomlParseFailed`, `YamlParseFailed`, `JsonParseFailed`, `JsoncParseFailed`, `JavaScriptParseFailed`, `TypeScriptParseFailed`, `SchemaDecodeFailed`, `InkRenderFailed`, `PromptInputFailed`, `TuiLaunchFailed`, `TuiRendererFailed`, `BunRuntimeMissing`, `ToolIgnoreCheckFailed`). Extend `VendorError`, `errorPresentation`, `exitCodeOf`. | 1 |
-| `packages/cli/src/cli.tsx` | Register new tagged errors in `Effect.catchTags`. Convert `Effect.promise(renderInkOnce(...))` to `Effect.tryPromise` → `InkRenderFailed`. | 1 |
-| `packages/cli/src/app/runtime.ts` | Restore `colors: boolean` field. Resolve via `Config.option(Config.string(...))` for `NO_COLOR`, `FORCE_COLOR`, `TERM`. | 1 |
-| `packages/cli/src/app/log.tsx` | `Effect.promise → Effect.tryPromise` (`InkRenderFailed`). | 1 |
-| `packages/cli/src/commands/deps.tsx` | `Effect.promise → Effect.tryPromise` (`InkRenderFailed`). | 1 |
-| `packages/cli/src/commands/doctor.tsx` | Same. | 1 |
-| `packages/cli/src/commands/add.tsx` | `Effect.promise → Effect.tryPromise` for `mountProgress` and `unmount` (`InkRenderFailed`). | 1 |
-| `packages/cli/src/commands/list.tsx` | Same. | 1 |
-| `packages/cli/src/services/prompts.tsx` | Two conversions: render → `InkRenderFailed`, async input read → `PromptInputFailed`. | 1 |
-| `packages/cli/src/project/script.ts` | Wrap `scriptRelTo`, `bunInvocation`, `commandInvocation` in `Effect.sync`. | 2 |
-| `packages/cli/tests/script.test.ts` | Use `Effect.runSync`. | 2 |
-| `packages/cli/src/commands/init.ts` | `yield* commandInvocation(...)`. | 2 |
-| `packages/cli/src/project/agent-docs.ts` | `yield* commandInvocation(...)`. | 2 |
-| (other `commandInvocation`/`bunInvocation` call sites discovered in Phase 2) | Same. | 2 |
-| `packages/cli/src/config/toml.ts` | `parseTomlText` + `parseTomlWith`. Predicates return Effect with `TomlParseFailed`. | 3 |
-| `packages/cli/src/config/yaml.ts` | Same shape with `YamlParseFailed`. | 3 |
-| `packages/cli/src/config/jsonc-settings.ts` | All functions return Effect. `SettingsMergeResult` and `ParsedSettings` migrated to `Data.TaggedEnum`. `switch` → `Match`. | 3 |
-| `packages/cli/src/config/javascript-source.ts` | `JavaScriptParseFailed`. | 3 |
-| `packages/cli/src/config/typescript-source.ts` | `TypeScriptParseFailed`. | 3 |
-| `packages/cli/src/config/package-json.ts` | Effect-returning exports. | 3 |
-| `packages/cli/tests/config-parsers.test.ts` | Adapt to Effect parsers + add failing-input tagged-error assertions. | 3 |
-| (consumers of `config/*`: `editors/*.ts`, `tool-ignores/*.ts`, `project/*.ts`) | `yield*` Effect parsers; `Effect.orElseSucceed(() => false)` where swallow semantics required. | 3 |
-| `packages/cli/src/tool-ignores/common.ts` | `ToolIgnoreIntegration` signatures: `unknown` → `ToolIgnoreCheckFailed`. | 4 |
-| `packages/cli/src/services/git.ts`, `services/project-files`, `services/project-surfaces`, `editors/service.ts`, `tool-ignores/service.ts`, `services/repository-hosts.ts`, `package-sync/service.ts` | Adopt `Effect.fn("ServiceName.method")` for major methods. | 4 |
-| `packages/cli/src/commands/tui.ts` | Replace `Effect.promise(() => launchTui())` with the new Effect-native `launchTui`. | 5 |
-| `packages/cli/src/tui/runner.ts` | Entry point: `NodeRuntime.runMain(runTuiApp.pipe(Effect.provide(TuiLayer)))`. | 5 |
-| `packages/cli/src/tui/launcher.ts` | All helpers return Effect. `spawnSync` → `ChildProcessSpawner`. `process.exitCode` → `RuntimeConfig.exit`. ENOENT → `BunRuntimeMissing`. | 5 |
-| `packages/cli/src/tui/app.ts` | `SubscriptionRef` state, `Stream`-driven render/keyboard/resize, `Effect.scoped`. | 5 |
-| `packages/cli/src/tui/cli-adapter.ts` | Effect-returning functions. | 5 |
-| `packages/cli/src/tui/dashboard.ts` | Pure functions wrapped in `Effect.sync`. `DashboardAction` → `Data.TaggedEnum`. `switch` → `Match`. | 5 |
-| `packages/cli/src/tui/keyboard.ts` | Effect-returning handler. | 5 |
-| `packages/cli/src/tui/render.ts` | Renderer wrapped in `Effect.sync`. | 5 |
-| `packages/cli/src/tui/status.ts` | Pure formatters wrapped in `Effect.sync`. | 5 |
-| `packages/cli/src/app/layers.ts` | Export `TuiLayer = Layer.mergeAll(TuiRendererLive, LiveLayer)`. | 5 |
-| `packages/cli/tests/tui-launcher.test.ts` | `Effect.runSync(tuiLaunchPlan(...))`. Stub `ChildProcessSpawner` layer. | 5 |
-| `packages/cli/tests/tui-status.test.ts` | `Effect.runSync` adaptation. | 5 |
+| Path                                                                                                                                                                                                  | Why                                                                                                                                                                                                                                                                                                                                                                          | Phase |
+| ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `packages/cli/src/services/git.ts`                                                                                                                                                                    | `Effect.catchAll → Effect.catch` (2 sites). `Effect.fn` for service methods.                                                                                                                                                                                                                                                                                                 | 0, 4  |
+| `packages/cli/src/services/repository-hosts.ts`                                                                                                                                                       | `Effect.catchAll → Effect.catch` (1).                                                                                                                                                                                                                                                                                                                                        | 0     |
+| `packages/cli/src/services/vendor-notes.ts`                                                                                                                                                           | `Effect.catchAll → Effect.catch` (2).                                                                                                                                                                                                                                                                                                                                        | 0     |
+| `packages/cli/src/domain/vendor-state.ts`                                                                                                                                                             | `Effect.catchAll → Effect.catch` (1).                                                                                                                                                                                                                                                                                                                                        | 0     |
+| `packages/cli/src/context-tools/service.ts`                                                                                                                                                           | `Effect.catchAll → Effect.catch` (1).                                                                                                                                                                                                                                                                                                                                        | 0     |
+| `packages/cli/src/package-sync/service.ts`                                                                                                                                                            | `Effect.catchAll → Effect.catch` (10). `Effect.fn` for service methods.                                                                                                                                                                                                                                                                                                      | 0, 4  |
+| `packages/cli/src/package-sync/version-detect.ts`                                                                                                                                                     | `Effect.catchAll → Effect.catch` (1).                                                                                                                                                                                                                                                                                                                                        | 0     |
+| `packages/cli/src/project/languages.ts`                                                                                                                                                               | `Effect.catchAll → Effect.catch` (3).                                                                                                                                                                                                                                                                                                                                        | 0     |
+| `packages/cli/src/tool-ignores/language-analyzers/typescript.ts`                                                                                                                                      | `Effect.catchAll → Effect.catch` (1).                                                                                                                                                                                                                                                                                                                                        | 0     |
+| `packages/cli/package.json`                                                                                                                                                                           | Add `check:idioms` script wired into `check`.                                                                                                                                                                                                                                                                                                                                | 0     |
+| `packages/cli/src/domain/errors.ts`                                                                                                                                                                   | New `Data.TaggedError` classes (`TomlParseFailed`, `YamlParseFailed`, `JsonParseFailed`, `JsoncParseFailed`, `JavaScriptParseFailed`, `TypeScriptParseFailed`, `SchemaDecodeFailed`, `InkRenderFailed`, `PromptInputFailed`, `TuiLaunchFailed`, `TuiRendererFailed`, `BunRuntimeMissing`, `ToolIgnoreCheckFailed`). Extend `VendorError`, `errorPresentation`, `exitCodeOf`. | 1     |
+| `packages/cli/src/cli.tsx`                                                                                                                                                                            | Register new tagged errors in `Effect.catchTags`. Convert `Effect.promise(renderInkOnce(...))` to `Effect.tryPromise` → `InkRenderFailed`.                                                                                                                                                                                                                                   | 1     |
+| `packages/cli/src/app/runtime.ts`                                                                                                                                                                     | Restore `colors: boolean` field. Resolve via `Config.option(Config.string(...))` for `NO_COLOR`, `FORCE_COLOR`, `TERM`.                                                                                                                                                                                                                                                      | 1     |
+| `packages/cli/src/app/log.tsx`                                                                                                                                                                        | `Effect.promise → Effect.tryPromise` (`InkRenderFailed`).                                                                                                                                                                                                                                                                                                                    | 1     |
+| `packages/cli/src/commands/deps.tsx`                                                                                                                                                                  | `Effect.promise → Effect.tryPromise` (`InkRenderFailed`).                                                                                                                                                                                                                                                                                                                    | 1     |
+| `packages/cli/src/commands/doctor.tsx`                                                                                                                                                                | Same.                                                                                                                                                                                                                                                                                                                                                                        | 1     |
+| `packages/cli/src/commands/add.tsx`                                                                                                                                                                   | `Effect.promise → Effect.tryPromise` for `mountProgress` and `unmount` (`InkRenderFailed`).                                                                                                                                                                                                                                                                                  | 1     |
+| `packages/cli/src/commands/list.tsx`                                                                                                                                                                  | Same.                                                                                                                                                                                                                                                                                                                                                                        | 1     |
+| `packages/cli/src/services/prompts.tsx`                                                                                                                                                               | Two conversions: render → `InkRenderFailed`, async input read → `PromptInputFailed`.                                                                                                                                                                                                                                                                                         | 1     |
+| `packages/cli/src/project/script.ts`                                                                                                                                                                  | Wrap `scriptRelTo`, `bunInvocation`, `commandInvocation` in `Effect.sync`.                                                                                                                                                                                                                                                                                                   | 2     |
+| `packages/cli/tests/script.test.ts`                                                                                                                                                                   | Use `Effect.runSync`.                                                                                                                                                                                                                                                                                                                                                        | 2     |
+| `packages/cli/src/commands/init.ts`                                                                                                                                                                   | `yield* commandInvocation(...)`.                                                                                                                                                                                                                                                                                                                                             | 2     |
+| `packages/cli/src/project/agent-docs.ts`                                                                                                                                                              | `yield* commandInvocation(...)`.                                                                                                                                                                                                                                                                                                                                             | 2     |
+| (other `commandInvocation`/`bunInvocation` call sites discovered in Phase 2)                                                                                                                          | Same.                                                                                                                                                                                                                                                                                                                                                                        | 2     |
+| `packages/cli/src/config/toml.ts`                                                                                                                                                                     | `parseTomlText` + `parseTomlWith`. Predicates return Effect with `TomlParseFailed`.                                                                                                                                                                                                                                                                                          | 3     |
+| `packages/cli/src/config/yaml.ts`                                                                                                                                                                     | Same shape with `YamlParseFailed`.                                                                                                                                                                                                                                                                                                                                           | 3     |
+| `packages/cli/src/config/jsonc-settings.ts`                                                                                                                                                           | All functions return Effect. `SettingsMergeResult` and `ParsedSettings` migrated to `Data.TaggedEnum`. `switch` → `Match`.                                                                                                                                                                                                                                                   | 3     |
+| `packages/cli/src/config/javascript-source.ts`                                                                                                                                                        | `JavaScriptParseFailed`.                                                                                                                                                                                                                                                                                                                                                     | 3     |
+| `packages/cli/src/config/typescript-source.ts`                                                                                                                                                        | `TypeScriptParseFailed`.                                                                                                                                                                                                                                                                                                                                                     | 3     |
+| `packages/cli/src/config/package-json.ts`                                                                                                                                                             | Effect-returning exports.                                                                                                                                                                                                                                                                                                                                                    | 3     |
+| `packages/cli/tests/config-parsers.test.ts`                                                                                                                                                           | Adapt to Effect parsers + add failing-input tagged-error assertions.                                                                                                                                                                                                                                                                                                         | 3     |
+| (consumers of `config/*`: `editors/*.ts`, `tool-ignores/*.ts`, `project/*.ts`)                                                                                                                        | `yield*` Effect parsers; `Effect.orElseSucceed(() => false)` where swallow semantics required.                                                                                                                                                                                                                                                                               | 3     |
+| `packages/cli/src/tool-ignores/common.ts`                                                                                                                                                             | `ToolIgnoreIntegration` signatures: `unknown` → `ToolIgnoreCheckFailed`.                                                                                                                                                                                                                                                                                                     | 4     |
+| `packages/cli/src/services/git.ts`, `services/project-files`, `services/project-surfaces`, `editors/service.ts`, `tool-ignores/service.ts`, `services/repository-hosts.ts`, `package-sync/service.ts` | Adopt `Effect.fn("ServiceName.method")` for major methods.                                                                                                                                                                                                                                                                                                                   | 4     |
+| `packages/cli/src/commands/tui.ts`                                                                                                                                                                    | Replace `Effect.promise(() => launchTui())` with the new Effect-native `launchTui`.                                                                                                                                                                                                                                                                                          | 5     |
+| `packages/cli/src/tui/runner.ts`                                                                                                                                                                      | Entry point: `NodeRuntime.runMain(runTuiApp.pipe(Effect.provide(TuiLayer)))`.                                                                                                                                                                                                                                                                                                | 5     |
+| `packages/cli/src/tui/launcher.ts`                                                                                                                                                                    | All helpers return Effect. `spawnSync` → `ChildProcessSpawner`. `process.exitCode` → `RuntimeConfig.exit`. ENOENT → `BunRuntimeMissing`.                                                                                                                                                                                                                                     | 5     |
+| `packages/cli/src/tui/app.ts`                                                                                                                                                                         | `SubscriptionRef` state, `Stream`-driven render/keyboard/resize, `Effect.scoped`.                                                                                                                                                                                                                                                                                            | 5     |
+| `packages/cli/src/tui/cli-adapter.ts`                                                                                                                                                                 | Effect-returning functions.                                                                                                                                                                                                                                                                                                                                                  | 5     |
+| `packages/cli/src/tui/dashboard.ts`                                                                                                                                                                   | Pure functions wrapped in `Effect.sync`. `DashboardAction` → `Data.TaggedEnum`. `switch` → `Match`.                                                                                                                                                                                                                                                                          | 5     |
+| `packages/cli/src/tui/keyboard.ts`                                                                                                                                                                    | Effect-returning handler.                                                                                                                                                                                                                                                                                                                                                    | 5     |
+| `packages/cli/src/tui/render.ts`                                                                                                                                                                      | Renderer wrapped in `Effect.sync`.                                                                                                                                                                                                                                                                                                                                           | 5     |
+| `packages/cli/src/tui/status.ts`                                                                                                                                                                      | Pure formatters wrapped in `Effect.sync`.                                                                                                                                                                                                                                                                                                                                    | 5     |
+| `packages/cli/src/app/layers.ts`                                                                                                                                                                      | Export `TuiLayer = Layer.mergeAll(TuiRendererLive, LiveLayer)`.                                                                                                                                                                                                                                                                                                              | 5     |
+| `packages/cli/tests/tui-launcher.test.ts`                                                                                                                                                             | `Effect.runSync(tuiLaunchPlan(...))`. Stub `ChildProcessSpawner` layer.                                                                                                                                                                                                                                                                                                      | 5     |
+| `packages/cli/tests/tui-status.test.ts`                                                                                                                                                               | `Effect.runSync` adaptation.                                                                                                                                                                                                                                                                                                                                                 | 5     |
 
 ---
 
@@ -82,6 +82,7 @@
 ### Task 0.1: Add v4-idiom CI guard
 
 **Files:**
+
 - Create: `packages/cli/scripts/check-v4-idioms.ts`
 - Modify: `packages/cli/package.json`
 
@@ -105,7 +106,10 @@ const ALLOW_INK_OR_TEST = (p: string) =>
   p.includes(`src${sep}app${sep}ink${sep}`) || p.includes(`tests${sep}`)
 
 const rules: ReadonlyArray<Rule> = [
-  { name: "Effect.promise (use Effect.tryPromise with a tagged error)", pattern: /\bEffect\.promise\s*\(/ },
+  {
+    name: "Effect.promise (use Effect.tryPromise with a tagged error)",
+    pattern: /\bEffect\.promise\s*\(/
+  },
   { name: "Effect.catchAll (v4: Effect.catch)", pattern: /\bEffect\.catchAll\b/ },
   { name: "Effect.catchAllCause (v4: Effect.catchCause)", pattern: /\bEffect\.catchAllCause\b/ },
   { name: "Effect.catchAllDefect (v4: Effect.catchDefect)", pattern: /\bEffect\.catchAllDefect\b/ },
@@ -116,7 +120,10 @@ const rules: ReadonlyArray<Rule> = [
   { name: "Scope.extend (v4: Scope.provide)", pattern: /\bScope\.extend\b/ },
   { name: "FiberRef (v4: Context.Reference)", pattern: /\bFiberRef\.\b/ },
   { name: "Either (v4: Result)", pattern: /\bEither\b/ },
-  { name: "Untyped error channel Effect.Effect<X, unknown>", pattern: /Effect\.Effect<[^>]*,\s*unknown[\s,>]/ },
+  {
+    name: "Untyped error channel Effect.Effect<X, unknown>",
+    pattern: /Effect\.Effect<[^>]*,\s*unknown[\s,>]/
+  },
   { name: "@effect/cli import (v4: effect/unstable/cli)", pattern: /from\s+["']@effect\/cli["']/ },
   { name: "@effect/platform import (v4: effect)", pattern: /from\s+["']@effect\/platform["']/ },
   { name: "@effect/schema import (v4: effect Schema)", pattern: /from\s+["']@effect\/schema["']/ },
@@ -155,9 +162,7 @@ for (const file of targets) {
     if (rule.allow?.(file)) continue
     lines.forEach((line, i) => {
       if (rule.pattern.test(line)) {
-        violations.push(
-          `${relative(repoRoot, file)}:${i + 1}  ${rule.name}\n    ${line.trim()}`
-        )
+        violations.push(`${relative(repoRoot, file)}:${i + 1}  ${rule.name}\n    ${line.trim()}`)
       }
     })
   }
@@ -262,6 +267,7 @@ catch in Effect v4; behavior is unchanged."
 ### Task 1.1: Add new tagged errors to `domain/errors.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/domain/errors.ts`
 
 - [ ] **Step 1: Add the error classes**
@@ -326,7 +332,9 @@ export class TuiRendererFailed extends Data.TaggedError("TuiRendererFailed")<{
   readonly cause: unknown
 }> {}
 
-export class BunRuntimeMissing extends Data.TaggedError("BunRuntimeMissing")<Record<string, never>> {}
+export class BunRuntimeMissing extends Data.TaggedError("BunRuntimeMissing")<
+  Record<string, never>
+> {}
 
 export class ToolIgnoreCheckFailed extends Data.TaggedError("ToolIgnoreCheckFailed")<{
   readonly tool: string
@@ -381,15 +389,39 @@ export const errorPresentation = (cause: VendorError): ErrorPresentation => {
         code: 1
       }
     case "JsonParseFailed":
-      return { title: "JSON parse failed", detail: cause.source, hint: "Inspect the file for invalid JSON syntax.", code: 1 }
+      return {
+        title: "JSON parse failed",
+        detail: cause.source,
+        hint: "Inspect the file for invalid JSON syntax.",
+        code: 1
+      }
     case "JsoncParseFailed":
-      return { title: "JSONC parse failed", detail: cause.source, hint: "Inspect the file for invalid JSONC syntax.", code: 1 }
+      return {
+        title: "JSONC parse failed",
+        detail: cause.source,
+        hint: "Inspect the file for invalid JSONC syntax.",
+        code: 1
+      }
     case "JavaScriptParseFailed":
-      return { title: "JavaScript parse failed", detail: cause.source, hint: "Inspect the file for invalid JS syntax.", code: 1 }
+      return {
+        title: "JavaScript parse failed",
+        detail: cause.source,
+        hint: "Inspect the file for invalid JS syntax.",
+        code: 1
+      }
     case "TypeScriptParseFailed":
-      return { title: "TypeScript parse failed", detail: cause.source, hint: "Inspect the file for invalid TS syntax.", code: 1 }
+      return {
+        title: "TypeScript parse failed",
+        detail: cause.source,
+        hint: "Inspect the file for invalid TS syntax.",
+        code: 1
+      }
     case "SchemaDecodeFailed":
-      return { title: `Schema decode failed: ${cause.source}`, detail: String(cause.cause), code: 1 }
+      return {
+        title: `Schema decode failed: ${cause.source}`,
+        detail: String(cause.cause),
+        code: 1
+      }
     case "InkRenderFailed":
       return { title: `UI render failed: ${cause.view}`, detail: String(cause.cause), code: 1 }
     case "PromptInputFailed":
@@ -405,7 +437,11 @@ export const errorPresentation = (cause: VendorError): ErrorPresentation => {
         code: 1
       }
     case "ToolIgnoreCheckFailed":
-      return { title: `Tool ignore check failed: ${cause.tool}`, detail: String(cause.cause), code: 1 }
+      return {
+        title: `Tool ignore check failed: ${cause.tool}`,
+        detail: String(cause.cause),
+        code: 1
+      }
   }
 }
 ```
@@ -437,6 +473,7 @@ ToolIgnoreCheckFailed. Wired into VendorError union and presentation."
 ### Task 1.2: Restore `colors` on `RuntimeConfig` via `Effect.Config`
 
 **Files:**
+
 - Modify: `packages/cli/src/app/runtime.ts`
 
 - [ ] **Step 1: Update `runtime.ts`**
@@ -461,9 +498,11 @@ const colorEnv = Config.all({
   term: Config.option(Config.string("TERM"))
 })
 
-const resolveColors = (
-  env: { readonly noColor: Option.Option<string>; readonly forceColor: Option.Option<string>; readonly term: Option.Option<string> }
-): boolean => {
+const resolveColors = (env: {
+  readonly noColor: Option.Option<string>
+  readonly forceColor: Option.Option<string>
+  readonly term: Option.Option<string>
+}): boolean => {
   if (Option.isSome(env.noColor)) return false
   if (Option.isSome(env.forceColor) && env.forceColor.value !== "0") return true
   const term = Option.getOrUndefined(env.term)
@@ -480,7 +519,9 @@ const liveRuntimeConfig = Effect.gen(function* () {
   } satisfies RuntimeConfigShape
 })
 
-export class RuntimeConfig extends Context.Service<RuntimeConfig, RuntimeConfigShape>()("ingraft/RuntimeConfig") {}
+export class RuntimeConfig extends Context.Service<RuntimeConfig, RuntimeConfigShape>()(
+  "ingraft/RuntimeConfig"
+) {}
 
 export const RuntimeConfigLive = Layer.effect(RuntimeConfig, liveRuntimeConfig)
 ```
@@ -522,6 +563,7 @@ that was dropped during the v4 migration."
 ### Task 1.3: Register new tagged errors in `cli.tsx` catchTags
 
 **Files:**
+
 - Modify: `packages/cli/src/cli.tsx`
 
 - [ ] **Step 1: Add new tags to `Effect.catchTags`**
@@ -602,6 +644,7 @@ failures degrade to a void render but preserve the original exit code."
 ### Task 1.4: Convert remaining 9 `Effect.promise` Ink sites to `Effect.tryPromise`
 
 **Files:**
+
 - Modify: `packages/cli/src/app/log.tsx`
 - Modify: `packages/cli/src/commands/deps.tsx`
 - Modify: `packages/cli/src/commands/doctor.tsx`
@@ -614,11 +657,13 @@ failures degrade to a void render but preserve the original exit code."
 For each site, replace `Effect.promise(() => X)` with the typed form. Example for `app/log.tsx:18`:
 
 Before:
+
 ```ts
 Effect.promise(() => renderInkOnce(<StatusLine kind={kind} label={label} />))
 ```
 
 After:
+
 ```ts
 import { InkRenderFailed } from "../domain/errors.ts"
 
@@ -630,15 +675,15 @@ Effect.tryPromise({
 
 Apply the same shape to each of these (the `view` string identifies which Ink component fails):
 
-| File:Line | `view` string |
-| --- | --- |
-| `app/log.tsx:18` | `"StatusLine"` |
-| `commands/deps.tsx:221` | `"DepsView"` |
-| `commands/doctor.tsx:157` | `"DoctorView"` |
-| `commands/add.tsx:1012` | `"AddProgressMount"` |
-| `commands/add.tsx:1028` | `"AddProgressUnmount"` |
-| `commands/list.tsx:69` | `"ListView"` |
-| `services/prompts.tsx:66` | `"ChoicesView"` |
+| File:Line                 | `view` string          |
+| ------------------------- | ---------------------- |
+| `app/log.tsx:18`          | `"StatusLine"`         |
+| `commands/deps.tsx:221`   | `"DepsView"`           |
+| `commands/doctor.tsx:157` | `"DoctorView"`         |
+| `commands/add.tsx:1012`   | `"AddProgressMount"`   |
+| `commands/add.tsx:1028`   | `"AddProgressUnmount"` |
+| `commands/list.tsx:69`    | `"ListView"`           |
+| `services/prompts.tsx:66` | `"ChoicesView"`        |
 
 (`cli.tsx:78` was already converted in Task 1.3.)
 
@@ -649,9 +694,11 @@ For each file, add `import { InkRenderFailed } from "../domain/errors.ts"` (adju
 In `packages/cli/src/services/prompts.tsx`, line 69 is the async input read (not an Ink render). Replace:
 
 ```ts
-const answer = yield* Effect.promise(async () => {
-  // … existing body …
-})
+const answer =
+  yield *
+  Effect.promise(async () => {
+    // … existing body …
+  })
 ```
 
 with:
@@ -659,12 +706,14 @@ with:
 ```ts
 import { PromptInputFailed } from "../domain/errors.ts"
 
-const answer = yield* Effect.tryPromise({
-  try: async () => {
-    // … same existing body …
-  },
-  catch: (cause) => new PromptInputFailed({ cause })
-})
+const answer =
+  yield *
+  Effect.tryPromise({
+    try: async () => {
+      // … same existing body …
+    },
+    catch: (cause) => new PromptInputFailed({ cause })
+  })
 ```
 
 - [ ] **Step 3: Run idiom check**
@@ -707,6 +756,7 @@ Expected: a list. Record each occurrence; they all need updating in Step 2.4.
 ### Task 2.2: Update `script.test.ts` to use `Effect.runSync` (failing tests first)
 
 **Files:**
+
 - Modify: `packages/cli/tests/script.test.ts`
 
 - [ ] **Step 1: Read the current test file**
@@ -720,11 +770,13 @@ For every assertion like `expect(scriptRelTo({...})).toBe(...)`, replace with `e
 Example:
 
 Before:
+
 ```ts
 expect(scriptRelTo({ cwd: "/r", argv: ["bun", "/r/x.ts"] })).toBe("x.ts")
 ```
 
 After:
+
 ```ts
 expect(Effect.runSync(scriptRelTo({ cwd: "/r", argv: ["bun", "/r/x.ts"] }))).toBe("x.ts")
 ```
@@ -737,6 +789,7 @@ Expected: FAIL — `Effect.runSync` receives a plain string, not an Effect.
 ### Task 2.3: Wrap `project/script.ts` exports in `Effect.sync`
 
 **Files:**
+
 - Modify: `packages/cli/src/project/script.ts`
 
 - [ ] **Step 1: Update `script.ts`**
@@ -789,13 +842,15 @@ Expected: PASS.
 For each call inside `Effect.gen(function* () { ... })`, change:
 
 Before:
+
 ```ts
 const command = commandInvocation({ cwd, argv: runtime.argv })
 ```
 
 After:
+
 ```ts
-const command = yield* commandInvocation({ cwd, argv: runtime.argv })
+const command = yield * commandInvocation({ cwd, argv: runtime.argv })
 ```
 
 For any call site that is NOT inside `Effect.gen`, wrap the caller in `Effect.gen` or use `.pipe(Effect.runSync)` only if the caller is genuinely synchronous and non-Effect. Read each site carefully; do not assume.
@@ -835,6 +890,7 @@ existing Effect.gen blocks."
 ### Task 3.1: Add failing-input test cases to `config-parsers.test.ts`
 
 **Files:**
+
 - Modify: `packages/cli/tests/config-parsers.test.ts`
 
 - [ ] **Step 1: Read the current tests**
@@ -869,6 +925,7 @@ Expected: FAIL — `parseTomlText` does not exist yet.
 ### Task 3.2: Refactor `config/toml.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/config/toml.ts`
 
 - [ ] **Step 1: Rewrite `config/toml.ts`**
@@ -909,7 +966,9 @@ const parseToRecord = (text: string): Effect.Effect<Record<string, unknown>, Tom
     Effect.flatMap((value) =>
       isRecord(value)
         ? Effect.succeed(value)
-        : Effect.fail(new TomlParseFailed({ cause: new Error("Top-level TOML value is not a table") }))
+        : Effect.fail(
+            new TomlParseFailed({ cause: new Error("Top-level TOML value is not a table") })
+          )
     )
   )
 
@@ -960,11 +1019,13 @@ Expected: the new `parseTomlText` malformed-input test PASSES. Existing toml-rel
 For each existing test calling `tomlHasPath`, `tomlPathHasArrayValue`, `tomlPathHasAnyArrayValue`, wrap with `Effect.runSync`:
 
 Before:
+
 ```ts
 expect(tomlHasPath(text, ["a", "b"])).toBe(true)
 ```
 
 After:
+
 ```ts
 expect(Effect.runSync(tomlHasPath(text, ["a", "b"]))).toBe(true)
 ```
@@ -977,6 +1038,7 @@ Expected: PASS.
 Run: `grep -rn "tomlHasPath\|tomlPathHasArrayValue\|tomlPathHasAnyArrayValue\|parseTomlConfig" packages/cli/src/`
 
 For each call site:
+
 - If inside `Effect.gen` already: change to `yield* tomlHasPath(...)`.
 - If outside Effect (rare): wrap in `Effect.runSync(...)` only if the caller is truly sync. Otherwise lift the caller into an Effect.
 - If the old API `parseTomlConfig` is used: replace with `parseTomlText` (returns `Effect<unknown, TomlParseFailed>` instead of `Option<Record<string, unknown>>`). Adapt the consumer to the new shape.
@@ -1004,6 +1066,7 @@ where swallow semantics are intentional."
 ### Task 3.3: Refactor `config/yaml.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/config/yaml.ts`
 
 - [ ] **Step 1: Read the current file**
@@ -1040,6 +1103,7 @@ Effect<unknown, YamlParseFailed>; parseYamlWith composes Schema."
 ### Task 3.4: Refactor `config/jsonc-settings.ts` (largest)
 
 **Files:**
+
 - Modify: `packages/cli/src/config/jsonc-settings.ts`
 
 - [ ] **Step 1: Read the current file**
@@ -1102,7 +1166,9 @@ export const parseSettings = (
   Effect.try({
     try: () => {
       const errors: Array<ParseError> = []
-      const value = parse(text, errors, { /* … */ })
+      const value = parse(text, errors, {
+        /* … */
+      })
       if (errors.length > 0) {
         const message = errors.map((e) => printParseErrorCode(e.error)).join("; ")
         return ParsedSettings.Invalid({ message, source })
@@ -1140,6 +1206,7 @@ All exported functions return Effect; JsoncParseFailed surfaces parse failures."
 ### Task 3.5: Refactor `config/javascript-source.ts` and `config/typescript-source.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/config/javascript-source.ts`
 - Modify: `packages/cli/src/config/typescript-source.ts`
 
@@ -1159,7 +1226,9 @@ import jscodeshift from "jscodeshift"
 
 import { JavaScriptParseFailed } from "../domain/errors.ts"
 
-export const parseJavaScriptSource = (text: string): Effect.Effect<jscodeshift.Collection, JavaScriptParseFailed> =>
+export const parseJavaScriptSource = (
+  text: string
+): Effect.Effect<jscodeshift.Collection, JavaScriptParseFailed> =>
   Effect.try({
     try: () => jscodeshift(text),
     catch: (cause) => new JavaScriptParseFailed({ cause })
@@ -1190,6 +1259,7 @@ JavaScriptParseFailed and TypeScriptParseFailed tagged errors."
 ### Task 3.6: Refactor `config/package-json.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/config/package-json.ts`
 
 - [ ] **Step 1: Read the file**
@@ -1205,7 +1275,9 @@ import { Effect } from "effect"
 
 import { JsonParseFailed } from "../domain/errors.ts"
 
-export const parsePackageJson = (text: string): Effect.Effect<Record<string, unknown>, JsonParseFailed> =>
+export const parsePackageJson = (
+  text: string
+): Effect.Effect<Record<string, unknown>, JsonParseFailed> =>
   Effect.try({
     try: () => {
       const value = JSON.parse(text) as unknown
@@ -1260,6 +1332,7 @@ JsonParseFailed instead of swallowing into Option.none."
 ### Task 4.1: Replace `Effect.Effect<X, unknown>` signatures with `ToolIgnoreCheckFailed`
 
 **Files:**
+
 - Modify: `packages/cli/src/tool-ignores/common.ts`
 - Modify: all tool-ignore implementations under `packages/cli/src/tool-ignores/`
 
@@ -1337,13 +1410,16 @@ Run: `bun run --cwd packages/cli check:idioms`
 - [ ] **Step 2: Fix each violation**
 
 For each `process.(env|argv|cwd|exit|exitCode)` outside `runtime.ts`:
+
 - If it's a service-level read of env, lift to `Config.option(Config.string(...))` resolved through `RuntimeConfig` or a new dedicated config.
 - If it's a CLI-bin entry, leave only the `RuntimeConfig.exit` boundary.
 
 For each `console.(log|warn|error|debug)` outside Ink components and test files:
+
 - Replace with `Effect.log`, `Effect.logWarning`, `Effect.logError`, or `Effect.logDebug`. If the call is inside a non-Effect function, lift the function to return Effect first.
 
 For any `throw new SomeError(...)` inside `Effect.sync(...)` or `Effect.gen(...)`:
+
 - Replace with `yield* Effect.fail(new SomeError(...))` (inside `Effect.gen`) or restructure with `Effect.fail` outside.
 
 - [ ] **Step 3: Run check**
@@ -1365,6 +1441,7 @@ to Effect.fail with tagged errors."
 ### Task 4.3: Adopt `Effect.fn("ServiceName.method")` for major service methods
 
 **Files:**
+
 - Modify: `packages/cli/src/services/git.ts`
 - Modify: `packages/cli/src/services/repository-hosts.ts`
 - Modify: `packages/cli/src/services/vendor-notes.ts`
@@ -1379,6 +1456,7 @@ to Effect.fail with tagged errors."
 For each service method definition, wrap it with `Effect.fn("ServiceName.methodName")`. Example for `Git.exec`:
 
 Before:
+
 ```ts
 export class Git extends Context.Service<Git, GitShape>()("ingraft/Git") {}
 
@@ -1388,20 +1466,26 @@ export const GitLive = Layer.effect(
     const spawner = yield* ChildProcessSpawner
     return {
       exec: (args: ReadonlyArray<string>, options: GitOptions = {}) =>
-        Effect.gen(function* () { /* … */ })
+        Effect.gen(function* () {
+          /* … */
+        })
     }
   })
 )
 ```
 
 After:
+
 ```ts
 export const GitLive = Layer.effect(
   Git,
   Effect.gen(function* () {
     const spawner = yield* ChildProcessSpawner
     return {
-      exec: Effect.fn("Git.exec")(function* (args: ReadonlyArray<string>, options: GitOptions = {}) {
+      exec: Effect.fn("Git.exec")(function* (
+        args: ReadonlyArray<string>,
+        options: GitOptions = {}
+      ) {
         // body, using yield* directly
       })
     }
@@ -1444,6 +1528,7 @@ stack-trace fidelity."
 ### Task 5.1: Create `TuiRenderer` service
 
 **Files:**
+
 - Create: `packages/cli/src/tui/renderer.ts`
 
 - [ ] **Step 1: Write the service**
@@ -1477,7 +1562,9 @@ export interface TuiRendererShape {
   readonly requestExit: (code: number) => Effect.Effect<void>
 }
 
-export class TuiRenderer extends Context.Service<TuiRenderer, TuiRendererShape>()("ingraft/TuiRenderer") {}
+export class TuiRenderer extends Context.Service<TuiRenderer, TuiRendererShape>()(
+  "ingraft/TuiRenderer"
+) {}
 
 const acquireRenderer = Effect.tryPromise({
   try: () =>
@@ -1501,9 +1588,7 @@ const keyStream = (renderer: CliRenderer): Stream.Stream<KeyEvent> =>
         Queue.unsafeOffer(queue, event)
       }
       renderer.on?.("keypress", handler)
-      yield* Effect.addFinalizer(() =>
-        Effect.sync(() => renderer.off?.("keypress", handler))
-      )
+      yield* Effect.addFinalizer(() => Effect.sync(() => renderer.off?.("keypress", handler)))
     })
   )
 
@@ -1517,9 +1602,7 @@ const resizeStream = (renderer: CliRenderer): Stream.Stream<TerminalSize> =>
         })
       }
       renderer.on?.("resize", handler)
-      yield* Effect.addFinalizer(() =>
-        Effect.sync(() => renderer.off?.("resize", handler))
-      )
+      yield* Effect.addFinalizer(() => Effect.sync(() => renderer.off?.("resize", handler)))
     })
   )
 
@@ -1572,6 +1655,7 @@ Effect.acquireRelease for clean teardown on scope close."
 ### Task 5.2: Migrate `DashboardAction` to `Data.TaggedEnum`
 
 **Files:**
+
 - Modify: `packages/cli/src/tui/dashboard.ts`
 
 - [ ] **Step 1: Read the current file**
@@ -1625,6 +1709,7 @@ Expected: many call-site errors (call sites in app.ts/keyboard.ts/cli-adapter.ts
 ### Task 5.3: Effect-ify `tui/status.ts`, `tui/keyboard.ts`, `tui/render.ts`, `tui/cli-adapter.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/tui/status.ts`
 - Modify: `packages/cli/src/tui/keyboard.ts`
 - Modify: `packages/cli/src/tui/render.ts`
@@ -1706,6 +1791,7 @@ Expected: remaining errors in `tui/app.ts` and `tui/launcher.ts` only. Status/ke
 ### Task 5.4: Rebuild `tui/app.ts` as Effect
 
 **Files:**
+
 - Modify: `packages/cli/src/tui/app.ts`
 
 - [ ] **Step 1: Read the current file**
@@ -1797,6 +1883,7 @@ export const runTuiApp = Effect.gen(function* () {
 ```
 
 Notes:
+
 - `stateRef.changes` is a `Stream<State>` that emits the current value and every subsequent change.
 - `renderLoop` and `resizeLoop` are forked so the main fiber runs `keyLoop`. The Scope ends when `keyLoop` finishes (e.g., the user presses Q or Ctrl+C).
 - Adapt `DashboardAction.Run` to whatever your existing "run selection" action tag is named.
@@ -1809,6 +1896,7 @@ Expected: PASS (or only `tui/launcher.ts` and `tui/runner.ts` remain).
 ### Task 5.5: Effect-ify `tui/launcher.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/tui/launcher.ts`
 
 - [ ] **Step 1: Read the current file**
@@ -1849,7 +1937,9 @@ export const moduleExtension = (moduleUrl: string): Effect.Effect<".js" | ".ts">
   Effect.sync(() => moduleExtensionSync(moduleUrl))
 
 export const siblingModulePath = (moduleUrl: string, name: string): Effect.Effect<string> =>
-  Effect.sync(() => resolve(dirname(fileURLToPath(moduleUrl)), `${name}${moduleExtensionSync(moduleUrl)}`))
+  Effect.sync(() =>
+    resolve(dirname(fileURLToPath(moduleUrl)), `${name}${moduleExtensionSync(moduleUrl)}`)
+  )
 
 export const tuiLaunchPlan = ({
   args = [],
@@ -1903,6 +1993,7 @@ Expected: surfaces any mismatches against the real `ChildProcessSpawner` API. Ad
 ### Task 5.6: Effect-ify `tui/runner.ts`
 
 **Files:**
+
 - Modify: `packages/cli/src/tui/runner.ts`
 
 - [ ] **Step 1: Replace with the Effect entry**
@@ -1935,9 +2026,7 @@ import { Effect } from "effect"
 
 import { launchTui } from "../tui/launcher.ts"
 
-export const openTui = launchTui().pipe(
-  Effect.withSpan("ingraft.openTui")
-)
+export const openTui = launchTui().pipe(Effect.withSpan("ingraft.openTui"))
 ```
 
 Adapt `tuiCmd` to use the new `openTui`; its shape stays the same (CLI command wrapping the Effect).
@@ -1960,6 +2049,7 @@ Expected: PASS.
 ### Task 5.7: Update `tui-launcher.test.ts` and `tui-status.test.ts`
 
 **Files:**
+
 - Modify: `packages/cli/tests/tui-launcher.test.ts`
 - Modify: `packages/cli/tests/tui-status.test.ts`
 
@@ -1977,7 +2067,9 @@ import { siblingModulePath, tuiLaunchPlan } from "../src/tui/launcher.ts"
 describe("tui launcher", () => {
   test("uses a Bun child process for built Node executions", () => {
     const moduleUrl = pathToFileURL("/repo/packages/cli/dist/src/tui/launcher.js").href
-    const plan = Effect.runSync(tuiLaunchPlan({ args: ["--debug"], isBunRuntime: false, moduleUrl }))
+    const plan = Effect.runSync(
+      tuiLaunchPlan({ args: ["--debug"], isBunRuntime: false, moduleUrl })
+    )
     expect(plan).toEqual({
       _tag: "spawn",
       args: ["/repo/packages/cli/dist/src/tui/runner.js", "--debug"],
@@ -2011,6 +2103,7 @@ Expected: PASS.
 ### Task 5.8: Add `tui-runtime.test.ts` integration test
 
 **Files:**
+
 - Create: `packages/cli/tests/tui-runtime.test.ts`
 
 - [ ] **Step 1: Write the integration test**
@@ -2036,7 +2129,10 @@ const renderCalls: Array<unknown> = []
 const StubTuiRenderer = Layer.succeed(
   TuiRenderer,
   TuiRenderer.of({
-    render: (node) => Effect.sync(() => { renderCalls.push(node) }),
+    render: (node) =>
+      Effect.sync(() => {
+        renderCalls.push(node)
+      }),
     terminalSize: Effect.succeed(fixedSize),
     keyEvents: scriptedKeys([
       { name: "down", raw: "[B", ctrl: false, shift: false, meta: false },

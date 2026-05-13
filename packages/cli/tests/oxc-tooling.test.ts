@@ -32,8 +32,9 @@ describe("Oxc workspace tooling", () => {
       format: "oxfmt . --write",
       "format:check": "oxfmt . --check"
     })
-    expect(rootPackage.scripts?.check).toContain("bun run lint")
-    expect(rootPackage.scripts?.check).toContain("bun run format:check")
+    expect(rootPackage.scripts?.check).toContain("check:root")
+    expect(rootPackage.scripts?.["check:root"]).toContain("bun run lint")
+    expect(rootPackage.scripts?.["check:root"]).toContain("bun run format:check")
   })
 
   test("exposes Oxc lint and format scripts from every package", async () => {

@@ -1,0 +1,286 @@
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+  rel="stylesheet"
+/>
+
+<style>
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+    margin-top: 24px;
+  }
+  @media (max-width: 1100px) {
+    .grid-3 {
+      grid-template-columns: 1fr;
+    }
+  }
+  .dir {
+    border-radius: 14px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition:
+      transform 0.15s ease,
+      border-color 0.15s ease;
+    background: transparent;
+  }
+  .dir:hover {
+    transform: translateY(-2px);
+  }
+  .dir.selected {
+    border-color: var(--accent, #d85a3a);
+  }
+  .dir-stage {
+    aspect-ratio: 4 / 3;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    padding: 28px;
+    position: relative;
+  }
+  .mark-block {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .wordmark {
+    font-weight: 600;
+    letter-spacing: -0.02em;
+  }
+  .stage-foot {
+    font-size: 11px;
+    opacity: 0.7;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .swatch-row {
+    display: flex;
+    gap: 6px;
+    padding: 14px 18px 12px;
+    background: rgba(0, 0, 0, 0.02);
+  }
+  .sw {
+    width: 22px;
+    height: 22px;
+    border-radius: 6px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .meta {
+    padding: 12px 18px 18px;
+    background: rgba(0, 0, 0, 0.02);
+  }
+  .meta h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .meta .desc {
+    font-size: 13px;
+    opacity: 0.75;
+    margin: 0 0 10px;
+    line-height: 1.45;
+  }
+  .meta .vibe {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    opacity: 0.6;
+  }
+  .ascii-hero {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 10px;
+    line-height: 1.25;
+    white-space: pre;
+    opacity: 0.75;
+  }
+
+  /* DIRECTION A: Cleft (Vercel-track) */
+  .dir-a .dir-stage {
+    background: #fafafa;
+    color: #0a0a0a;
+    font-family: "Geist", "Inter", system-ui, sans-serif;
+  }
+  .dir-a .wordmark {
+    font-size: 26px;
+  }
+  .dir-a .mini-strip {
+    font-family: "Geist Mono", ui-monospace, monospace;
+    font-size: 10px;
+    opacity: 0.55;
+    letter-spacing: 0.04em;
+  }
+
+  /* DIRECTION B: Turnstile (Effect-track) */
+  .dir-b .dir-stage {
+    background: #0a0e16;
+    color: #ece8d8;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  .dir-b .wordmark {
+    font-size: 26px;
+    font-weight: 700;
+  }
+  .dir-b .accent {
+    color: #ff3c79;
+  }
+  .dir-b .mini-strip {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 10px;
+    opacity: 0.7;
+  }
+
+  /* DIRECTION C: Seam (Independent) */
+  .dir-c .dir-stage {
+    background: #f5f1e8;
+    color: #181312;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  .dir-c .wordmark {
+    font-size: 28px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+  }
+  .dir-c .wordmark .g {
+    font-family: "Instrument Serif", serif;
+    font-style: italic;
+    font-weight: 400;
+  }
+  .dir-c .accent {
+    color: #d24018;
+  }
+  .dir-c .mini-strip {
+    font-size: 11px;
+    opacity: 0.7;
+    font-style: italic;
+    font-family: "Instrument Serif", serif;
+  }
+</style>
+
+<h2>Three brand directions for ingraft</h2>
+<p class="subtitle">
+  Each direction is a complete stance — logo, palette, type, voice. Click the one closest to where
+  you want to go.
+</p>
+
+<div class="grid-3 cards" data-multiselect-disabled>
+  <!-- ===================== A: CLEFT (Vercel-track) ===================== -->
+  <div class="dir dir-a card" data-choice="a-cleft" onclick="toggleSelect(this)">
+    <div class="dir-stage">
+      <div class="mark-block">
+        <svg width="42" height="42" viewBox="0 0 96 96" aria-label="cleft mark">
+          <path d="M0 0 H30 L48 38 L66 0 H96 V96 H0 Z" fill="#0a0a0a" />
+        </svg>
+        <div class="wordmark">ingraft</div>
+      </div>
+      <div>
+        <div class="mini-strip">SRC/ → VENDOR/ • read &amp; reason</div>
+      </div>
+      <div class="stage-foot">A · CLEFT</div>
+    </div>
+    <div class="swatch-row">
+      <div class="sw" style="background: #0a0a0a"></div>
+      <div class="sw" style="background: #fafafa"></div>
+      <div class="sw" style="background: #8a8a8a"></div>
+      <div class="sw" style="background: #e5e5e5"></div>
+    </div>
+    <div class="meta">
+      <h3>Cleft — Vercel track</h3>
+      <p class="desc">
+        Pure monochrome. No accent color. Geist-style geometric mark. Reads as infrastructure
+        primitive — could sit next to Next.js, Turborepo, v0 in a portfolio.
+      </p>
+      <div class="vibe">Stance · Austere · Mathematical · Boring-is-correct</div>
+    </div>
+  </div>
+
+  <!-- ===================== B: TURNSTILE (Effect-track) ===================== -->
+  <div class="dir dir-b card" data-choice="b-turnstile" onclick="toggleSelect(this)">
+    <div class="dir-stage">
+      <div class="mark-block">
+        <svg width="42" height="42" viewBox="0 0 96 96" aria-label="turnstile mark">
+          <rect x="22" y="14" width="6" height="68" fill="#ece8d8" />
+          <path d="M28 38 L62 38 L78 48 L62 58 L28 58 Z" fill="#ff3c79" />
+        </svg>
+        <div class="wordmark">ingraft<span class="accent">.</span></div>
+      </div>
+      <div>
+        <div class="mini-strip">$ ingraft add <span class="accent">effect-ts/effect</span></div>
+      </div>
+      <div class="stage-foot" style="opacity: 0.5">B · TURNSTILE</div>
+    </div>
+    <div class="swatch-row" style="background: rgba(255, 255, 255, 0.04)">
+      <div class="sw" style="background: #0a0e16"></div>
+      <div class="sw" style="background: #ece8d8"></div>
+      <div class="sw" style="background: #ff3c79"></div>
+      <div class="sw" style="background: #5b6273"></div>
+    </div>
+    <div class="meta">
+      <h3>Turnstile — Effect track</h3>
+      <p class="desc">
+        Sophisticated dark, type-theoretic mark (host trunk + scion wedge), mono+sans pairing.
+        Speaks fluent FP. Drops into the Effect family naturally.
+      </p>
+      <div class="vibe">Stance · Code-craft · Type-aware · Composable</div>
+    </div>
+  </div>
+
+  <!-- ===================== C: SEAM (Independent) ===================== -->
+  <div class="dir dir-c card" data-choice="c-seam" onclick="toggleSelect(this)">
+    <div class="dir-stage">
+      <div class="mark-block">
+        <svg width="42" height="42" viewBox="0 0 96 96" aria-label="seam mark">
+          <rect
+            x="14"
+            y="14"
+            width="68"
+            height="68"
+            rx="14"
+            fill="none"
+            stroke="#181312"
+            stroke-width="6"
+          />
+          <path d="M48 24 L70 60 L48 72 L26 60 Z" fill="#d24018" />
+        </svg>
+        <div class="wordmark">in<span class="g">g</span>raft</div>
+      </div>
+      <div>
+        <div class="mini-strip">— source you can keep —</div>
+      </div>
+      <div class="stage-foot">C · SEAM</div>
+    </div>
+    <div class="swatch-row">
+      <div class="sw" style="background: #181312"></div>
+      <div class="sw" style="background: #f5f1e8"></div>
+      <div class="sw" style="background: #d24018"></div>
+      <div class="sw" style="background: #7a6a5a"></div>
+    </div>
+    <div class="meta">
+      <h3>Seam — Independent</h3>
+      <p class="desc">
+        Distinctive own brand. Italic-serif &#x2018;g&#x2019; ligature in the wordmark, emblematic
+        mark (scion in rootstock), warm paper + rosewood accent. Stands alone but with taste.
+      </p>
+      <div class="vibe">Stance · Crafted · Particular · Quietly confident</div>
+    </div>
+  </div>
+</div>
+
+<div
+  style="
+    margin-top: 28px;
+    padding: 16px 18px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.02);
+  "
+>
+  <div class="label" style="margin-bottom: 6px">Or…</div>
+  <p style="margin: 0; font-size: 14px; line-height: 1.5">
+    Hybrid: pick a direction <em>and</em> pull one element from another. Example:
+    <strong>A</strong>'s austerity with <strong>B</strong>'s electric accent, or
+    <strong>C</strong>'s wordmark feature on <strong>A</strong>'s palette. Tell me in the terminal.
+  </p>
+</div>

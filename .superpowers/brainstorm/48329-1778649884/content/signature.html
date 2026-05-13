@@ -1,0 +1,397 @@
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link
+  href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500&family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
+  rel="stylesheet"
+/>
+
+<svg width="0" height="0" style="position: absolute" aria-hidden="true">
+  <filter id="grain">
+    <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch" />
+    <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.6 0" />
+  </filter>
+  <filter id="grain-strong">
+    <feTurbulence type="fractalNoise" baseFrequency="0.75" numOctaves="3" stitchTiles="stitch" />
+    <feColorMatrix values="0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.9 0" />
+  </filter>
+</svg>
+
+<style>
+  .signatures {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 22px;
+  }
+  @media (max-width: 1100px) {
+    .signatures {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .sig {
+    border-radius: 16px;
+    overflow: hidden;
+    cursor: pointer;
+    border: 2px solid transparent;
+    transition:
+      transform 0.18s ease,
+      border-color 0.18s ease;
+    background: #0a0a0f;
+  }
+  .sig:hover {
+    transform: translateY(-2px);
+  }
+  .sig.selected {
+    border-color: #ff3c79;
+  }
+
+  .hero {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    isolation: isolate;
+    font-family: "Inter", system-ui, sans-serif;
+  }
+  .hero .grain {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='200' height='200'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 0.55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)' opacity='0.4'/></svg>");
+    opacity: 0.35;
+    mix-blend-mode: overlay;
+  }
+  .hero-content {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-rows: 1fr auto auto;
+    padding: 28px;
+    color: #f5f5f7;
+  }
+  .lockup {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    align-self: end;
+  }
+  .lockup .wm {
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+  }
+  .lockup .wm .dot {
+    color: var(--accent, #ff3c79);
+  }
+  .codeline {
+    font-family: "JetBrains Mono", ui-monospace, monospace;
+    font-size: 11px;
+    opacity: 0.7;
+    margin-top: 10px;
+    letter-spacing: 0.02em;
+  }
+  .codeline .a {
+    color: var(--accent, #ff3c79);
+    opacity: 0.95;
+  }
+  .badge {
+    align-self: end;
+    justify-self: end;
+    font-family: "JetBrains Mono", monospace;
+    font-size: 9.5px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    opacity: 0.4;
+  }
+
+  /* ===== STORY 1: KNOCKOUT (Resend / Linear / Effect-pro) ===== */
+  .knockout {
+    background:
+      radial-gradient(
+        120% 80% at 78% 18%,
+        rgba(255, 60, 121, 0.45) 0%,
+        rgba(255, 60, 121, 0.1) 30%,
+        transparent 60%
+      ),
+      radial-gradient(80% 60% at 20% 90%, rgba(120, 30, 160, 0.3) 0%, transparent 55%),
+      linear-gradient(180deg, #0a0a10 0%, #050507 100%);
+    --accent: #ff3c79;
+  }
+
+  /* ===== STORY 2: AURORA (Vercel / Stripe mesh) ===== */
+  .aurora {
+    background:
+      radial-gradient(60% 50% at 20% 20%, rgba(0, 210, 255, 0.55) 0%, transparent 60%),
+      radial-gradient(50% 50% at 80% 30%, rgba(255, 60, 180, 0.5) 0%, transparent 60%),
+      radial-gradient(80% 60% at 60% 95%, rgba(255, 160, 80, 0.45) 0%, transparent 65%),
+      radial-gradient(40% 40% at 30% 80%, rgba(80, 90, 255, 0.5) 0%, transparent 60%),
+      linear-gradient(180deg, #03030a 0%, #06061a 100%);
+    --accent: #ffffff;
+  }
+
+  /* ===== STORY 3: PLASMA (Cursor / Cluely / AI-era) ===== */
+  .plasma {
+    background: conic-gradient(
+      from 220deg at 50% 60%,
+      #4a1bff 0%,
+      #ff1b7a 20%,
+      #ff7a1b 40%,
+      #fff21b 55%,
+      #1bffd1 70%,
+      #4a1bff 100%
+    );
+    --accent: #fff8a3;
+    position: relative;
+  }
+  .plasma::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+      radial-gradient(70% 50% at 50% 60%, rgba(255, 255, 255, 0.55) 0%, transparent 55%),
+      radial-gradient(
+        120% 80% at 50% 110%,
+        rgba(10, 5, 30, 0.95) 0%,
+        rgba(10, 5, 30, 0.5) 40%,
+        transparent 70%
+      );
+    filter: blur(8px);
+  }
+  .plasma::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(120% 100% at 50% 0%, transparent 0%, rgba(8, 4, 20, 0.85) 80%);
+  }
+
+  /* MARK styling per story */
+  .mark {
+    display: inline-block;
+  }
+  .mark-knockout .bar {
+    fill: #f5f5f7;
+  }
+  .mark-knockout .wedge {
+    fill: url(#g-knockout);
+  }
+  .mark-aurora .bar {
+    fill: #ffffff;
+  }
+  .mark-aurora .wedge {
+    fill: url(#g-aurora);
+  }
+  .mark-plasma .bar {
+    fill: #ffffff;
+  }
+  .mark-plasma .wedge {
+    fill: #ffffff;
+  }
+
+  /* Meta sections */
+  .meta {
+    padding: 14px 18px 18px;
+    background: rgba(255, 255, 255, 0.02);
+    color: #e7e7ea;
+  }
+  .meta h3 {
+    margin: 0 0 4px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+  }
+  .meta .desc {
+    font-size: 13px;
+    opacity: 0.7;
+    margin: 0 0 12px;
+    line-height: 1.5;
+  }
+  .swatch-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+  .sw {
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .vibe {
+    font-size: 10.5px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    opacity: 0.5;
+    font-family: "JetBrains Mono", monospace;
+  }
+
+  .infoline {
+    margin-top: 22px;
+    padding: 14px 18px;
+    background: rgba(255, 255, 255, 0.025);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 10px;
+    color: #cfcfd4;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+  .infoline strong {
+    color: #fff;
+  }
+</style>
+
+<div
+  style="
+    background: #06060c;
+    color: #e7e7ea;
+    padding: 24px 4px;
+    margin: -24px -24px 0;
+    border-radius: 0;
+  "
+>
+  <div style="padding: 0 20px">
+    <h2 style="color: #fff; margin-top: 0">Signature direction</h2>
+    <p class="subtitle" style="color: #9da0a8; margin-bottom: 10px">
+      Turnstile base + Silicon Valley graphic production. The three options below differ in
+      <strong style="color: #fff">color strategy & light story</strong> — this drives every
+      gradient, halo, hero, and shader treatment in the system.
+    </p>
+  </div>
+
+  <div class="signatures cards" style="padding: 0 20px">
+    <!-- ===== STORY 1: KNOCKOUT ===== -->
+    <div class="sig card" data-choice="knockout" onclick="toggleSelect(this)">
+      <div class="hero knockout">
+        <svg width="0" height="0">
+          <defs>
+            <linearGradient id="g-knockout" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#ff3c79" />
+              <stop offset="100%" stop-color="#ff7eaa" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="grain"></div>
+        <div class="hero-content">
+          <div class="badge">01 · KNOCKOUT</div>
+          <div class="lockup">
+            <svg class="mark mark-knockout" width="48" height="48" viewBox="0 0 96 96">
+              <rect class="bar" x="22" y="14" width="6" height="68" />
+              <path class="wedge" d="M28 36 L66 36 L82 48 L66 60 L28 60 Z" />
+            </svg>
+            <div class="wm">ingraft<span class="dot">.</span></div>
+          </div>
+          <div class="codeline">
+            $ ingraft add <span class="a">effect-ts/effect</span> --strategy subtree
+          </div>
+        </div>
+      </div>
+      <div class="meta">
+        <h3>01 · Knockout</h3>
+        <p class="desc">
+          Near-black canvas, single saturated bloom (refined magenta), heavy film grain. Effect /
+          Linear / Resend tier. Disciplined — one accent, used like punctuation.
+        </p>
+        <div class="swatch-row">
+          <div class="sw" style="background: #06060c"></div>
+          <div class="sw" style="background: #f5f5f7"></div>
+          <div class="sw" style="background: #ff3c79"></div>
+          <div class="sw" style="background: #5b6273"></div>
+        </div>
+        <div class="vibe">Disciplined · Editorial · Effect-native</div>
+      </div>
+    </div>
+
+    <!-- ===== STORY 2: AURORA ===== -->
+    <div class="sig card" data-choice="aurora" onclick="toggleSelect(this)">
+      <div class="hero aurora">
+        <svg width="0" height="0">
+          <defs>
+            <linearGradient id="g-aurora" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#00d4ff" />
+              <stop offset="50%" stop-color="#ff3cb4" />
+              <stop offset="100%" stop-color="#ffaa3c" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="grain"></div>
+        <div class="hero-content">
+          <div class="badge">02 · AURORA</div>
+          <div class="lockup">
+            <svg class="mark mark-aurora" width="48" height="48" viewBox="0 0 96 96">
+              <rect class="bar" x="22" y="14" width="6" height="68" />
+              <path class="wedge" d="M28 36 L66 36 L82 48 L66 60 L28 60 Z" />
+            </svg>
+            <div class="wm">ingraft</div>
+          </div>
+          <div class="codeline" style="color: #cfd4ff">
+            $ ingraft add <span style="color: #ff8acf">effect-ts/effect</span>
+          </div>
+        </div>
+      </div>
+      <div class="meta">
+        <h3>02 · Aurora</h3>
+        <p class="desc">
+          Multi-hue mesh gradient — cyan, magenta, amber, indigo — layered as ambient light. Vercel
+          / Stripe / v0 mesh aesthetic. The mark itself becomes a prism.
+        </p>
+        <div class="swatch-row">
+          <div class="sw" style="background: #04041a"></div>
+          <div class="sw" style="background: #00d4ff"></div>
+          <div class="sw" style="background: #ff3cb4"></div>
+          <div class="sw" style="background: #ffaa3c"></div>
+          <div class="sw" style="background: #505aff"></div>
+        </div>
+        <div class="vibe">Generous · Optimistic · Vercel-adjacent</div>
+      </div>
+    </div>
+
+    <!-- ===== STORY 3: PLASMA ===== -->
+    <div class="sig card" data-choice="plasma" onclick="toggleSelect(this)">
+      <div class="hero plasma">
+        <div class="grain"></div>
+        <div class="hero-content">
+          <div class="badge" style="opacity: 0.7; color: #fff">03 · PLASMA</div>
+          <div class="lockup">
+            <svg
+              class="mark mark-plasma"
+              width="48"
+              height="48"
+              viewBox="0 0 96 96"
+              style="filter: drop-shadow(0 0 18px rgba(255, 255, 255, 0.9))"
+            >
+              <rect class="bar" x="22" y="14" width="6" height="68" />
+              <path class="wedge" d="M28 36 L66 36 L82 48 L66 60 L28 60 Z" />
+            </svg>
+            <div class="wm" style="text-shadow: 0 0 24px rgba(255, 255, 255, 0.6)">ingraft</div>
+          </div>
+          <div class="codeline" style="color: rgba(255, 255, 255, 0.8)">
+            $ ingraft add effect-ts/effect
+          </div>
+        </div>
+      </div>
+      <div class="meta">
+        <h3>03 · Plasma</h3>
+        <p class="desc">
+          Animated WebGL-class shader hero (conic + bloom + grain). Saturated, generative,
+          agentic-era. Sky / Cursor / Cluely / Pi tier — declares: <em>this is the new wave</em>.
+        </p>
+        <div class="swatch-row">
+          <div class="sw" style="background: #08041a"></div>
+          <div class="sw" style="background: #fff8a3"></div>
+          <div class="sw" style="background: #ff1b7a"></div>
+          <div class="sw" style="background: #1bffd1"></div>
+          <div class="sw" style="background: #4a1bff"></div>
+        </div>
+        <div class="vibe">Generative · Maximal · AI-era</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="infoline" style="margin: 22px 20px 0">
+    <strong>What changes across the three:</strong>
+    only the <em>color strategy</em> and <em>light story</em>. All three keep the turnstile mark,
+    Inter + JetBrains Mono typography, deep-ink canvas, and noise/grain. Pick the one that feels
+    closest — we can dial intensity after.
+  </div>
+</div>

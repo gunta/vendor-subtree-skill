@@ -4,7 +4,7 @@ import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
 import type { CommandPlan } from "./dashboard.ts"
-import type { VendorTuiSnapshot } from "./status.ts"
+import type { VendorTuiRepo, VendorTuiSnapshot, VendorTuiTaskVersions } from "./status.ts"
 
 interface CliInvocation {
   readonly args: ReadonlyArray<string>
@@ -16,6 +16,20 @@ export interface SnapshotResult {
   readonly snapshot: VendorTuiSnapshot
 }
 
+interface ListJsonRepo {
+  readonly name?: unknown
+  readonly packageNames?: unknown
+  readonly prefix?: unknown
+  readonly ref?: unknown
+  readonly strategy?: unknown
+  readonly url?: unknown
+  readonly versions?: unknown
+}
+
+interface ListJsonOutput {
+  readonly repos?: unknown
+}
+
 const localCli = resolve(dirname(fileURLToPath(import.meta.url)), "../../scripts/vendor.ts")
 
 const cliInvocation = (args: ReadonlyArray<string>): CliInvocation =>
@@ -25,6 +39,7 @@ const cliInvocation = (args: ReadonlyArray<string>): CliInvocation =>
 
 const failedSnapshot = (message: string): VendorTuiSnapshot => ({
   candidates: [],
+  repos: [],
   tasks: [
     {
       action: "add",
@@ -37,22 +52,57 @@ const failedSnapshot = (message: string): VendorTuiSnapshot => ({
   ]
 })
 
+const stringValue = (value: unknown): string => (typeof value === "string" ? value : "-")
+
+const stringArray = (value: unknown): ReadonlyArray<string> =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
+
+const toTuiRepo = (repo: ListJsonRepo): VendorTuiRepo => {
+  const base: VendorTuiRepo = {
+    name: stringValue(repo.name),
+    packageNames: stringArray(repo.packageNames),
+    path: stringValue(repo.prefix),
+    ref: stringValue(repo.ref),
+    source: stringValue(repo.url),
+    strategy: stringValue(repo.strategy)
+  }
+  if (repo.versions !== undefined) {
+    return { ...base, versions: repo.versions as VendorTuiTaskVersions }
+  }
+  return base
+}
+
 export const readSnapshot = (): SnapshotResult => {
-  const command = cliInvocation(["deps", "--json"])
-  const result = spawnSync(command.command, command.args, {
+  const depsCommand = cliInvocation(["deps", "--json"])
+  const depsResult = spawnSync(depsCommand.command, depsCommand.args, {
     encoding: "utf8"
   })
-  if (result.status !== 0) {
-    const output = result.stderr.trim() || result.stdout.trim()
+  if (depsResult.status !== 0) {
+    const output = depsResult.stderr.trim() || depsResult.stdout.trim()
     return {
       message: output || "Dependency scan failed.",
       snapshot: failedSnapshot(output || "Dependency scan failed.")
     }
   }
   try {
+    const snapshot = JSON.parse(depsResult.stdout) as VendorTuiSnapshot
+    const listCommand = cliInvocation(["list", "--json"])
+    const listResult = spawnSync(listCommand.command, listCommand.args, {
+      encoding: "utf8"
+    })
+    if (listResult.status !== 0) {
+      return {
+        message: "Dependency snapshot refreshed; repository list failed.",
+        snapshot: { ...snapshot, repos: [] }
+      }
+    }
+    const list = JSON.parse(listResult.stdout) as ListJsonOutput
+    const repos = Array.isArray(list.repos)
+      ? list.repos.map((repo) => toTuiRepo(repo as ListJsonRepo))
+      : []
     return {
-      message: "Dependency snapshot refreshed.",
-      snapshot: JSON.parse(result.stdout) as VendorTuiSnapshot
+      message: "Dependency and repository snapshots refreshed.",
+      snapshot: { ...snapshot, repos }
     }
   } catch {
     return {

@@ -1,7 +1,6 @@
 import { fileURLToPath } from "node:url"
 
-import { FileSystem } from "@effect/platform"
-import { Effect, Either, Schema } from "effect"
+import { Context, Effect, FileSystem, Layer, Result, Schema } from "effect"
 
 import { RepositoryAliasDatabaseInvalid } from "../domain/errors.ts"
 
@@ -18,20 +17,16 @@ export interface RepositoryAliasResolvedTarget {
 }
 
 const AliasEntrySchema = Schema.Struct({
-  alias: Schema.String.pipe(Schema.minLength(1)),
-  description: Schema.optionalWith(Schema.String.pipe(Schema.minLength(1)), {
-    exact: true
-  }),
-  targets: Schema.Array(Schema.String.pipe(Schema.minLength(1)))
+  alias: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
+  description: Schema.optionalKey(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
+  targets: Schema.Array(Schema.String.pipe(Schema.check(Schema.isMinLength(1))))
 })
 
 const AliasDatabaseSchema = Schema.Struct({
   aliases: Schema.Array(AliasEntrySchema)
 })
 
-const decodeAliasDatabase = Schema.decodeUnknownEither(AliasDatabaseSchema, {
-  errors: "all"
-})
+const decodeAliasDatabase = Schema.decodeUnknownResult(AliasDatabaseSchema)
 
 const bundledAliasDatabasePath = fileURLToPath(
   new URL("./repository-aliases.json", import.meta.url)
@@ -49,9 +44,10 @@ const normalizedTargetKey = (value: string): string =>
 const invalidAliasDatabase = (reason: string) => new RepositoryAliasDatabaseInvalid({ reason })
 
 export const repositoryAliasEntriesFromDatabase = (database: unknown) =>
-  Either.match(decodeAliasDatabase(database), {
-    onLeft: (error) => Effect.fail(invalidAliasDatabase(`Invalid alias database shape: ${error}`)),
-    onRight: (raw) =>
+  Result.match(decodeAliasDatabase(database), {
+    onFailure: (error) =>
+      Effect.fail(invalidAliasDatabase(`Invalid alias database shape: ${error}`)),
+    onSuccess: (raw) =>
       Effect.gen(function* () {
         const seen = new Set<string>()
         const entries: Array<RepositoryAliasEntry> = []
@@ -129,19 +125,27 @@ const loadBundledAliasEntries = (fs: FileSystem.FileSystem) =>
     Effect.flatMap(repositoryAliasEntriesFromDatabase)
   )
 
-export class RepositoryAliases extends Effect.Service<RepositoryAliases>()(
-  "ingraft/RepositoryAliases",
-  {
-    accessors: true,
-    effect: Effect.gen(function* () {
-      const fs = yield* FileSystem.FileSystem
-      const entries = yield* loadBundledAliasEntries(fs)
+export interface RepositoryAliasesShape {
+  readonly entries: ReadonlyArray<RepositoryAliasEntry>
+  readonly expand: (
+    inputs: ReadonlyArray<string>
+  ) => Effect.Effect<ReadonlyArray<RepositoryAliasResolvedTarget>, never>
+}
 
-      return {
-        entries,
-        expand: (inputs: ReadonlyArray<string>) =>
-          Effect.succeed(expandAliasTargetsWith(entries, inputs))
-      }
-    })
-  }
+export class RepositoryAliases extends Context.Service<RepositoryAliases, RepositoryAliasesShape>()(
+  "ingraft/RepositoryAliases"
 ) {}
+
+export const RepositoryAliasesLive = Layer.effect(
+  RepositoryAliases,
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const entries = yield* loadBundledAliasEntries(fs)
+
+    return {
+      entries,
+      expand: (inputs: ReadonlyArray<string>) =>
+        Effect.succeed(expandAliasTargetsWith(entries, inputs))
+    }
+  })
+)

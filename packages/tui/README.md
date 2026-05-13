@@ -5,7 +5,7 @@ Internal development wrapper for the `ingraft` OpenTUI dashboard.
 The dashboard ships inside the single published `ingraft` package. Running `ingraft` with no arguments opens it, and `ingraft tui` opens it explicitly.
 
 ```sh
-bun run tui
+bun run dev:tui
 ```
 
 The dashboard reads `ingraft deps --json`, lets you inspect matched package repositories, select add/update tasks, preview the exact CLI commands, and run them after an explicit confirmation.

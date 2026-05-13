@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect"
+import { Context, Effect, Layer, Option } from "effect"
 
 import {
   hostedRepoFromInput,
@@ -41,7 +41,7 @@ export interface RepositoryHostInfo {
 const resultOption = <A, E, R>(
   effect: Effect.Effect<Option.Option<A>, E, R>
 ): Effect.Effect<Option.Option<A>, never, R> =>
-  effect.pipe(Effect.catchAll(() => Effect.succeed(Option.none<A>())))
+  effect.pipe(Effect.catch(() => Effect.succeed(Option.none<A>())))
 
 const parseJson = (text: string): unknown =>
   Option.liftThrowable((value: string) => JSON.parse(value))(text).pipe(
@@ -142,7 +142,7 @@ const hostInfo = (repo: HostedRepository): RepositoryHostInfo => ({
 })
 
 const hostDefaultBranch = (githubExec: GitHubExec, gitlabExec: GitLabExec, input: string) =>
-  Option.fromNullable(hostedRepoFromInput(input)).pipe(
+  Option.fromNullishOr(hostedRepoFromInput(input)).pipe(
     Option.match({
       onNone: () => Effect.succeed(Option.none<string>()),
       onSome: (repo) => {
@@ -168,7 +168,7 @@ const hostClone = (
   gitlabExec: GitLabExec,
   { cwd, input, target }: HostCloneParams
 ) =>
-  Option.fromNullable(hostedRepoFromInput(input)).pipe(
+  Option.fromNullishOr(hostedRepoFromInput(input)).pipe(
     Option.match({
       onNone: () => Effect.succeed(Option.none<HostCommandResult>()),
       onSome: (repo) => {
@@ -204,7 +204,7 @@ const hostReleaseTag = (
   gitlabExec: GitLabExec,
   { input, release }: HostReleaseParams
 ) =>
-  Option.fromNullable(hostedRepoFromInput(input)).pipe(
+  Option.fromNullishOr(hostedRepoFromInput(input)).pipe(
     Option.match({
       onNone: () => Effect.succeed(Option.none<string>()),
       onSome: (repo) => {
@@ -226,11 +226,24 @@ const hostReleaseTag = (
   )
 
 const identifyHost = (input: string): Option.Option<RepositoryHostInfo> =>
-  Option.fromNullable(hostedRepoFromInput(input)).pipe(Option.map(hostInfo))
+  Option.fromNullishOr(hostedRepoFromInput(input)).pipe(Option.map(hostInfo))
 
-export class RepositoryHosts extends Effect.Service<RepositoryHosts>()("ingraft/RepositoryHosts", {
-  accessors: true,
-  effect: Effect.gen(function* () {
+export interface RepositoryHostsShape {
+  readonly clone: (
+    params: HostCloneParams
+  ) => Effect.Effect<Option.Option<HostCommandResult>, never>
+  readonly defaultBranch: (input: string) => Effect.Effect<Option.Option<string>, never>
+  readonly identify: (input: string) => Effect.Effect<Option.Option<RepositoryHostInfo>, never>
+  readonly releaseTag: (params: HostReleaseParams) => Effect.Effect<Option.Option<string>, never>
+}
+
+export class RepositoryHosts extends Context.Service<RepositoryHosts, RepositoryHostsShape>()(
+  "ingraft/RepositoryHosts"
+) {}
+
+export const RepositoryHostsLive = Layer.effect(
+  RepositoryHosts,
+  Effect.gen(function* () {
     const github = yield* GitHubCli
     const gitlab = yield* GitLabCli
     return {
@@ -240,4 +253,4 @@ export class RepositoryHosts extends Effect.Service<RepositoryHosts>()("ingraft/
       releaseTag: (params: HostReleaseParams) => hostReleaseTag(github.exec, gitlab.exec, params)
     }
   })
-}) {}
+)

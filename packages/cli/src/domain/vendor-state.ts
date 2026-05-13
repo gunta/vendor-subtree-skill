@@ -1,5 +1,4 @@
-import { FileSystem, Path } from "@effect/platform"
-import { Effect, Either, Option, ParseResult, Schema } from "effect"
+import { Effect, FileSystem, Option, Path, Result, Schema } from "effect"
 
 import { GitMetadata, type GitMetadataCommit } from "../services/git-metadata.ts"
 import { git } from "../services/git.ts"
@@ -25,17 +24,15 @@ import {
 } from "./vendor-strategy.ts"
 
 export const VendoredRepoSchema = Schema.Struct({
-  name: Schema.String.pipe(Schema.minLength(1)),
-  prefix: Schema.String.pipe(Schema.minLength(1)),
-  url: Schema.String.pipe(Schema.minLength(1)),
-  ref: Schema.String.pipe(Schema.minLength(1)),
+  name: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
+  prefix: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
+  url: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
+  ref: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
   strategy: VendorStrategySchema,
   filter: VendorFilterSchema,
-  syncPackage: Schema.optionalWith(Schema.String.pipe(Schema.minLength(1)), {
-    exact: true
-  }),
-  sha: Schema.String.pipe(Schema.minLength(1)),
-  date: Schema.String.pipe(Schema.minLength(1))
+  syncPackage: Schema.optionalKey(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
+  sha: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
+  date: Schema.String.pipe(Schema.check(Schema.isMinLength(1)))
 })
 
 export type VendoredRepo = typeof VendoredRepoSchema.Type
@@ -59,9 +56,7 @@ type StoredVendoredLogRecord = ActiveVendoredLogRecord | RemovedVendoredLogRecor
 
 type VendoredLogRecord = typeof VendoredLogRecordSchema.Type
 
-const decodeVendoredRecord = Schema.decodeUnknownEither(VendoredLogRecordSchema, {
-  errors: "all"
-})
+const decodeVendoredRecord = Schema.decodeUnknownResult(VendoredLogRecordSchema)
 
 export interface VendoredLogDiagnostic {
   readonly record: string
@@ -174,12 +169,12 @@ const rawRepoFromRecord = (record: string): RawVendoredLogRecordFields => {
 const filterFromRecord = (
   record: string,
   fields: RawVendoredLogRecordFields
-): Either.Either<VendorFilter, VendoredLogDiagnostic> => {
-  if (fields.rawFilter === "") return Either.right(EMPTY_VENDOR_FILTER)
+): Result.Result<VendorFilter, VendoredLogDiagnostic> => {
+  if (fields.rawFilter === "") return Result.succeed(EMPTY_VENDOR_FILTER)
   try {
-    return Either.right(parseVendorFilterTrailer(fields.rawFilter))
+    return Result.succeed(parseVendorFilterTrailer(fields.rawFilter))
   } catch (error) {
-    return Either.left({
+    return Result.fail({
       record,
       reason: `Invalid vendored repo filter for prefix '${fields.prefix}': ${String(error)}`
     })
@@ -188,9 +183,9 @@ const filterFromRecord = (
 
 const repoFromRecord = (
   record: string
-): Either.Either<VendoredLogRecordFields, VendoredLogDiagnostic> => {
+): Result.Result<VendoredLogRecordFields, VendoredLogDiagnostic> => {
   const fields = rawRepoFromRecord(record)
-  return Either.map(filterFromRecord(record, fields), (filter) => ({
+  return Result.map(filterFromRecord(record, fields), (filter) => ({
     action: fields.action,
     date: fields.date,
     filter,
@@ -255,12 +250,12 @@ const rawRepoFromCommit = ({
 const filterFromFields = (
   record: string,
   fields: RawVendoredRecordFields
-): Either.Either<VendorFilter, VendoredLogDiagnostic> => {
-  if (fields.rawFilter === "") return Either.right(EMPTY_VENDOR_FILTER)
+): Result.Result<VendorFilter, VendoredLogDiagnostic> => {
+  if (fields.rawFilter === "") return Result.succeed(EMPTY_VENDOR_FILTER)
   try {
-    return Either.right(parseVendorFilterTrailer(fields.rawFilter))
+    return Result.succeed(parseVendorFilterTrailer(fields.rawFilter))
   } catch (error) {
-    return Either.left({
+    return Result.fail({
       record,
       reason: `Invalid vendored repo filter for prefix '${fields.prefix}': ${String(error)}`
     })
@@ -270,8 +265,8 @@ const filterFromFields = (
 const repoFieldsFromRaw = (
   record: string,
   fields: RawVendoredRecordFields
-): Either.Either<VendoredLogRecordFields, VendoredLogDiagnostic> =>
-  Either.map(filterFromFields(record, fields), (filter) => ({
+): Result.Result<VendoredLogRecordFields, VendoredLogDiagnostic> =>
+  Result.map(filterFromFields(record, fields), (filter) => ({
     action: fields.action,
     date: fields.date,
     filter,
@@ -284,16 +279,11 @@ const repoFieldsFromRaw = (
     url: fields.url
   }))
 
-const diagnosticFromRecord = (
-  record: string,
-  error: ParseResult.ParseError
-): VendoredLogDiagnostic => {
+const diagnosticFromRecord = (record: string, error: unknown): VendoredLogDiagnostic => {
   const { prefix } = rawRepoFromRecord(record)
   return {
     record,
-    reason: `Invalid vendored repo record for prefix '${prefix ?? ""}': ${ParseResult.TreeFormatter.formatErrorSync(
-      error
-    )}`
+    reason: `Invalid vendored repo record for prefix '${prefix ?? ""}': ${String(error)}`
   }
 }
 
@@ -325,19 +315,19 @@ const rememberRepo = (
 
 const appendRecord = (state: VendoredLogAccumulator, record: string): VendoredLogAccumulator => {
   const parsed = repoFromRecord(record)
-  if (Either.isLeft(parsed)) {
+  if (Result.isFailure(parsed)) {
     return {
       ...state,
-      diagnostics: [...state.diagnostics, parsed.left]
+      diagnostics: [...state.diagnostics, parsed.failure]
     }
   }
 
-  return Either.match(decodeVendoredRecord(parsed.right), {
-    onRight: (repo) => ({
+  return Result.match(decodeVendoredRecord(parsed.success), {
+    onSuccess: (repo) => ({
       ...state,
       byPrefix: rememberRepo(state.byPrefix, repo)
     }),
-    onLeft: (error) => ({
+    onFailure: (error) => ({
       ...state,
       diagnostics: [...state.diagnostics, diagnosticFromRecord(record, error)]
     })
@@ -370,27 +360,25 @@ export const parseVendoredCommitsWithDiagnostics = (
       if (!trailers.has(TRAILER_URL)) return accumulator
       const raw = rawRepoFromCommit(commit)
       const parsed = repoFieldsFromRaw(commit.message, raw)
-      if (Either.isLeft(parsed)) {
+      if (Result.isFailure(parsed)) {
         return {
           ...accumulator,
-          diagnostics: [...accumulator.diagnostics, parsed.left]
+          diagnostics: [...accumulator.diagnostics, parsed.failure]
         }
       }
 
-      return Either.match(decodeVendoredRecord(parsed.right), {
-        onRight: (repo) => ({
+      return Result.match(decodeVendoredRecord(parsed.success), {
+        onSuccess: (repo) => ({
           ...accumulator,
           byPrefix: rememberRepo(accumulator.byPrefix, repo)
         }),
-        onLeft: (error) => ({
+        onFailure: (error) => ({
           ...accumulator,
           diagnostics: [
             ...accumulator.diagnostics,
             {
               record: commit.message,
-              reason: `Invalid vendored repo record for prefix '${raw.prefix}': ${ParseResult.TreeFormatter.formatErrorSync(
-                error
-              )}`
+              reason: `Invalid vendored repo record for prefix '${raw.prefix}': ${String(error)}`
             }
           ]
         })
@@ -429,9 +417,10 @@ export const listVendored = (cwd: string) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
-    const parsed = yield* GitMetadata.listCommits(cwd).pipe(
+    const gitMetadata = yield* GitMetadata
+    const parsed = yield* gitMetadata.listCommits(cwd).pipe(
       Effect.map(parseVendoredCommitsWithDiagnostics),
-      Effect.catchAll(() => listVendoredWithGit(cwd))
+      Effect.catch(() => listVendoredWithGit(cwd))
     )
     yield* Effect.forEach(parsed.diagnostics, (diagnostic) => Effect.logDebug(diagnostic.reason), {
       discard: true
@@ -446,6 +435,6 @@ export const listVendored = (cwd: string) =>
 export const findByName = ({ cwd, name }: FindVendoredRepoParams) =>
   listVendored(cwd).pipe(
     Effect.map((repos) =>
-      Option.fromNullable(repos.find((repo) => repo.name === name || repo.prefix === name))
+      Option.fromNullishOr(repos.find((repo) => repo.name === name || repo.prefix === name))
     )
   )
