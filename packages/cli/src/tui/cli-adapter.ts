@@ -1,11 +1,11 @@
-import { spawnSync } from "node:child_process"
-import { existsSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-import { Effect, Option, Queue, Stream } from "effect"
+import { Effect, FileSystem, Option, Queue, Stream } from "effect"
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 import { LiveLayer } from "../app/layers.ts"
+import { CommandPlanFailed } from "../domain/errors.ts"
 import { type VendoredRepo, listVendored } from "../domain/vendor-state.ts"
 import {
   dependencyVendorTasks,
@@ -32,9 +32,43 @@ import type {
   VendorTuiTask
 } from "./status.ts"
 
-interface CliInvocation {
+export interface CliInvocation {
   readonly args: ReadonlyArray<string>
   readonly command: string
+}
+
+export interface PlanResult {
+  readonly status: number | null
+  readonly stdout: string
+  readonly stderr: string
+}
+
+/**
+ * Pure: given whether a local CLI script exists, choose how to invoke ingraft.
+ * If the local script exists, run it via Bun; otherwise call the published CLI.
+ */
+export const selectCliCommand = (params: {
+  readonly localCliExists: boolean
+  readonly localCliPath: string
+  readonly args: ReadonlyArray<string>
+}): CliInvocation =>
+  params.localCliExists
+    ? { args: [params.localCliPath, ...params.args], command: "bun" }
+    : { args: [...params.args], command: "ingraft" }
+
+/**
+ * Pure: given an exec result (status + stdout + stderr) and a plan label,
+ * format the user-facing one-line status string.
+ */
+export const formatPlanResult = (params: {
+  readonly result: PlanResult
+  readonly label: string
+}): string => {
+  const { result, label } = params
+  const trimmed = result.stderr.trim() || result.stdout.trim()
+  const tail = trimmed.length > 0 ? trimmed.split("\n").slice(-4) : []
+  const suffix = tail.length > 0 ? `: ${tail.join(" | ")}` : ""
+  return result.status === 0 ? `OK ${label}${suffix}` : `FAIL ${label}${suffix}`
 }
 
 export interface SnapshotResult {
@@ -61,12 +95,20 @@ export interface SnapshotStreamServices<E = never, R = never> {
   ) => Effect.Effect<DependencyVendorCandidate, E, R>
 }
 
-const localCli = resolve(dirname(fileURLToPath(import.meta.url)), "../../scripts/vendor.ts")
+const localCliPath = (): string =>
+  resolve(dirname(fileURLToPath(import.meta.url)), "../../scripts/vendor.ts")
 
-const cliInvocation = (args: ReadonlyArray<string>): CliInvocation =>
-  existsSync(localCli)
-    ? { args: [localCli, ...args], command: "bun" }
-    : { args, command: "ingraft" }
+const cliInvocationEffect = (
+  args: ReadonlyArray<string>
+): Effect.Effect<CliInvocation, never, FileSystem.FileSystem> =>
+  Effect.gen(function* () {
+    const fs = yield* FileSystem.FileSystem
+    const localCli = localCliPath()
+    const localCliExists = yield* fs
+      .exists(localCli)
+      .pipe(Effect.catch(() => Effect.succeed(false)))
+    return selectCliCommand({ args, localCliExists, localCliPath: localCli })
+  })
 
 export const emptySnapshot = (): VendorTuiSnapshot => ({
   candidates: [],
@@ -244,13 +286,41 @@ export const readSnapshotStream: Stream.Stream<SnapshotProgress> =
     }).pipe(Effect.provide(LiveLayer), Effect.provide(GitMetadataLive), Effect.orDie)
   )
 
-export const runCommandPlanEffect = (plan: CommandPlan): Effect.Effect<string> =>
-  Effect.sync(() => {
-    const command = cliInvocation(plan.args)
-    const result = spawnSync(command.command, command.args, {
-      encoding: "utf8"
-    })
-    const output = (result.stderr.trim() || result.stdout.trim()).split("\n").slice(-4)
-    const suffix = output.length > 0 ? `: ${output.join(" | ")}` : ""
-    return result.status === 0 ? `OK ${plan.label}${suffix}` : `FAIL ${plan.label}${suffix}`
-  })
+const collectString = <E, R>(stream: Stream.Stream<Uint8Array, E, R>) =>
+  stream.pipe(
+    Stream.decodeText,
+    Stream.runFold(
+      () => "",
+      (a, b) => a + b
+    )
+  )
+
+export const runCommandPlanEffect = (
+  plan: CommandPlan
+): Effect.Effect<
+  string,
+  CommandPlanFailed,
+  ChildProcessSpawner.ChildProcessSpawner | FileSystem.FileSystem
+> =>
+  Effect.scoped(
+    Effect.gen(function* () {
+      const invocation = yield* cliInvocationEffect(plan.args)
+      const command = ChildProcess.make(invocation.command, [...invocation.args], {
+        stdout: "pipe",
+        stderr: "pipe"
+      })
+      const proc = yield* command
+      const [exitCode, stdout, stderr] = yield* Effect.all(
+        [proc.exitCode, collectString(proc.stdout), collectString(proc.stderr)],
+        { concurrency: 3 }
+      )
+      return formatPlanResult({
+        label: plan.label,
+        result: { status: Number(exitCode), stderr, stdout }
+      })
+    }).pipe(
+      Effect.mapError(
+        (cause) => new CommandPlanFailed({ args: plan.args, cause, label: plan.label })
+      )
+    )
+  )

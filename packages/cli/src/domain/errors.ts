@@ -199,6 +199,12 @@ export interface VendorNotesFailedParams {
   readonly cause: unknown
 }
 
+export interface CommandPlanFailedParams {
+  readonly label: string
+  readonly args: ReadonlyArray<string>
+  readonly cause: unknown
+}
+
 export class GitCommandFailed extends Data.TaggedError(
   "GitCommandFailed"
 )<GitCommandFailedParams> {}
@@ -341,6 +347,10 @@ export class VendorNotesFailed extends Data.TaggedError(
   "VendorNotesFailed"
 )<VendorNotesFailedParams> {}
 
+export class CommandPlanFailed extends Data.TaggedError(
+  "CommandPlanFailed"
+)<CommandPlanFailedParams> {}
+
 export type VendorError =
   | GitCommandFailed
   | NotGitRepository
@@ -382,6 +392,7 @@ export type VendorError =
   | GitMetadataFailed
   | MetadataFetchFailed
   | VendorNotesFailed
+  | CommandPlanFailed
 
 const gitCommand = (args: ReadonlyArray<string>) => `git ${args.join(" ")}`
 
@@ -674,6 +685,13 @@ export const errorPresentation = (error: VendorError): ErrorPresentation => {
           .filter((line): line is string => line !== undefined)
           .join("\n"),
         hint: "Re-run after confirming git notes can be read from this repository.",
+        code: 3
+      }
+    case "CommandPlanFailed":
+      return {
+        title: `TUI command failed: ${error.label}`,
+        detail: [`args: ${error.args.join(" ")}`, String(error.cause)].join("\n"),
+        hint: "Re-run the underlying ingraft subcommand directly to see the full output.",
         code: 3
       }
   }

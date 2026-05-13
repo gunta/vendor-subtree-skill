@@ -133,7 +133,8 @@ const app = Effect.gen(function* () {
     YamlParseFailed: handleVendorError,
     GitMetadataFailed: handleVendorError,
     MetadataFetchFailed: handleVendorError,
-    VendorNotesFailed: handleVendorError
+    VendorNotesFailed: handleVendorError,
+    CommandPlanFailed: handleVendorError
   })
 )
 

@@ -1,12 +1,17 @@
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-import { Effect } from "effect"
+import { Effect, FileSystem } from "effect"
 import { ChildProcess } from "effect/unstable/process"
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner"
 
 import { RuntimeConfig } from "../app/runtime.ts"
-import { BunRuntimeMissing, TuiLaunchFailed, TuiRendererFailed } from "../domain/errors.ts"
+import {
+  BunRuntimeMissing,
+  CommandPlanFailed,
+  TuiLaunchFailed,
+  TuiRendererFailed
+} from "../domain/errors.ts"
 import { runTuiApp } from "./app.ts"
 import { TuiRendererLive } from "./renderer.ts"
 
@@ -54,8 +59,8 @@ export const launchTui = (
   options: LaunchTuiOptions = {}
 ): Effect.Effect<
   void,
-  BunRuntimeMissing | TuiLaunchFailed | TuiRendererFailed,
-  ChildProcessSpawner | RuntimeConfig
+  BunRuntimeMissing | CommandPlanFailed | TuiLaunchFailed | TuiRendererFailed,
+  ChildProcessSpawner | FileSystem.FileSystem | RuntimeConfig
 > =>
   Effect.gen(function* () {
     const plan = yield* tuiLaunchPlan(options)
