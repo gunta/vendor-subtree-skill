@@ -2,7 +2,27 @@
   "name": "ingraft",
   "version": "0.3.0",
   "description": "Vendor external git repositories into a project for coding agents.",
+  "keywords": [
+    "cli",
+    "coding-agents",
+    "dependency-management",
+    "effect",
+    "git-subtree",
+    "ingraft",
+    "monorepo",
+    "vendor"
+  ],
+  "homepage": "https://ingraft.dev",
+  "bugs": {
+    "url": "https://github.com/gunta/ingraft/issues"
+  },
   "license": "MIT",
+  "author": "Gunther Brunner <gunta85@gmail.com> (https://github.com/gunta)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gunta/ingraft.git",
+    "directory": "packages/cli"
+  },
   "bin": {
     "ingraft": "./dist/bin/ingraft.js"
   },
@@ -23,7 +43,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json && mkdir -p dist/src/aliases && cp src/aliases/repository-aliases.json dist/src/aliases/repository-aliases.json && chmod +x dist/bin/ingraft.js",
-    "check": "bun run lint && bun run format:check && bun run typecheck && bun run test",
+    "check": "bun run lint && bun run format:check && bun run typecheck && bun run check:idioms && bun run test",
+    "check:idioms": "bun scripts/check-v4-idioms.ts",
     "dev": "bun scripts/vendor.ts",
     "format": "oxfmt . --write",
     "format:check": "oxfmt . --check",
@@ -33,13 +54,13 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@effect/cli": "^0.75.1",
-    "@effect/platform": "^0.96.1",
-    "@effect/platform-node": "^0.106.0",
+    "@effect/platform-bun": ">=4.0.0-beta.60 || >=4.0.0",
+    "@effect/platform-node": ">=4.0.0-beta.60 || >=4.0.0",
     "@iarna/toml": "2.2.5",
     "@opentui/core": "^0.2.8",
     "@xmldom/xmldom": "0.9.10",
-    "effect": "^3.21.2",
+    "alchemy": "2.0.0-beta.37",
+    "effect": ">=4.0.0-beta.60 || >=4.0.0",
     "ink": "^7.0.2",
     "isomorphic-git": "^1.37.6",
     "jscodeshift": "17.3.0",
@@ -49,7 +70,9 @@
     "yaml": "2.9.0"
   },
   "devDependencies": {
-    "@types/react": "^19.2.14"
+    "@types/node": "^25.7.0",
+    "@types/react": "^19.2.14",
+    "typescript": "^6.0.3"
   },
   "engines": {
     "node": ">=20.11"
