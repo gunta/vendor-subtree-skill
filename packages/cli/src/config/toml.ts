@@ -33,8 +33,8 @@ const parseToRecord = (text: string): Effect.Effect<TomlRecord, TomlParseFailed>
     Effect.flatMap((value) =>
       isRecord(value)
         ? Effect.succeed(value)
-        : Effect.fail(
-            new TomlParseFailed({ cause: new Error("Top-level TOML value is not a table") })
+        : Effect.die(
+            new Error("Unreachable: TOML.parse always returns a record on success per TOML 1.0 spec")
           )
     )
   )
