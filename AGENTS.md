@@ -8,9 +8,14 @@ Treat these as **read-only reference material**, not as part of the application 
 - Do NOT edit files under `vendor/` unless explicitly asked.
 - Do NOT import from `vendor/` — application code imports from normal package dependencies.
 - Prefer examples and patterns from `vendor/` over web search or generated guesses.
-- Use `vendor-subtree list` to see what is vendored.
-- To add or update vendored repos, run `vendor-subtree add <repo>` or `update <name>`.
+- `vendor/` stays visible to agents and language tooling; generated ignores target formatters, linters, and analyzers only.
+- Strategies: `subtree` is committed source, `submodule` is a gitlink, and `clone-ignore` is a local ignored clone.
+- Some repos may be filtered to omit media, generated directories, archives, fixtures, or oversized files.
+- Use `bun packages/cli/scripts/vendor.ts list` to see what is vendored.
+- To add or update vendored repos, run `bun packages/cli/scripts/vendor.ts add <repo>` or `update <name>`.
 
-_No repositories vendored yet. Run `vendor-subtree add <repo>`._
+**Vendored repositories:**
+
+- **`vendor/effect`** — subtree — `https://github.com/Effect-TS/effect.git` @ `main`
 
 <!-- vendor-subtree-skill:end -->

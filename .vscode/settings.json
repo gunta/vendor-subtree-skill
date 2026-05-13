@@ -13,5 +13,8 @@
   },
   "search.exclude": {
     "vendor/**": true
+  },
+  "material-icon-theme.folders.associations": {
+    "vendor": "packages"
   }
 }
