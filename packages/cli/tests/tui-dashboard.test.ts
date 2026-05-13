@@ -1,14 +1,18 @@
 import { describe, expect, test } from "bun:test"
 
+import { Effect, Option } from "effect"
+
 import {
   commandPlanForSelection,
   createDashboardState,
+  DashboardAction,
   dashboardTabs,
   dispatchDashboard,
   visibleRepositoryRows,
-  visibleTaskRows
+  visibleTaskRows,
+  type DashboardState
 } from "../src/tui/dashboard.ts"
-import { handleDashboardKey, type DashboardController } from "../src/tui/keyboard.ts"
+import { handleDashboardKey } from "../src/tui/keyboard.ts"
 import type { VendorTuiSnapshot } from "../src/tui/status.ts"
 
 const snapshot = {
@@ -81,8 +85,8 @@ describe("tui dashboard", () => {
 
   test("tracks focus and selected task rows independently", () => {
     const selected = dispatchDashboard(
-      dispatchDashboard(createDashboardState(snapshot), { type: "move-down" }),
-      { type: "toggle-selected" }
+      dispatchDashboard(createDashboardState(snapshot), DashboardAction.MoveDown()),
+      DashboardAction.ToggleSelected()
     )
 
     expect(selected.focusedTaskIndex).toBe(1)
@@ -94,17 +98,15 @@ describe("tui dashboard", () => {
   })
 
   test("keeps task focus in range when moving through the list", () => {
-    const state = dispatchDashboard(createDashboardState(snapshot), {
-      type: "move-up"
-    })
+    const state = dispatchDashboard(createDashboardState(snapshot), DashboardAction.MoveUp())
 
     expect(state.focusedTaskIndex).toBe(1)
   })
 
   test("builds safe command plans for selected add and update tasks", () => {
     const selected = dispatchDashboard(
-      dispatchDashboard(createDashboardState(snapshot), { type: "select-all" }),
-      { type: "set-strategy", strategy: "clone-ignore" }
+      dispatchDashboard(createDashboardState(snapshot), DashboardAction.SelectAll()),
+      DashboardAction.SetStrategy({ strategy: "clone-ignore" })
     )
 
     expect(commandPlanForSelection(selected)).toEqual([
@@ -130,47 +132,37 @@ describe("tui dashboard", () => {
 
   test("opens a confirmation state before running selected tasks", () => {
     const state = dispatchDashboard(
-      dispatchDashboard(createDashboardState(snapshot), { type: "select-all" }),
-      { type: "confirm-run" }
+      dispatchDashboard(createDashboardState(snapshot), DashboardAction.SelectAll()),
+      DashboardAction.ConfirmRun()
     )
 
     expect(state.mode).toBe("confirming-run")
   })
 
   test("maps keyboard input onto dashboard actions", () => {
+    const key = (name: string, sequence = name) =>
+      ({ name, sequence }) as Parameters<typeof handleDashboardKey>[0]
+
+    const applyKey = (state: DashboardState, name: string, sequence?: string): DashboardState => {
+      const result = Effect.runSync(handleDashboardKey(key(name, sequence ?? name), state))
+      return Option.match(result, {
+        onNone: () => state,
+        onSome: (keyAction) =>
+          keyAction._tag === "Dispatch" ? dispatchDashboard(state, keyAction.action) : state
+      })
+    }
+
     let state = createDashboardState(snapshot)
-    let didRun = false
-    const controller = {
-      quit: () => {},
-      refreshSnapshot: () => {},
-      runSelected: () => {
-        didRun = true
-      },
-      state: () => state,
-      updateState: (next) => {
-        state = next
-      }
-    } satisfies DashboardController
-
-    handleDashboardKey(
-      { name: "j", sequence: "j" } as Parameters<typeof handleDashboardKey>[0],
-      controller
-    )
-    handleDashboardKey(
-      { name: "4", sequence: "4" } as Parameters<typeof handleDashboardKey>[0],
-      controller
-    )
-    handleDashboardKey(
-      { name: "return", sequence: "\r" } as Parameters<typeof handleDashboardKey>[0],
-      controller
-    )
-    handleDashboardKey(
-      { name: "y", sequence: "y" } as Parameters<typeof handleDashboardKey>[0],
-      controller
-    )
-
+    state = applyKey(state, "j")
+    state = applyKey(state, "4")
+    state = applyKey(state, "return", "\r")
+    // After "return" we should be in confirming-run mode
+    expect(state.mode).toBe("confirming-run")
+    // "y" in confirming mode returns the synthetic Run action; the app loop runs the commands.
+    const yResult = Effect.runSync(handleDashboardKey(key("y"), state))
+    expect(Option.isSome(yResult)).toBe(true)
+    expect(Option.getOrUndefined(yResult)?._tag).toBe("Run")
     expect(state.focusedTaskIndex).toBe(1)
     expect(state.strategy).toBe("cache-link")
-    expect(didRun).toBe(true)
   })
 })

@@ -3,7 +3,7 @@ import { existsSync } from "node:fs"
 import { dirname, resolve } from "node:path"
 import { fileURLToPath } from "node:url"
 
-import { Effect, Option } from "effect"
+import { Effect, Option, Queue, Stream } from "effect"
 
 import { LiveLayer } from "../app/layers.ts"
 import { type VendoredRepo, listVendored } from "../domain/vendor-state.ts"
@@ -29,8 +29,7 @@ import type {
   VendorTuiCandidate,
   VendorTuiRepo,
   VendorTuiSnapshot,
-  VendorTuiTask,
-  VendorTuiTaskVersions
+  VendorTuiTask
 } from "./status.ts"
 
 interface CliInvocation {
@@ -47,35 +46,19 @@ export interface SnapshotProgress extends SnapshotResult {
   readonly complete: boolean
 }
 
-export interface SnapshotStreamServices<R = never> {
+export interface SnapshotStreamServices<E = never, R = never> {
   readonly detectVendoredVersions: (
     cwd: string,
     candidates: ReadonlyArray<DependencyVendorCandidate>,
     repos: ReadonlyArray<VendoredRepo>
-  ) => Effect.Effect<VendoredPackageVersionMap, unknown, R>
-  readonly listDependencies: (
-    cwd: string
-  ) => Effect.Effect<ReadonlyArray<PackageDependency>, unknown, R>
-  readonly listRepos: (cwd: string) => Effect.Effect<ReadonlyArray<VendoredRepo>, unknown, R>
-  readonly root: Effect.Effect<string, unknown, R>
+  ) => Effect.Effect<VendoredPackageVersionMap, E, R>
+  readonly listDependencies: (cwd: string) => Effect.Effect<ReadonlyArray<PackageDependency>, E, R>
+  readonly listRepos: (cwd: string) => Effect.Effect<ReadonlyArray<VendoredRepo>, E, R>
+  readonly root: Effect.Effect<string, E, R>
   readonly scanDependency: (
     cwd: string,
     dependency: PackageDependency
-  ) => Effect.Effect<DependencyVendorCandidate, unknown, R>
-}
-
-interface ListJsonRepo {
-  readonly name?: unknown
-  readonly packageNames?: unknown
-  readonly prefix?: unknown
-  readonly ref?: unknown
-  readonly strategy?: unknown
-  readonly url?: unknown
-  readonly versions?: unknown
-}
-
-interface ListJsonOutput {
-  readonly repos?: unknown
+  ) => Effect.Effect<DependencyVendorCandidate, E, R>
 }
 
 const localCli = resolve(dirname(fileURLToPath(import.meta.url)), "../../scripts/vendor.ts")
@@ -105,26 +88,6 @@ const failedSnapshot = (message: string): VendorTuiSnapshot => ({
     }
   ]
 })
-
-const stringValue = (value: unknown): string => (typeof value === "string" ? value : "-")
-
-const stringArray = (value: unknown): ReadonlyArray<string> =>
-  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : []
-
-const toTuiRepo = (repo: ListJsonRepo): VendorTuiRepo => {
-  const base: VendorTuiRepo = {
-    name: stringValue(repo.name),
-    packageNames: stringArray(repo.packageNames),
-    path: stringValue(repo.prefix),
-    ref: stringValue(repo.ref),
-    source: stringValue(repo.url),
-    strategy: stringValue(repo.strategy)
-  }
-  if (repo.versions !== undefined) {
-    return { ...base, versions: repo.versions as VendorTuiTaskVersions }
-  }
-  return base
-}
 
 const toTuiCandidate = (candidate: DependencyVendorCandidate): VendorTuiCandidate => ({
   packageName: candidate.packageName,
@@ -180,10 +143,10 @@ const emitProgress = (
   progress: SnapshotProgress
 ) => Effect.sync(() => onProgress(progress))
 
-export const streamSnapshotWith = <R>(
-  services: SnapshotStreamServices<R>,
+export const streamSnapshotWith = <E, R>(
+  services: SnapshotStreamServices<E, R>,
   onProgress: (progress: SnapshotProgress) => void
-) =>
+): Effect.Effect<SnapshotResult, never, R> =>
   Effect.gen(function* () {
     const cwd = yield* services.root
     const repos = yield* services.listRepos(cwd)
@@ -250,71 +213,44 @@ export const streamSnapshotWith = <R>(
     })
   )
 
-export const readSnapshotStreaming = (
-  onProgress: (progress: SnapshotProgress) => void
-): Promise<SnapshotResult> =>
-  Effect.runPromise(
+/**
+ * A Stream of snapshot progress events backed by the live services. Emits
+ * intermediate progress and a final result, then ends.
+ *
+ * Service / layer construction errors (config file failures, git lookup, etc.)
+ * are surfaced through the inner snapshot catch handler as a failed snapshot
+ * with an error message — the stream itself never fails. Per-call errors are
+ * captured into the snapshot catch handler via Effect.sandbox + asError pattern
+ * implemented by `streamSnapshotWith`'s outer Effect.catch.
+ */
+export const readSnapshotStream: Stream.Stream<SnapshotProgress> =
+  Stream.callback<SnapshotProgress>((queue) =>
     Effect.gen(function* () {
       const pkgSync = yield* PackageVersionSync
-      return yield* streamSnapshotWith(
+      yield* streamSnapshotWith(
         {
-          detectVendoredVersions: detectVendoredPackageVersions,
-          listDependencies: (cwd) => pkgSync.listDependencies(cwd),
-          listRepos: listVendored,
-          root: repoRoot,
-          scanDependency: (cwd, dependency) => pkgSync.scanDependency(cwd, dependency)
+          detectVendoredVersions: (cwd, candidates, repos) =>
+            detectVendoredPackageVersions(cwd, candidates, repos).pipe(Effect.orDie),
+          listDependencies: (cwd) => pkgSync.listDependencies(cwd).pipe(Effect.orDie),
+          listRepos: (cwd) => listVendored(cwd).pipe(Effect.orDie),
+          root: repoRoot.pipe(Effect.orDie),
+          scanDependency: (cwd, dependency) =>
+            pkgSync.scanDependency(cwd, dependency).pipe(Effect.orDie)
         },
-        onProgress
+        (progress) => {
+          Queue.offerUnsafe(queue, progress)
+        }
       )
-    }).pipe(Effect.provide(LiveLayer), Effect.provide(GitMetadataLive))
+    }).pipe(Effect.provide(LiveLayer), Effect.provide(GitMetadataLive), Effect.orDie)
   )
 
-export const readSnapshot = (): SnapshotResult => {
-  const depsCommand = cliInvocation(["deps", "--json"])
-  const depsResult = spawnSync(depsCommand.command, depsCommand.args, {
-    encoding: "utf8"
-  })
-  if (depsResult.status !== 0) {
-    const output = depsResult.stderr.trim() || depsResult.stdout.trim()
-    return {
-      message: output || "Dependency scan failed.",
-      snapshot: failedSnapshot(output || "Dependency scan failed.")
-    }
-  }
-  try {
-    const snapshot = JSON.parse(depsResult.stdout) as VendorTuiSnapshot
-    const listCommand = cliInvocation(["list", "--json"])
-    const listResult = spawnSync(listCommand.command, listCommand.args, {
+export const runCommandPlanEffect = (plan: CommandPlan): Effect.Effect<string> =>
+  Effect.sync(() => {
+    const command = cliInvocation(plan.args)
+    const result = spawnSync(command.command, command.args, {
       encoding: "utf8"
     })
-    if (listResult.status !== 0) {
-      return {
-        message: "Dependency snapshot refreshed; repository list failed.",
-        snapshot: { ...snapshot, repos: [] }
-      }
-    }
-    const list = JSON.parse(listResult.stdout) as ListJsonOutput
-    const repos = Array.isArray(list.repos)
-      ? list.repos.map((repo) => toTuiRepo(repo as ListJsonRepo))
-      : []
-    return {
-      message: "Dependency and repository snapshots refreshed.",
-      snapshot: { ...snapshot, repos }
-    }
-  } catch {
-    return {
-      message: "CLI returned invalid JSON.",
-      snapshot: failedSnapshot("CLI returned invalid JSON.")
-    }
-  }
-}
-
-export const runCommandPlan = (plan: CommandPlan): string => {
-  const command = cliInvocation(plan.args)
-  const result = spawnSync(command.command, command.args, {
-    encoding: "utf8"
+    const output = (result.stderr.trim() || result.stdout.trim()).split("\n").slice(-4)
+    const suffix = output.length > 0 ? `: ${output.join(" | ")}` : ""
+    return result.status === 0 ? `OK ${plan.label}${suffix}` : `FAIL ${plan.label}${suffix}`
   })
-  const output = (result.stderr.trim() || result.stdout.trim()).split("\n").slice(-4)
-  const suffix = output.length > 0 ? `: ${output.join(" | ")}` : ""
-  return result.status === 0 ? `OK ${plan.label}${suffix}` : `FAIL ${plan.label}${suffix}`
-}

@@ -1,11 +1,13 @@
+import { Data } from "effect"
+
 import {
-  repoRows,
+  repoRowsSync,
   type VendorTuiCandidate,
   type VendorTuiSnapshot,
   type VendorTuiTask
 } from "./status.ts"
 
-export type VendorTuiStrategy = "subtree" | "submodule" | "clone-ignore"
+export type VendorTuiStrategy = "subtree" | "submodule" | "clone-ignore" | "cache-link"
 
 export type DashboardTab = "tasks" | "repositories" | "dependencies" | "activity" | "help"
 
@@ -33,20 +35,23 @@ export interface CreateDashboardStateOptions {
   readonly statusMessage?: string
 }
 
-export type DashboardAction =
-  | { readonly type: "append-log"; readonly line: string }
-  | { readonly type: "cancel" }
-  | { readonly type: "clear-selection" }
-  | { readonly type: "confirm-run" }
-  | { readonly type: "finish-run"; readonly message: string; readonly snapshot?: VendorTuiSnapshot }
-  | { readonly type: "move-down" }
-  | { readonly type: "move-up" }
-  | { readonly type: "refresh"; readonly snapshot: VendorTuiSnapshot; readonly message?: string }
-  | { readonly type: "select-all" }
-  | { readonly type: "set-strategy"; readonly strategy: VendorTuiStrategy }
-  | { readonly type: "set-tab"; readonly tab: DashboardTab }
-  | { readonly type: "start-run" }
-  | { readonly type: "toggle-selected" }
+export type DashboardAction = Data.TaggedEnum<{
+  AppendLog: { readonly line: string }
+  Cancel: {}
+  ClearSelection: {}
+  ConfirmRun: {}
+  FinishRun: { readonly message: string; readonly snapshot?: VendorTuiSnapshot }
+  MoveDown: {}
+  MoveUp: {}
+  Refresh: { readonly snapshot: VendorTuiSnapshot; readonly message?: string }
+  SelectAll: {}
+  SetStrategy: { readonly strategy: VendorTuiStrategy }
+  SetTab: { readonly tab: DashboardTab }
+  StartRun: {}
+  ToggleSelected: {}
+}>
+
+export const DashboardAction = Data.taggedEnum<DashboardAction>()
 
 export const dashboardTabs = [
   "tasks",
@@ -59,7 +64,8 @@ export const dashboardTabs = [
 export const vendorStrategies = [
   "subtree",
   "submodule",
-  "clone-ignore"
+  "clone-ignore",
+  "cache-link"
 ] as const satisfies ReadonlyArray<VendorTuiStrategy>
 
 const clampTaskIndex = (index: number, snapshot: VendorTuiSnapshot): number => {
@@ -120,7 +126,7 @@ export const visibleCandidateRows = (snapshot: VendorTuiSnapshot): ReadonlyArray
   snapshot.candidates.map((candidate) => formatCandidateRow(candidate))
 
 export const visibleRepositoryRows = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
-  snapshot.repos.length === 0 ? ["No vendored repositories detected."] : repoRows(snapshot)
+  snapshot.repos.length === 0 ? ["No vendored repositories detected."] : repoRowsSync(snapshot)
 
 const candidateStatusLabel = (candidate: VendorTuiCandidate): string => {
   switch (candidate.status) {
@@ -186,25 +192,25 @@ export const dispatchDashboard = (
   state: DashboardState,
   action: DashboardAction
 ): DashboardState => {
-  switch (action.type) {
-    case "append-log":
+  switch (action._tag) {
+    case "AppendLog":
       return {
         ...state,
         logLines: [...state.logLines, action.line].slice(-12)
       }
-    case "cancel":
+    case "Cancel":
       return {
         ...state,
         mode: "browsing",
         statusMessage: "Cancelled."
       }
-    case "clear-selection":
+    case "ClearSelection":
       return {
         ...state,
         selectedTaskIndexes: [],
         statusMessage: "Selection cleared."
       }
-    case "confirm-run":
+    case "ConfirmRun":
       return commandPlanForSelection(state).length === 0
         ? {
             ...state,
@@ -215,7 +221,7 @@ export const dispatchDashboard = (
             mode: "confirming-run",
             statusMessage: "Press y to run selected tasks, n to cancel."
           }
-    case "finish-run": {
+    case "FinishRun": {
       const snapshot = action.snapshot ?? state.snapshot
       return {
         ...state,
@@ -227,17 +233,17 @@ export const dispatchDashboard = (
         statusMessage: action.message
       }
     }
-    case "move-down":
+    case "MoveDown":
       return {
         ...state,
         focusedTaskIndex: clampTaskIndex(state.focusedTaskIndex + 1, state.snapshot)
       }
-    case "move-up":
+    case "MoveUp":
       return {
         ...state,
         focusedTaskIndex: clampTaskIndex(state.focusedTaskIndex - 1, state.snapshot)
       }
-    case "refresh":
+    case "Refresh":
       return {
         ...state,
         focusedTaskIndex: clampTaskIndex(state.focusedTaskIndex, action.snapshot),
@@ -247,7 +253,7 @@ export const dispatchDashboard = (
         snapshot: action.snapshot,
         statusMessage: action.message ?? "Snapshot refreshed."
       }
-    case "select-all":
+    case "SelectAll":
       return setSelected(
         {
           ...state,
@@ -255,24 +261,24 @@ export const dispatchDashboard = (
         },
         state.snapshot.tasks.map((_, index) => index)
       )
-    case "set-strategy":
+    case "SetStrategy":
       return {
         ...state,
         statusMessage: `New add strategy: ${action.strategy}.`,
         strategy: action.strategy
       }
-    case "set-tab":
+    case "SetTab":
       return {
         ...state,
         activeTab: action.tab
       }
-    case "start-run":
+    case "StartRun":
       return {
         ...state,
         mode: "running",
         statusMessage: "Running vendoring command..."
       }
-    case "toggle-selected": {
+    case "ToggleSelected": {
       if (state.snapshot.tasks[state.focusedTaskIndex] === undefined) return state
       const selected = state.selectedTaskIndexes.includes(state.focusedTaskIndex)
         ? state.selectedTaskIndexes.filter((index) => index !== state.focusedTaskIndex)

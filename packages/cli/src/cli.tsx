@@ -28,7 +28,7 @@ import {
 import { GitMetadataLive } from "./services/git-metadata.ts"
 import { launchTui } from "./tui/launcher.ts"
 
-const openTui = Effect.promise(() => launchTui()).pipe(Effect.asVoid, withCommandTelemetry("tui"))
+const openTui = launchTui().pipe(withCommandTelemetry("tui"))
 
 const rootTargetsArg = Argument.string("target").pipe(
   Argument.withDescription(
@@ -62,7 +62,7 @@ export const vendorCommand = Command.make("ingraft", { targets: rootTargetsArg }
   })
 ).pipe(
   Command.withDescription(
-    "Manage vendored external git repositories for coding agents using subtree, submodule, or clone-ignore strategies."
+    "Manage vendored external git repositories for coding agents using subtree, submodule, clone-ignore, or cache-link strategies."
   ),
   Command.withSubcommands([
     initCmd,

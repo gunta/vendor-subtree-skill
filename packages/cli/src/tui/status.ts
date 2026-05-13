@@ -1,3 +1,5 @@
+import { Effect } from "effect"
+
 export interface VendorTuiTask {
   readonly action: "add" | "update"
   readonly existingName: string | null
@@ -37,7 +39,7 @@ export interface VendorTuiSnapshot {
   readonly tasks: ReadonlyArray<VendorTuiTask>
 }
 
-export const summarizeSnapshot = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> => {
+const summarizeSnapshotSync = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> => {
   const matched = snapshot.candidates.filter((candidate) => candidate.status === "matched").length
   const adds = snapshot.tasks.filter((task) => task.action === "add").length
   const updates = snapshot.tasks.filter((task) => task.action === "update").length
@@ -49,7 +51,11 @@ export const summarizeSnapshot = (snapshot: VendorTuiSnapshot): ReadonlyArray<st
   ]
 }
 
-export const taskRows = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
+export const summarizeSnapshot = (
+  snapshot: VendorTuiSnapshot
+): Effect.Effect<ReadonlyArray<string>> => Effect.sync(() => summarizeSnapshotSync(snapshot))
+
+const taskRowsSync = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
   snapshot.tasks.map((task) => {
     const packages = task.packageNames.join(", ")
     const target =
@@ -60,13 +66,16 @@ export const taskRows = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
     return `${task.action.toUpperCase()} ${packages} -> ${target}${status}`
   })
 
+export const taskRows = (snapshot: VendorTuiSnapshot): Effect.Effect<ReadonlyArray<string>> =>
+  Effect.sync(() => taskRowsSync(snapshot))
+
 const repoPackages = (repo: VendorTuiRepo): string =>
   repo.packageNames.length === 0 ? "-" : repo.packageNames.join(", ")
 
 const repoVersion = (repo: VendorTuiRepo, key: "local" | "remote" | "status" | "vendor"): string =>
   repo.versions?.[key] ?? "-"
 
-export const repoRows = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
+export const repoRowsSync = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
   snapshot.repos.map((repo) =>
     [
       repo.name.padEnd(28, " "),
@@ -78,3 +87,6 @@ export const repoRows = (snapshot: VendorTuiSnapshot): ReadonlyArray<string> =>
       repoVersion(repo, "status")
     ].join(" ")
   )
+
+export const repoRows = (snapshot: VendorTuiSnapshot): Effect.Effect<ReadonlyArray<string>> =>
+  Effect.sync(() => repoRowsSync(snapshot))

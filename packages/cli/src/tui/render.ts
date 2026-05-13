@@ -1,4 +1,5 @@
 import { Box, Text } from "@opentui/core"
+import { Effect } from "effect"
 
 import {
   commandPreviewLines,
@@ -9,6 +10,7 @@ import {
   visibleTaskRows,
   type DashboardState
 } from "./dashboard.ts"
+import type { RenderableNode } from "./renderer.ts"
 import type { VendorTuiSnapshot } from "./status.ts"
 
 export interface Viewport {
@@ -96,7 +98,7 @@ const activePaneLines = (state: DashboardState): ReadonlyArray<string> => {
         "y / n              confirm or cancel run",
         "r                  refresh dependency scan",
         "tab, h, l          switch tabs",
-        "1, 2, 3            add strategy: subtree, submodule, clone-ignore",
+        "1, 2, 3, 4         add strategy: subtree, submodule, clone-ignore, cache-link",
         "q                  quit"
       ]
     case "tasks":
@@ -146,7 +148,7 @@ const textBlock = (lines: ReadonlyArray<string>, maxLines: number, width: number
     : visible.join("\n")
 }
 
-export const renderDashboard = (state: DashboardState, viewport: Viewport) => {
+const renderDashboardSync = (state: DashboardState, viewport: Viewport): RenderableNode => {
   const width = Math.max(72, viewport.width)
   const height = Math.max(24, viewport.height)
   const headerHeight = 7
@@ -264,3 +266,8 @@ export const renderDashboard = (state: DashboardState, viewport: Viewport) => {
     )
   )
 }
+
+export const renderDashboard = (
+  state: DashboardState,
+  viewport: Viewport
+): Effect.Effect<RenderableNode> => Effect.sync(() => renderDashboardSync(state, viewport))
