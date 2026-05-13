@@ -6,8 +6,8 @@ import { jsObjectHasArrayValue } from "../src/config/javascript-source.ts"
 import { packageJsonHasDependency, packageJsonDependencySpec } from "../src/config/package-json.ts"
 import { parseTomlText, parseTomlWith, tomlHasPath, tomlPathHasArrayValue } from "../src/config/toml.ts"
 import { tsObjectHasArrayValue } from "../src/config/typescript-source.ts"
-import { yamlHasPath } from "../src/config/yaml.ts"
-import { SchemaDecodeFailed, TomlParseFailed } from "../src/domain/errors.ts"
+import { parseYamlText, parseYamlWith, yamlHasPath } from "../src/config/yaml.ts"
+import { SchemaDecodeFailed, TomlParseFailed, YamlParseFailed } from "../src/domain/errors.ts"
 
 describe("non-destructive config parsers", () => {
   test("reads package.json dependency sections with JSONC-compatible parsing", () => {
@@ -64,7 +64,32 @@ describe("non-destructive config parsers", () => {
         - prettier-plugin-tailwindcss
     `
 
-    expect(yamlHasPath(text, ["plugins"])).toBe(true)
+    expect(Effect.runSync(yamlHasPath(text, ["plugins"]))).toBe(true)
+  })
+
+  test("parseYamlText surfaces YamlParseFailed on malformed input", async () => {
+    // unterminated flow mapping
+    const exit = await Effect.runPromiseExit(parseYamlText("foo: { bar: baz"))
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = exit.cause.reasons.filter(Cause.isFailReason)
+      expect(failures[0]?.error).toBeInstanceOf(YamlParseFailed)
+    }
+  })
+
+  test("yamlHasPath surfaces YamlParseFailed on malformed input", async () => {
+    const exit = await Effect.runPromiseExit(yamlHasPath("foo: { bar: baz", ["foo"]))
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = exit.cause.reasons.filter(Cause.isFailReason)
+      expect(failures[0]?.error).toBeInstanceOf(YamlParseFailed)
+    }
+  })
+
+  test("parseYamlWith decodes valid YAML matching the schema", async () => {
+    const schema = Schema.Struct({ name: Schema.String })
+    const result = await Effect.runPromise(parseYamlWith(schema)("name: demo\n"))
+    expect(result.name).toBe("demo")
   })
 
   test("uses ts-morph for TypeScript config source detection", () => {

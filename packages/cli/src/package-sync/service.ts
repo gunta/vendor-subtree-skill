@@ -5,7 +5,7 @@ import { parse as parseJsonc, type ParseError } from "jsonc-parser"
 
 import { packageJsonDependencySpec, parsePackageJsonShape } from "../config/package-json.ts"
 import { parseTomlText } from "../config/toml.ts"
-import { parseYamlConfig } from "../config/yaml.ts"
+import { parseYamlText } from "../config/yaml.ts"
 import { VENDOR_DIR } from "../domain/constants.ts"
 import { PackageVersionSyncFailed } from "../domain/errors.ts"
 import { Git, type GitResult, type GitShape } from "../services/git.ts"
@@ -514,31 +514,37 @@ const pnpmVersionFromPackageKey = (key: string, packageName: string): Option.Opt
 }
 
 export const parsePnpmLockVersion = (text: string, packageName: string): Option.Option<string> =>
-  parseYamlConfig(text).pipe(
-    Option.flatMap((lock) => {
-      const importers = lock.importers
-      if (isRecord(importers)) {
-        for (const importer of Object.values(importers)) {
-          if (!isRecord(importer)) continue
-          for (const section of lockDependencySections) {
-            const dependencies = importer[section]
-            if (!isRecord(dependencies)) continue
-            const version = pnpmEntryVersion(dependencies[packageName])
+  // sync by design: see lock-file parsing callers in this module
+  Effect.runSync(
+    parseYamlText(text).pipe(
+      Effect.map((value): Option.Option<string> => {
+        if (!isRecord(value)) return Option.none()
+        const lock = value
+        const importers = lock.importers
+        if (isRecord(importers)) {
+          for (const importer of Object.values(importers)) {
+            if (!isRecord(importer)) continue
+            for (const section of lockDependencySections) {
+              const dependencies = importer[section]
+              if (!isRecord(dependencies)) continue
+              const version = pnpmEntryVersion(dependencies[packageName])
+              if (Option.isSome(version)) return version
+            }
+          }
+        }
+
+        const packages = lock.packages
+        if (isRecord(packages)) {
+          for (const key of Object.keys(packages)) {
+            const version = pnpmVersionFromPackageKey(key, packageName)
             if (Option.isSome(version)) return version
           }
         }
-      }
 
-      const packages = lock.packages
-      if (isRecord(packages)) {
-        for (const key of Object.keys(packages)) {
-          const version = pnpmVersionFromPackageKey(key, packageName)
-          if (Option.isSome(version)) return version
-        }
-      }
-
-      return Option.none()
-    })
+        return Option.none()
+      }),
+      Effect.orElseSucceed(() => Option.none<string>())
+    )
   )
 
 const yarnSelectorMatchesPackage = (selector: string, packageName: string): boolean => {
