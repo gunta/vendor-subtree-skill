@@ -1,4 +1,4 @@
-import { Data } from "effect"
+import { Data, type SchemaIssue } from "effect"
 
 import type { VendorStrategy } from "./vendor-strategy.ts"
 
@@ -197,6 +197,67 @@ export class CloudflareArtifactsRequestFailed extends Data.TaggedError(
   "CloudflareArtifactsRequestFailed"
 )<CloudflareArtifactsRequestFailedParams> {}
 
+export class TomlParseFailed extends Data.TaggedError("TomlParseFailed")<{
+  readonly source?: string
+  readonly cause: unknown
+}> {}
+
+export class YamlParseFailed extends Data.TaggedError("YamlParseFailed")<{
+  readonly source?: string
+  readonly cause: unknown
+}> {}
+
+export class JsonParseFailed extends Data.TaggedError("JsonParseFailed")<{
+  readonly source?: string
+  readonly cause: unknown
+}> {}
+
+export class JsoncParseFailed extends Data.TaggedError("JsoncParseFailed")<{
+  readonly source?: string
+  readonly cause: unknown
+}> {}
+
+export class JavaScriptParseFailed extends Data.TaggedError("JavaScriptParseFailed")<{
+  readonly source?: string
+  readonly cause: unknown
+}> {}
+
+export class TypeScriptParseFailed extends Data.TaggedError("TypeScriptParseFailed")<{
+  readonly source?: string
+  readonly cause: unknown
+}> {}
+
+export class SchemaDecodeFailed extends Data.TaggedError("SchemaDecodeFailed")<{
+  readonly source: string
+  readonly issue: SchemaIssue.Issue
+}> {}
+
+export class InkRenderFailed extends Data.TaggedError("InkRenderFailed")<{
+  readonly view: string
+  readonly cause: unknown
+}> {}
+
+export class PromptInputFailed extends Data.TaggedError("PromptInputFailed")<{
+  readonly cause: unknown
+}> {}
+
+export class TuiLaunchFailed extends Data.TaggedError("TuiLaunchFailed")<{
+  readonly command: string
+  readonly cause: unknown
+}> {}
+
+export class TuiRendererFailed extends Data.TaggedError("TuiRendererFailed")<{
+  readonly phase: "acquire" | "render" | "release"
+  readonly cause: unknown
+}> {}
+
+export class BunRuntimeMissing extends Data.TaggedError("BunRuntimeMissing")<Record<string, never>> {}
+
+export class ToolIgnoreCheckFailed extends Data.TaggedError("ToolIgnoreCheckFailed")<{
+  readonly tool: string
+  readonly cause: unknown
+}> {}
+
 export type VendorError =
   | GitCommandFailed
   | NotGitRepository
@@ -221,6 +282,19 @@ export type VendorError =
   | HistoryRewriteFailed
   | CloudflareArtifactsConfigMissing
   | CloudflareArtifactsRequestFailed
+  | TomlParseFailed
+  | YamlParseFailed
+  | JsonParseFailed
+  | JsoncParseFailed
+  | JavaScriptParseFailed
+  | TypeScriptParseFailed
+  | SchemaDecodeFailed
+  | InkRenderFailed
+  | PromptInputFailed
+  | TuiLaunchFailed
+  | TuiRendererFailed
+  | BunRuntimeMissing
+  | ToolIgnoreCheckFailed
 
 const gitCommand = (args: ReadonlyArray<string>) => `git ${args.join(" ")}`
 
@@ -387,6 +461,109 @@ export const errorPresentation = (error: VendorError): ErrorPresentation => {
         title: `Cloudflare Artifacts ${error.action} failed`,
         detail: error.status === undefined ? error.output : `HTTP ${error.status}\n${error.output}`,
         hint: "Check the Artifacts namespace, API token permissions, repo name, and source repository URL.",
+        code: 3
+      }
+    case "TomlParseFailed":
+      return {
+        title: "TOML parse failed",
+        detail: error.source
+          ? `Source: ${error.source}\n${String(error.cause)}`
+          : String(error.cause),
+        hint: "Inspect the file for invalid TOML syntax.",
+        code: 2
+      }
+    case "YamlParseFailed":
+      return {
+        title: "YAML parse failed",
+        detail: error.source
+          ? `Source: ${error.source}\n${String(error.cause)}`
+          : String(error.cause),
+        hint: "Inspect the file for invalid YAML syntax.",
+        code: 2
+      }
+    case "JsonParseFailed":
+      return {
+        title: "JSON parse failed",
+        detail: error.source
+          ? `Source: ${error.source}\n${String(error.cause)}`
+          : String(error.cause),
+        hint: "Inspect the file for invalid JSON syntax.",
+        code: 2
+      }
+    case "JsoncParseFailed":
+      return {
+        title: "JSONC parse failed",
+        detail: error.source
+          ? `Source: ${error.source}\n${String(error.cause)}`
+          : String(error.cause),
+        hint: "Inspect the file for invalid JSONC syntax.",
+        code: 2
+      }
+    case "JavaScriptParseFailed":
+      return {
+        title: "JavaScript parse failed",
+        detail: error.source
+          ? `Source: ${error.source}\n${String(error.cause)}`
+          : String(error.cause),
+        hint: "Inspect the file for invalid JavaScript syntax.",
+        code: 2
+      }
+    case "TypeScriptParseFailed":
+      return {
+        title: "TypeScript parse failed",
+        detail: error.source
+          ? `Source: ${error.source}\n${String(error.cause)}`
+          : String(error.cause),
+        hint: "Inspect the file for invalid TypeScript syntax.",
+        code: 2
+      }
+    case "SchemaDecodeFailed":
+      return {
+        title: `Schema decode failed for ${error.source}`,
+        detail: String(error.issue),
+        hint: "The decoded value did not match the expected schema. Inspect the source for the expected shape.",
+        code: 2
+      }
+    case "InkRenderFailed":
+      return {
+        title: `UI render failed: ${error.view}`,
+        detail: String(error.cause),
+        hint: "This is an internal error. Re-running the command usually recovers.",
+        code: 3
+      }
+    case "PromptInputFailed":
+      return {
+        title: "Failed to read interactive prompt input",
+        detail: String(error.cause),
+        hint: "Re-run the command in an interactive terminal, or use non-interactive flags.",
+        code: 3
+      }
+    case "TuiLaunchFailed":
+      return {
+        title: `TUI launch failed: ${error.command}`,
+        detail: String(error.cause),
+        hint: "Re-run with the non-interactive subcommands (e.g. `ingraft deps`).",
+        code: 3
+      }
+    case "TuiRendererFailed":
+      return {
+        title: `TUI renderer failed (${error.phase})`,
+        detail: String(error.cause),
+        hint: "Re-run in a different terminal, or use the non-interactive subcommands.",
+        code: 3
+      }
+    case "BunRuntimeMissing":
+      return {
+        title: "Bun runtime not found",
+        detail: "ingraft's TUI requires Bun to be installed and on PATH.",
+        hint: "Install Bun (https://bun.sh) or run `ingraft deps` for the non-interactive scanner.",
+        code: 5
+      }
+    case "ToolIgnoreCheckFailed":
+      return {
+        title: `Tool ignore check failed: ${error.tool}`,
+        detail: String(error.cause),
+        hint: "Inspect the tool's config file in the project root.",
         code: 3
       }
   }
