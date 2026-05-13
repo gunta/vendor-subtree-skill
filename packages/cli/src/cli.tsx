@@ -1,6 +1,6 @@
-import { Args, CliConfig, Command as Cli } from "@effect/cli"
 import { NodeRuntime } from "@effect/platform-node"
 import { Effect, Logger, Option } from "effect"
+import { Argument, Command } from "effect/unstable/cli"
 
 import { RepositoryAliases } from "./aliases/service.ts"
 import { cleanHelpOutput, isSubcommandHelp, printRootHelp, shouldShowRootHelp } from "./app/help.ts"
@@ -19,15 +19,17 @@ import { removeCmd } from "./commands/remove.tsx"
 import { openTui, tuiCmd } from "./commands/tui.ts"
 import { updateCmd } from "./commands/update.tsx"
 import { VERSION } from "./domain/constants.ts"
-import { type VendorError, errorPresentation, exitCodeOf } from "./domain/errors.ts"
-import { GitMetadata } from "./services/git-metadata.ts"
+import { InkRenderFailed, type VendorError, errorPresentation, exitCodeOf } from "./domain/errors.ts"
+import { GitMetadataLive } from "./services/git-metadata.ts"
 
-const rootTargetsArg = Args.text({ name: "target" }).pipe(
-  Args.withDescription("Optional repo URLs, GitHub shorthands, or npm package names to vendor."),
-  Args.repeated
+const rootTargetsArg = Argument.string("target").pipe(
+  Argument.withDescription(
+    "Optional repo URLs, GitHub shorthands, npm package names, or hex:<package> names to vendor."
+  ),
+  Argument.variadic()
 )
 
-export const vendorCommand = Cli.make("ingraft", { targets: rootTargetsArg }, ({ targets }) =>
+export const vendorCommand = Command.make("ingraft", { targets: rootTargetsArg }, ({ targets }) =>
   Effect.gen(function* () {
     yield* RepositoryAliases
     return yield* targets.length === 0
@@ -51,10 +53,10 @@ export const vendorCommand = Cli.make("ingraft", { targets: rootTargetsArg }, ({
         })
   })
 ).pipe(
-  Cli.withDescription(
+  Command.withDescription(
     "Manage vendored external git repositories for coding agents using subtree, submodule, or clone-ignore strategies."
   ),
-  Cli.withSubcommands([
+  Command.withSubcommands([
     initCmd,
     tuiCmd,
     depsCmd,
@@ -68,22 +70,24 @@ export const vendorCommand = Cli.make("ingraft", { targets: rootTargetsArg }, ({
   ])
 )
 
-export const runCli = Cli.run(vendorCommand, {
-  name: "ingraft — git reference manager for coding agents",
+export const runCli = Command.runWith(vendorCommand, {
   version: VERSION
 })
 
 const handleVendorError = <E extends VendorError>(cause: E) =>
-  RuntimeConfig.pipe(
-    Effect.flatMap((runtime) =>
-      Effect.promise(() =>
-        renderInkOnce(<ErrorView presentation={errorPresentation(cause)} />)
-      ).pipe(Effect.zipRight(runtime.exit(exitCodeOf(cause))))
-    )
-  )
+  Effect.gen(function* () {
+    const runtime = yield* RuntimeConfig
+    yield* Effect.tryPromise({
+      try: () => renderInkOnce(<ErrorView presentation={errorPresentation(cause)} />),
+      catch: (renderCause) => new InkRenderFailed({ view: "ErrorView", cause: renderCause })
+    }).pipe(Effect.catchTag("InkRenderFailed", () => Effect.void))
+    yield* runtime.exit(exitCodeOf(cause))
+  })
 
-const app = RuntimeConfig.pipe(
-  Effect.flatMap((runtime) => runCli(runtime.argv)),
+const app = Effect.gen(function* () {
+  const runtime = yield* RuntimeConfig
+  yield* runCli(runtime.argv.slice(2))
+}).pipe(
   Effect.catchTags({
     DirtyWorkingTree: handleVendorError,
     GitCommandFailed: handleVendorError,
@@ -105,20 +109,27 @@ const app = RuntimeConfig.pipe(
     VendoredRepoAlreadyExists: handleVendorError,
     VendoredRepoNotFound: handleVendorError,
     VersionResolutionFailed: handleVendorError,
-    VersionSelectorConflict: handleVendorError
+    VersionSelectorConflict: handleVendorError,
+    BunRuntimeMissing: handleVendorError,
+    InkRenderFailed: handleVendorError,
+    JavaScriptParseFailed: handleVendorError,
+    JsonParseFailed: handleVendorError,
+    JsoncParseFailed: handleVendorError,
+    PromptInputFailed: handleVendorError,
+    SchemaDecodeFailed: handleVendorError,
+    TomlParseFailed: handleVendorError,
+    ToolIgnoreCheckFailed: handleVendorError,
+    TuiLaunchFailed: handleVendorError,
+    TuiRendererFailed: handleVendorError,
+    TypeScriptParseFailed: handleVendorError,
+    YamlParseFailed: handleVendorError
   })
 )
 
-const cliConfigLayer = CliConfig.layer({
-  showBuiltIns: false,
-  showTypes: false
-})
-
 export const main = app.pipe(
-  Effect.provide(Logger.pretty),
+  Effect.provide(Logger.layer([Logger.withConsoleLog(Logger.formatSimple)])),
   Effect.provide(LiveLayer),
-  Effect.provide(GitMetadata.Default),
-  Effect.provide(cliConfigLayer)
+  Effect.provide(GitMetadataLive)
 )
 
 export const runMain = () => {
