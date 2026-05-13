@@ -9,12 +9,17 @@ import {
   ParsedSettings,
   SettingsMergeResult
 } from "../src/config/jsonc-settings.ts"
-import { packageJsonHasDependency, packageJsonDependencySpec } from "../src/config/package-json.ts"
+import {
+  packageJsonHasDependency,
+  packageJsonDependencySpec,
+  parsePackageJsonShape
+} from "../src/config/package-json.ts"
 import { parseTomlText, parseTomlWith, tomlHasPath, tomlPathHasArrayValue } from "../src/config/toml.ts"
 import { tsObjectHasArrayValue } from "../src/config/typescript-source.ts"
 import { parseYamlText, parseYamlWith, yamlHasPath } from "../src/config/yaml.ts"
 import {
   JavaScriptParseFailed,
+  JsonParseFailed,
   JsoncParseFailed,
   SchemaDecodeFailed,
   TomlParseFailed,
@@ -34,8 +39,28 @@ describe("non-destructive config parsers", () => {
       },
     }`
 
-    expect(packageJsonHasDependency(text, ["typescript"])).toBe(true)
-    expect(Option.getOrUndefined(packageJsonDependencySpec(text, "effect"))).toBe("^3.21.2")
+    expect(Effect.runSync(packageJsonHasDependency(text, ["typescript"]))).toBe(true)
+    expect(Option.getOrUndefined(Effect.runSync(packageJsonDependencySpec(text, "effect")))).toBe(
+      "^3.21.2"
+    )
+  })
+
+  test("parsePackageJsonShape surfaces JsonParseFailed on malformed input", async () => {
+    const exit = await Effect.runPromiseExit(parsePackageJsonShape('{ "name": "x",'))
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = exit.cause.reasons.filter(Cause.isFailReason)
+      expect(failures[0]?.error).toBeInstanceOf(JsonParseFailed)
+    }
+  })
+
+  test("packageJsonHasDependency surfaces JsonParseFailed on malformed input", async () => {
+    const exit = await Effect.runPromiseExit(packageJsonHasDependency('{ "name":', ["x"]))
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = exit.cause.reasons.filter(Cause.isFailReason)
+      expect(failures[0]?.error).toBeInstanceOf(JsonParseFailed)
+    }
   })
 
   test("reads TOML sections and array values without string matching", () => {

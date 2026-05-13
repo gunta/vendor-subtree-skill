@@ -56,7 +56,9 @@ export const packageHasDependency = (
   Effect.gen(function* () {
     const target = path.resolve(cwd, "package.json")
     if (!(yield* fs.exists(target))) return false
-    return packageJsonHasDependency(yield* fs.readFileString(target), names)
+    return yield* packageJsonHasDependency(yield* fs.readFileString(target), names).pipe(
+      Effect.orElseSucceed(() => false)
+    )
   })
 
 export const hasVendorPattern = (

@@ -40,7 +40,9 @@ const dependencySpec = ({ fs, path }: ToolFileContext, cwd: string, packageName:
   Effect.gen(function* () {
     const target = path.resolve(cwd, "package.json")
     if (!(yield* fs.exists(target))) return Option.none<string>()
-    return packageJsonDependencySpec(yield* fs.readFileString(target), packageName)
+    return yield* packageJsonDependencySpec(yield* fs.readFileString(target), packageName).pipe(
+      Effect.orElseSucceed(() => Option.none<string>())
+    )
   })
 
 const hasDependency = (context: ToolFileContext, cwd: string, packageName: string) =>

@@ -149,7 +149,9 @@ const packageJsonUsesTypeScript = ({
   Effect.gen(function* () {
     const target = path.resolve(cwd, "package.json")
     if (!(yield* fs.exists(target))) return false
-    return packageJsonHasDependency(yield* fs.readFileString(target), ["typescript"])
+    return yield* packageJsonHasDependency(yield* fs.readFileString(target), ["typescript"]).pipe(
+      Effect.orElseSucceed(() => false)
+    )
   }).pipe(Effect.catch(() => Effect.succeed(false)))
 
 const rootMarkerUsage = ({

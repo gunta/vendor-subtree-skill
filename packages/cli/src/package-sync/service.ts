@@ -3,7 +3,11 @@ import { Context, Effect, FileSystem, Layer, Option, Path, Result, Schema, Strea
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 import { parse as parseJsonc, type ParseError } from "jsonc-parser"
 
-import { packageJsonDependencySpec, parsePackageJsonShape } from "../config/package-json.ts"
+import {
+  packageJsonDependencySpec,
+  parsePackageJsonShape,
+  type PackageJsonShape
+} from "../config/package-json.ts"
 import { parseTomlText } from "../config/toml.ts"
 import { parseYamlText } from "../config/yaml.ts"
 import { VENDOR_DIR } from "../domain/constants.ts"
@@ -221,7 +225,12 @@ const collect = <E, R>(stream: Stream.Stream<Uint8Array, E, R>) =>
 export const packageSpecFromPackageJson = (
   json: string,
   packageName: string
-): Option.Option<string> => packageJsonDependencySpec(json, packageName)
+): Option.Option<string> =>
+  Effect.runSync(
+    packageJsonDependencySpec(json, packageName).pipe(
+      Effect.orElseSucceed(() => Option.none<string>())
+    )
+  )
 
 const packageJsonDependencyEcosystem = (name: string): PackageEcosystem => {
   if (name === "react") return "react"
@@ -263,7 +272,9 @@ export const packageJsonDependencies = (
   json: string,
   manifestPath = "package.json"
 ): ReadonlyArray<PackageDependency> => {
-  const pkg = parsePackageJsonShape(json)
+  const pkg = Effect.runSync(
+    parsePackageJsonShape(json).pipe(Effect.orElseSucceed(() => ({}) as PackageJsonShape))
+  )
   return dependencySections.flatMap((section) => {
     const dependencies = pkg[section]
     if (!isDependencyRecord(dependencies)) return []
@@ -2230,12 +2241,7 @@ const scanPackageDependency = (
     )
   )
 
-const scanPackageDependencies = (
-  fs: FileSystem.FileSystem,
-  path: Path.Path,
-  executor: ChildProcessSpawner.ChildProcessSpawner["Service"],
-  cwd: string
-) =>
+const listProjectPackageDependencies = (fs: FileSystem.FileSystem, path: Path.Path, cwd: string) =>
   Effect.all(
     [
       listPackageManifestPaths(fs, path, cwd),
@@ -2267,7 +2273,16 @@ const scanPackageDependencies = (
         seen.add(key)
         return true
       })
-    }),
+    })
+  )
+
+const scanPackageDependencies = (
+  fs: FileSystem.FileSystem,
+  path: Path.Path,
+  executor: ChildProcessSpawner.ChildProcessSpawner["Service"],
+  cwd: string
+) =>
+  listProjectPackageDependencies(fs, path, cwd).pipe(
     Effect.flatMap((dependencies) =>
       Effect.forEach(
         dependencies,
@@ -2284,6 +2299,13 @@ export interface PackageVersionSyncShape {
   readonly resolvePackageSource: (
     params: PackageSourceResolutionParams
   ) => Effect.Effect<PackageVersionResolution, PackageVersionSyncFailed>
+  readonly listDependencies: (
+    cwd: string
+  ) => Effect.Effect<ReadonlyArray<PackageDependency>, unknown>
+  readonly scanDependency: (
+    cwd: string,
+    dependency: PackageDependency
+  ) => Effect.Effect<DependencyVendorCandidate, unknown>
   readonly scan: (cwd: string) => Effect.Effect<ReadonlyArray<DependencyVendorCandidate>, unknown>
 }
 
@@ -2304,6 +2326,9 @@ export const PackageVersionSyncLive = Layer.effect(
         resolvePackageVersion(fs, path, executor, git, params),
       resolvePackageSource: (params: PackageSourceResolutionParams) =>
         resolvePackageSource(fs, path, executor, git, params),
+      listDependencies: (cwd: string) => listProjectPackageDependencies(fs, path, cwd),
+      scanDependency: (cwd: string, dependency: PackageDependency) =>
+        scanPackageDependency(fs, path, executor, cwd, dependency),
       scan: (cwd: string) => scanPackageDependencies(fs, path, executor, cwd)
     }
   })

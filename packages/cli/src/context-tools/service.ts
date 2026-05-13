@@ -1,4 +1,4 @@
-import { Console, Effect, FileSystem, Option, Path, Stream, pipe } from "effect"
+import { Console, Effect, FileSystem, Option, Path, Stream } from "effect"
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process"
 
 import { RuntimeConfig } from "../app/runtime.ts"
@@ -93,10 +93,13 @@ const contextToolDefinitions = [
 
 const normalizePath = (value: string): string => value.trim().replaceAll("\\", "/")
 
-const packageEvidence = (packageJson: string | undefined, packageNames: ReadonlyArray<string>) =>
-  packageJson === undefined || !packageJsonHasDependency(packageJson, packageNames)
-    ? []
-    : [`package.json: ${packageNames.join(" / ")}`]
+const packageEvidence = (packageJson: string | undefined, packageNames: ReadonlyArray<string>) => {
+  if (packageJson === undefined) return []
+  const hasDep = Effect.runSync(
+    packageJsonHasDependency(packageJson, packageNames).pipe(Effect.orElseSucceed(() => false))
+  )
+  return hasDep ? [`package.json: ${packageNames.join(" / ")}`] : []
+}
 
 const configEvidence = (files: ReadonlySet<string>, configFiles: ReadonlyArray<string>) =>
   configFiles.filter((file) => files.has(file))
