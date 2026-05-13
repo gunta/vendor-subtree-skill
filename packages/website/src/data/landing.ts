@@ -11,6 +11,7 @@ export interface LandingCard {
     readonly src: string
     readonly alt: string
   }
+  readonly icon?: string
 }
 
 export interface LandingSection {
@@ -35,19 +36,23 @@ export const heroActions = [
 export const capabilitySignals = [
   {
     title: "Subtree",
-    body: "Commit source when permanence matters."
+    body: "Commit source when permanence matters.",
+    icon: "git-fork"
   },
   {
     title: "Submodule",
-    body: "Pin big repos without copying their history."
+    body: "Pin big repos without copying their history.",
+    icon: "git-branch"
   },
   {
     title: "Clone-ignore",
-    body: "Make source local for agents while Git stays lean."
+    body: "Make source local for agents while Git stays lean.",
+    icon: "eye-off"
   },
   {
     title: "Doctor",
-    body: "See detected stack, tools, editors, and vendor status."
+    body: "See detected stack, tools, editors, and vendor status.",
+    icon: "stethoscope"
   }
 ] as const satisfies ReadonlyArray<LandingCard>
 
@@ -59,15 +64,18 @@ export const problemSection = {
   cards: [
     {
       title: "Version drift is expensive",
-      body: "The tool can resolve versions from package manifests and lockfiles, then map those versions to source tags, branches, releases, or commits."
+      body: "The tool can resolve versions from package manifests and lockfiles, then map those versions to source tags, branches, releases, or commits.",
+      icon: "git-compare-arrows"
     },
     {
       title: "Vendor code should be visible",
-      body: "Agents and LSPs need to read upstream code, but review diffs, formatter runs, and lint passes should stay focused on your project."
+      body: "Agents and LSPs need to read upstream code, but review diffs, formatter runs, and lint passes should stay focused on your project.",
+      icon: "eye"
     },
     {
       title: "One strategy is not enough",
-      body: "Small libraries can be subtrees, large repositories can be submodules, and temporary source mirrors can be clone-ignore entries."
+      body: "Small libraries can be subtrees, large repositories can be submodules, and temporary source mirrors can be clone-ignore entries.",
+      icon: "layers"
     }
   ]
 } as const satisfies LandingSection
@@ -81,7 +89,7 @@ export const strategySection = {
       body: "Commit a copy under `vendor/` when the source is small enough and you want code review, history, and branch portability.",
       image: {
         src: "/visuals/strategy-subtree.png",
-        alt: "Botanical plate of a fully healed cleft graft, the cambium union shown as a continuous terracotta seam."
+        alt: "A liquid-chrome ribbon flowing in an S-curve, illuminated along its full length by an unbroken magenta seam — the fully fused graft."
       }
     },
     {
@@ -89,7 +97,7 @@ export const strategySection = {
       body: "Pin a repository without importing every file into your own history. Useful for large projects and upstreams you do not want to modify.",
       image: {
         src: "/visuals/strategy-submodule.png",
-        alt: "Botanical plate of a grafted scion held in place by a single horticultural staple, with an orthographic detail inset."
+        alt: "Two chrome ribbons running parallel along the diagonal, held together at three luminous magenta pins — the pinned graft."
       }
     },
     {
@@ -97,7 +105,7 @@ export const strategySection = {
       body: "Keep source on disk for agents and LSPs while `.gitignore` keeps it out of commits. This is also the fallback for colocated `jj` repos.",
       image: {
         src: "/visuals/strategy-clone-ignore.png",
-        alt: "Botanical plate of two saplings planted side by side without joining, with a dashed terracotta ground line labelled .gitignore."
+        alt: "Two chrome ribbons floating side by side with a void gap between them, traced by a single dashed magenta line — the adjacent graft."
       }
     }
   ]

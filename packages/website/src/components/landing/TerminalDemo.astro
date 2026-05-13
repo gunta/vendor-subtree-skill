@@ -1,16 +1,28 @@
+---
+import Icon from "../icons/Icon.astro"
+---
+
 <div class="terminal" aria-label="ingraft command example">
   <div class="terminal-bar" aria-hidden="true">
-    <span class="terminal-dot"></span>
-    <span class="terminal-dot"></span>
-    <span class="terminal-dot"></span>
+    <div class="terminal-dots">
+      <span class="terminal-dot"></span>
+      <span class="terminal-dot"></span>
+      <span class="terminal-dot"></span>
+    </div>
+    <div class="terminal-title">
+      <Icon name="terminal" size={13} stroke={1.7} />
+      <span>~/your-repo · ingraft</span>
+    </div>
+    <span class="terminal-badge">live</span>
   </div>
-  <pre><code>$ ingraft
-<span class="ok">found</span> package.json, bun.lock, oxlint, Biome, VS Code
-<span class="ok">resolved</span> effect@3.21.2 -> Effect-TS/effect#v3.21.2
-<span class="warn">selected</span> strategy: subtree
-<span class="ok">wrote</span> vendor/effect
-<span class="ok">updated</span> .gitattributes, editor settings, agent notes
+  <pre><code><span class="t-prompt">$</span> <span class="t-cmd">ingraft</span> <span class="t-arg">add</span> <span class="t-str">effect-ts/effect</span>
+<span class="t-ok">✓ found</span>     <span class="t-dim">package.json, bun.lock, oxlint, Biome, VS Code</span>
+<span class="t-ok">✓ resolved</span>  <span class="t-fn">effect</span><span class="t-dim">@</span><span class="t-num">3.21.2</span> <span class="t-arrow">→</span> <span class="t-str">Effect-TS/effect</span><span class="t-dim">#</span><span class="t-num">v3.21.2</span>
+<span class="t-warn">↳ strategy</span>  <span class="t-key">subtree</span> <span class="t-dim">(default)</span>
+<span class="t-ok">✓ wrote</span>     <span class="t-str">vendor/effect</span> <span class="t-dim">·</span> <span class="t-num">2,481</span> <span class="t-dim">files,</span> <span class="t-num">38.6</span> <span class="t-dim">MB</span>
+<span class="t-ok">✓ updated</span>   <span class="t-dim">.gitattributes, editor settings, agent notes</span>
 
-$ ingraft doctor
-<span class="ok">clean</span> 2 vendors synced, 4 tool surfaces configured</code></pre>
+<span class="t-prompt">$</span> <span class="t-cmd">ingraft</span> <span class="t-arg">doctor</span>
+<span class="t-ok">✓ clean</span>     <span class="t-dim">2 vendors synced</span> <span class="t-dim">·</span> <span class="t-dim">4 tool surfaces configured</span>
+<span class="t-info">→ next</span>      <span class="t-dim">try</span> <span class="t-key">ingraft refresh</span> <span class="t-dim">if you bump versions</span></code></pre>
 </div>

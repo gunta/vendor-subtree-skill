@@ -1,0 +1,45 @@
+---
+import { Code } from "astro:components"
+import Icon from "../icons/Icon.astro"
+import { knockoutShikiTheme } from "./knockout-theme.ts"
+
+interface Props {
+  readonly code: string
+  readonly lang?: string
+  readonly title?: string
+  readonly badge?: string
+  readonly tone?: "default" | "ok" | "warn" | "info"
+  readonly compact?: boolean
+}
+
+const {
+  code,
+  lang = "bash",
+  title,
+  badge,
+  tone = "default",
+  compact = false
+} = Astro.props
+---
+
+<div class:list={["code-window", `tone-${tone}`, compact && "compact"]}>
+  {(title || badge) && (
+    <header class="code-window-bar">
+      <div class="code-window-dots" aria-hidden="true">
+        <span class="dot"></span>
+        <span class="dot"></span>
+        <span class="dot mag"></span>
+      </div>
+      {title && (
+        <span class="code-window-title">
+          <Icon name={lang === "bash" || lang === "sh" ? "terminal" : "code"} size={13} stroke={1.7} />
+          {title}
+        </span>
+      )}
+      {badge && <span class="code-window-badge">{badge}</span>}
+    </header>
+  )}
+  <div class="code-window-body">
+    <Code code={code} lang={lang as never} theme={knockoutShikiTheme as never} wrap />
+  </div>
+</div>

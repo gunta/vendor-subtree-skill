@@ -2,28 +2,129 @@
 import "../styles/site.css"
 
 interface Props {
-  readonly description: string
   readonly title: string
+  readonly description: string
+  readonly ogImage?: string
+  readonly ogType?: "website" | "article"
+  readonly noindex?: boolean
 }
 
-const { description, title } = Astro.props
+const {
+  title,
+  description,
+  ogImage = "/visuals/og-default.png",
+  ogType = "website",
+  noindex = false
+} = Astro.props
+
+const canonical = new URL(Astro.url.pathname, Astro.site ?? "https://ingraft.dev")
+const ogImageAbsolute = new URL(ogImage, Astro.site ?? "https://ingraft.dev")
+
+const isHome = canonical.pathname === "/" || canonical.pathname === ""
+
+const jsonLdSoftware = {
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  name: "Ingraft",
+  alternateName: "ingraft",
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "macOS, Linux, Windows",
+  description:
+    "Vendor upstream source into agent-ready repositories without letting vendor code take over the project.",
+  url: "https://ingraft.dev",
+  downloadUrl: "https://www.npmjs.com/package/ingraft",
+  softwareVersion: "0.3",
+  programmingLanguage: ["TypeScript"],
+  offers: {
+    "@type": "Offer",
+    price: "0",
+    priceCurrency: "USD"
+  },
+  author: {
+    "@type": "Person",
+    name: "Gunther Brunner",
+    url: "https://github.com/gunta"
+  },
+  license: "https://opensource.org/license/mit",
+  image: new URL("/visuals/og-default.png", "https://ingraft.dev").toString(),
+  sameAs: [
+    "https://github.com/gunta/ingraft",
+    "https://www.npmjs.com/package/ingraft"
+  ]
+}
+
+const jsonLdWebsite = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "Ingraft",
+  url: "https://ingraft.dev",
+  inLanguage: "en",
+  description:
+    "Vendor upstream source into agent-ready repositories. The source vendoring CLI for coding-agent workflows."
+}
 ---
 
-<html lang="en">
+<html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="theme-color" content="#06060c" />
+    <meta name="format-detection" content="telephone=no" />
+
+    <title>{title}</title>
     <meta name="description" content={description} />
+    {noindex && <meta name="robots" content="noindex, nofollow" />}
+    {!noindex && <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1" />}
+    <meta name="generator" content={Astro.generator} />
+    <meta name="author" content="Gunther Brunner" />
+    <meta name="keywords" content="ingraft, git subtree, git submodule, vendor source, coding agents, claude code, codex, cursor, effect, typescript, monorepo" />
+    <link rel="canonical" href={canonical.toString()} />
+
+    {/* Open Graph */}
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content="Ingraft" />
+    <meta property="og:locale" content="en_US" />
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="/visuals/og-default.png" />
+    <meta property="og:url" content={canonical.toString()} />
+    <meta property="og:image" content={ogImageAbsolute.toString()} />
+    <meta property="og:image:secure_url" content={ogImageAbsolute.toString()} />
+    <meta property="og:image:type" content="image/png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content={`${title} — ${description}`} />
+
+    {/* Twitter Card */}
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:image" content="/visuals/og-default.png" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageAbsolute.toString()} />
+    <meta name="twitter:image:alt" content={`${title} — ${description}`} />
+    <meta name="twitter:creator" content="@gunta85" />
+
+    {/* Icons */}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <title>{title}</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="mask-icon" href="/favicon.svg" color="#06060c" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+
+    {/* Fonts */}
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+
+    {/* Sitemap discovery */}
+    <link rel="sitemap" type="application/xml" href="/sitemap-index.xml" />
+
+    {/* Structured data */}
+    {isHome && (
+      <>
+        <script type="application/ld+json" set:html={JSON.stringify(jsonLdSoftware)} />
+        <script type="application/ld+json" set:html={JSON.stringify(jsonLdWebsite)} />
+      </>
+    )}
   </head>
   <body>
     <main class="landing-shell">

@@ -2,23 +2,58 @@
   "name": "ingraft-website",
   "version": "0.3.0",
   "private": true,
+  "description": "Astro/Starlight documentation and marketing website for ingraft.",
+  "keywords": [
+    "astro",
+    "documentation",
+    "ingraft",
+    "starlight",
+    "website"
+  ],
+  "homepage": "https://ingraft.dev",
+  "bugs": {
+    "url": "https://github.com/gunta/ingraft/issues"
+  },
+  "license": "MIT",
+  "author": "Gunther Brunner <gunta85@gmail.com> (https://github.com/gunta)",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gunta/ingraft.git",
+    "directory": "packages/website"
+  },
   "type": "module",
   "scripts": {
     "build": "astro check && astro build",
     "check": "bun run lint && bun run format:check && bun run typecheck && bun run build",
-    "dev": "astro dev",
+    "dev": "portless",
+    "dev:app": "bun scripts/dev.ts",
+    "dev:local": "bun run dev:app",
     "format": "oxfmt . --write",
     "format:check": "oxfmt . --check",
     "lint": "oxlint .",
     "lint:fix": "oxlint . --fix",
     "preview": "astro preview",
-    "deploy": "bun alchemy.run.ts",
+    "deploy": "alchemy deploy",
     "typecheck": "astro check"
   },
+  "portless": {
+    "name": "ingraft",
+    "script": "dev:app"
+  },
   "dependencies": {
+    "@astrojs/react": "^5.0.4",
     "@astrojs/starlight": "^0.39.2",
-    "alchemy": "^0.93.7",
+    "@effect/platform-bun": "4.0.0-beta.66",
+    "@effect/platform-node": "4.0.0-beta.66",
+    "@paper-design/shaders-react": "^0.0.76",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "alchemy": "2.0.0-beta.38",
     "astro": "^6.3.1",
+    "effect": "4.0.0-beta.66",
+    "libsodium-wrappers": "^0.8.4",
+    "react": "^19.2.6",
+    "react-dom": "^19.2.6",
     "sharp": "^0.34.5"
   },
   "devDependencies": {

@@ -1,31 +1,119 @@
+/*
+ * Ingraft / Knockout — design tokens
+ *
+ * Deep void canvas, chrome surfaces, one magenta accent reserved
+ * exclusively for the graft moment. See docs/superpowers/specs/ for
+ * the full design system and docs/internal/branding/image-prompts.md
+ * for the imagery cookbook.
+ */
+
+@import url("https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800&family=Geist+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap");
+
 :root {
-  --vst-ink: #11110f;
-  --vst-paper: #f7f5ef;
-  --vst-panel: #ffffff;
-  --vst-muted: #645f57;
-  --vst-line: #ded8cd;
-  --vst-accent: #d85a3a;
-  --vst-green: #2f8f69;
-  --sl-color-accent-low: #f6d8cc;
-  --sl-color-accent: #d85a3a;
-  --sl-color-accent-high: #5b1f14;
-  --sl-font: Inter, ui-sans-serif, system-ui, sans-serif;
-  --sl-font-mono: "SF Mono", "Roboto Mono", ui-monospace, monospace;
+  color-scheme: dark;
+
+  /* === Knockout palette === */
+  --kn-void: #06060c;
+  --kn-void-deep: #03030a;
+  --kn-void-rise: #0c0c14;
+  --kn-void-tile: #10101a;
+  --kn-chrome: #ece8d8;
+  --kn-chrome-hi: #f4f4f7;
+  --kn-chrome-mid: #9da0a8;
+  --kn-chrome-dim: #5b6273;
+  --kn-line: rgba(236, 232, 216, 0.08);
+  --kn-line-strong: rgba(236, 232, 216, 0.16);
+  --kn-magenta: #ff3c79;
+  --kn-magenta-soft: #ff79a6;
+  --kn-magenta-deep: #4a1230;
+  --kn-magenta-tint: rgba(255, 60, 121, 0.1);
+  --kn-magenta-bloom: rgba(255, 60, 121, 0.35);
+
+  /* === Typography === */
+  --kn-font-sans: "Geist", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --kn-font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --kn-font-display: "Geist", "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* === Syntax-highlight palette ===
+     Muted, brand-coherent. These read as "tooling colors" — never compete
+     with the magenta brand accent. */
+  --syn-comment: #6a6f7a;
+  --syn-keyword: #c4a8fa;   /* soft violet */
+  --syn-string:  #a5e8b4;   /* soft mint */
+  --syn-number:  #fcd07f;   /* soft amber */
+  --syn-fn:      #7ad9f0;   /* soft cyan */
+  --syn-prop:    #ece8d8;   /* chrome */
+  --syn-coral:   #ff79a6;   /* magenta-soft for emphasis */
+  --syn-rest:    #9da0a8;
+  --syn-bg:      #08080f;
+
+  /* === Status accents (sparingly) === */
+  --kn-ok:    #7be0a6;
+  --kn-warn:  #fcd07f;
+  --kn-info:  #7ad9f0;
+
+  /* === Legacy aliases (back-compat for any selector that hasn't been refactored) === */
+  --vst-ink: var(--kn-chrome);
+  --vst-paper: var(--kn-void);
+  --vst-panel: var(--kn-void-rise);
+  --vst-muted: var(--kn-chrome-mid);
+  --vst-line: var(--kn-line);
+  --vst-accent: var(--kn-magenta);
+  --vst-green: var(--kn-chrome);
+
+  /* === Starlight overrides === */
+  --sl-color-accent-low: var(--kn-magenta-deep);
+  --sl-color-accent: var(--kn-magenta);
+  --sl-color-accent-high: var(--kn-magenta-soft);
+  --sl-color-white: var(--kn-chrome-hi);
+  --sl-color-gray-1: var(--kn-chrome);
+  --sl-color-gray-2: var(--kn-chrome-mid);
+  --sl-color-gray-3: var(--kn-chrome-dim);
+  --sl-color-gray-4: #3a3e48;
+  --sl-color-gray-5: #1f2128;
+  --sl-color-gray-6: #11131a;
+  --sl-color-bg: var(--kn-void);
+  --sl-color-bg-nav: var(--kn-void);
+  --sl-color-bg-sidebar: #0a0a12;
+  --sl-color-bg-inline-code: var(--kn-void-rise);
+  --sl-color-text: var(--kn-chrome);
+  --sl-color-text-accent: var(--kn-magenta);
+
+  --sl-font: var(--kn-font-sans);
+  --sl-font-mono: var(--kn-font-mono);
 }
 
-:root[data-theme="dark"] {
-  --sl-color-accent-low: #4a2017;
-  --sl-color-accent: #f07855;
-  --sl-color-accent-high: #ffd2c4;
+/* Starlight also flips a few in light theme; keep us dark-first
+   but expose sensible values if a user forces light mode. */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --sl-color-bg: #f8f7f4;
+  --sl-color-bg-nav: #f8f7f4;
+  --sl-color-bg-sidebar: #efece5;
+  --sl-color-text: var(--kn-void);
+  --sl-color-text-accent: var(--kn-magenta);
+  --sl-color-white: var(--kn-void);
+  --sl-color-gray-1: var(--kn-void);
+  --sl-color-gray-2: #3a3a44;
+  --sl-color-gray-6: #e5e2d8;
 }
 
 html {
-  color: var(--vst-ink);
-  background: var(--vst-paper);
-  font-family: var(--sl-font);
+  color: var(--kn-chrome);
+  background: var(--kn-void);
+  font-family: var(--kn-font-sans);
+  font-feature-settings: "ss01", "cv01", "cv11";
   letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 body {
   margin: 0;
+}
+
+::selection {
+  background: var(--kn-magenta);
+  color: var(--kn-chrome-hi);
 }

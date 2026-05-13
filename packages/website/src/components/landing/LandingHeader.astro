@@ -1,17 +1,52 @@
 ---
+import type { LandingLink } from "../../data/landing.ts"
 import { landingNav } from "../../data/landing.ts"
+import Icon from "../icons/Icon.astro"
+
+const navItems = landingNav as ReadonlyArray<LandingLink>
 ---
 
 <header class="landing-header" aria-label="Primary">
   <a class="brand" href="/">
-    <span class="brand-mark" aria-hidden="true">v</span>
+    <span class="brand-mark" aria-hidden="true">
+      <svg viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="brand-bar" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#f4f4f7" />
+            <stop offset="100%" stop-color="#9da0a8" />
+          </linearGradient>
+          <linearGradient id="brand-wedge" x1="0" y1="0" x2="1" y2="0.5">
+            <stop offset="0%" stop-color="#ff3c79" />
+            <stop offset="100%" stop-color="#ff79a6" />
+          </linearGradient>
+          <filter id="brand-bloom" x="-60%" y="-60%" width="220%" height="220%">
+            <feGaussianBlur stdDeviation="1.8" />
+          </filter>
+        </defs>
+        <rect x="14" y="5" width="3" height="30" rx="0.5" fill="url(#brand-bar)" />
+        <g filter="url(#brand-bloom)" opacity="0.55">
+          <path d="M17 14 L30 20 L17 26 Z" fill="#ff3c79" />
+        </g>
+        <path d="M17 15 L28.5 20 L17 25 Z" fill="url(#brand-wedge)" />
+      </svg>
+    </span>
     <span>ingraft</span>
+    <span class="brand-version" aria-label="version">
+      <span class="brand-version-dot" aria-hidden="true"></span>
+      v0.3
+    </span>
   </a>
   <nav class="landing-nav">
     {
-      landingNav.map((link) => (
-        <a class:list={[link.variant === "secondary" && "cta cta-secondary"]} href={link.href}>
+      navItems.map((link) => (
+        <a
+          class:list={[link.variant === "secondary" && "cta cta-secondary"]}
+          href={link.href}
+        >
           {link.label}
+          {link.variant === "secondary" && (
+            <Icon name="book-open" size={14} stroke={1.7} class="cta-trail" />
+          )}
         </a>
       ))
     }

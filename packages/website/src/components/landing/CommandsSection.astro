@@ -1,0 +1,92 @@
+---
+import Icon from "../icons/Icon.astro"
+import CodeWindow from "./CodeWindow.astro"
+
+const commands = [
+  {
+    icon: "package",
+    title: "Add a vendor",
+    body: "Resolve the package, pick the strategy, write source under <code>vendor/</code>.",
+    code: `bunx ingraft add effect-ts/effect
+bunx ingraft add zod --strategy subtree
+bunx ingraft add convex --strategy submodule`,
+    lang: "bash"
+  },
+  {
+    icon: "git-compare-arrows",
+    title: "Stay in sync",
+    body: "Re-resolve every vendor against your lockfile in one call.",
+    code: `bunx ingraft refresh
+bunx ingraft update --all
+bunx ingraft update effect --to v3.21.2`,
+    lang: "bash"
+  },
+  {
+    icon: "stethoscope",
+    title: "Doctor the project",
+    body: "See the tool surfaces ingraft detected and what it changed.",
+    code: `bunx ingraft doctor
+bunx ingraft doctor --fix
+bunx ingraft list --json`,
+    lang: "bash"
+  }
+] as const
+
+const tsSample = `// vendor/effect/src/Effect.ts — fully indexable by your agent
+export interface Effect<out A, out E = never, out R = never>
+  extends Variance<A, E, R>, Pipeable {
+  readonly [TypeId]: Effect.Variance<A, E, R>
+  readonly [NodeInspectSymbol]: () => unknown
+  [Symbol.iterator](): EffectGenerator<Effect<A, E, R>>
+}
+
+export const succeed: <A>(value: A) => Effect<A> = core.succeed
+export const fail:    <E>(error: E) => Effect<never, E> = core.fail
+export const sync:    <A>(thunk: LazyArg<A>) => Effect<A> = core.sync`
+---
+
+<section class="section commands-section">
+  <p class="section-kicker">Real code, local</p>
+  <h2>Your agent reads the source. Not a description of it.</h2>
+  <p class="section-intro">
+    Every vendored repo lands under <code class="inline">vendor/</code> as real files — indexable
+    by your editor's LSP, navigable by Claude / Codex / Cursor, lint-able only if you ask.
+  </p>
+
+  <div class="commands-grid">
+    {commands.map((cmd) => (
+      <article class="tile command-tile">
+        <header class="command-tile-head">
+          <span class="command-tile-icon" aria-hidden="true">
+            <Icon name={cmd.icon as never} size={16} stroke={1.7} />
+          </span>
+          <div>
+            <h3>{cmd.title}</h3>
+            <p set:html={cmd.body} />
+          </div>
+        </header>
+        <CodeWindow code={cmd.code} lang={cmd.lang} compact />
+      </article>
+    ))}
+  </div>
+
+  <div class="agent-window">
+    <header class="agent-window-head">
+      <div class="agent-window-titlebar">
+        <Icon name="code" size={14} stroke={1.7} />
+        <span class="agent-window-path">vendor/effect/src/Effect.ts</span>
+      </div>
+      <div class="agent-window-meta">
+        <span class="agent-window-pill">
+          <Icon name="git-fork" size={11} stroke={1.9} />
+          subtree
+        </span>
+        <span class="agent-window-pill">
+          <Icon name="circle-dot" size={11} stroke={1.9} />
+          v3.21.2
+        </span>
+      </div>
+    </header>
+    <CodeWindow code={tsSample} lang="typescript" />
+  </div>
+</section>

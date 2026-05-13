@@ -1,5 +1,6 @@
 ---
 import { workflowItems } from "../../data/landing.ts"
+import Icon from "../icons/Icon.astro"
 import TerminalDemo from "./TerminalDemo.astro"
 ---
 
@@ -8,10 +9,22 @@ import TerminalDemo from "./TerminalDemo.astro"
   <h2>Discovery, vendoring, editor hygiene, and status in one loop.</h2>
   <div class="workflow-grid">
     <TerminalDemo />
-    <article class="tile">
-      <h3>Made for real repositories</h3>
+    <article class="tile workflow-tile">
+      <h3>
+        <span class="workflow-tile-icon" aria-hidden="true">
+          <Icon name="zap" size={16} stroke={1.7} />
+        </span>
+        Made for real repositories
+      </h3>
       <ul class="check-list">
-        {workflowItems.map((item) => <li>{item}</li>)}
+        {workflowItems.map((item) => (
+          <li>
+            <span class="check-list-icon" aria-hidden="true">
+              <Icon name="check" size={11} stroke={2.4} />
+            </span>
+            <span>{item}</span>
+          </li>
+        ))}
       </ul>
     </article>
   </div>

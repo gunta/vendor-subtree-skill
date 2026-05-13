@@ -1,11 +1,15 @@
 ---
 import { heroActions } from "../../data/landing.ts"
+import Icon from "../icons/Icon.astro"
 import LandingActions from "./LandingActions.astro"
 ---
 
 <section class="hero">
   <div class="hero-inner">
-    <p class="eyebrow">Source vendoring for coding-agent repositories</p>
+    <p class="eyebrow">
+      <Icon name="sparkles" size={12} stroke={1.8} />
+      Source vendoring for coding-agent repositories
+    </p>
     <h1>ingraft</h1>
     <p class="hero-copy">
       Put the exact upstream source your agents need inside the repo, keep it aligned with your
@@ -13,5 +17,21 @@ import LandingActions from "./LandingActions.astro"
       history.
     </p>
     <LandingActions links={heroActions} />
+    <div class="hero-foot">
+      <span class="hero-foot-item">
+        <Icon name="package" size={13} stroke={1.7} />
+        <code>bunx ingraft</code>
+      </span>
+      <span class="hero-foot-sep" aria-hidden="true">·</span>
+      <span class="hero-foot-item">
+        <Icon name="zap" size={13} stroke={1.7} />
+        zero install
+      </span>
+      <span class="hero-foot-sep" aria-hidden="true">·</span>
+      <span class="hero-foot-item">
+        <Icon name="git-fork" size={13} stroke={1.7} />
+        subtree / submodule / clone-ignore
+      </span>
+    </div>
   </div>
 </section>

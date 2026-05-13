@@ -1,5 +1,6 @@
 ---
 import type { LandingLink } from "../../data/landing.ts"
+import Icon from "../icons/Icon.astro"
 
 interface Props {
   readonly links: ReadonlyArray<LandingLink>
@@ -18,7 +19,13 @@ const { links } = Astro.props
         ]}
         href={link.href}
       >
-        {link.label}
+        <span>{link.label}</span>
+        <Icon
+          name={link.variant === "primary" ? "arrow-right" : "arrow-up-right"}
+          size={15}
+          stroke={1.9}
+          class="cta-trail"
+        />
       </a>
     ))
   }

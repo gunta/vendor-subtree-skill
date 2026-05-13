@@ -1,6 +1,23 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="256" height="48" viewBox="0 0 256 48" role="img" aria-label="ingraft">
-  <rect width="48" height="48" rx="10" fill="#11110f"/>
-  <path fill="#f6f1e8" d="M14 14h20v5H19v6h13v5H19v4h16v5H14z"/>
-  <path fill="#d85a3a" d="M34 14h5v25h-5z"/>
-  <text x="61" y="32" fill="#11110f" font-family="Inter, ui-sans-serif, system-ui, sans-serif" font-size="22" font-weight="760">ingraft</text>
+<svg xmlns="http://www.w3.org/2000/svg" width="320" height="60" viewBox="0 0 320 60" role="img" aria-label="ingraft" fill="none">
+  <defs>
+    <linearGradient id="bar-l" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1b1b22"/>
+      <stop offset="100%" stop-color="#06060c"/>
+    </linearGradient>
+    <linearGradient id="wedge-l" x1="0" y1="0" x2="1" y2="0.5">
+      <stop offset="0%" stop-color="#ff3c79"/>
+      <stop offset="100%" stop-color="#ff79a6"/>
+    </linearGradient>
+    <filter id="bloom-l" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="2.2"/>
+    </filter>
+  </defs>
+  <g transform="translate(8 12)">
+    <rect x="18" y="2" width="4" height="32" rx="0.6" fill="url(#bar-l)"/>
+    <g filter="url(#bloom-l)" opacity="0.45">
+      <path d="M22 12 L38 18 L22 24 Z" fill="#ff3c79"/>
+    </g>
+    <path d="M22 13 L36 18 L22 23 Z" fill="url(#wedge-l)"/>
+  </g>
+  <text x="64" y="40" fill="#06060c" font-family="Geist, Inter, ui-sans-serif, system-ui, sans-serif" font-size="28" font-weight="700" letter-spacing="-0.6">ingraft</text>
 </svg>

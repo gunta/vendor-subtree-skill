@@ -1,13 +1,40 @@
+import react from "@astrojs/react"
 import starlight from "@astrojs/starlight"
 import { defineConfig } from "astro/config"
 
+const SITE = "https://ingraft.dev"
+const DESCRIPTION =
+  "Vendor upstream source into agent-ready repositories without letting vendor code take over the project."
+const OG_DOCS = `${SITE}/visuals/og-docs.png`
+const DEV_HOST = process.env.HOST || "127.0.0.1"
+const DEV_PORT = Number.parseInt(process.env.PORT || "4321", 10)
+const PORTLESS_URL = process.env.PORTLESS_URL
+const PORTLESS_ORIGIN = (() => {
+  if (!PORTLESS_URL) return undefined
+  try {
+    return new URL(PORTLESS_URL)
+  } catch {
+    return undefined
+  }
+})()
+const PORTLESS_CLIENT_PORT =
+  PORTLESS_ORIGIN?.port !== ""
+    ? Number.parseInt(PORTLESS_ORIGIN.port, 10)
+    : PORTLESS_ORIGIN?.protocol === "https:"
+      ? 443
+      : 80
+
 export default defineConfig({
-  site: "https://ingraft.dev",
+  site: SITE,
+  server: {
+    host: DEV_HOST,
+    port: Number.isFinite(DEV_PORT) ? DEV_PORT : 4321
+  },
   integrations: [
+    react(),
     starlight({
       title: "ingraft",
-      description:
-        "Vendor upstream source into agent-ready repositories without letting vendor code take over the project.",
+      description: DESCRIPTION,
       favicon: "/favicon.svg",
       logo: {
         light: "./src/assets/logo-light.svg",
@@ -18,17 +45,67 @@ export default defineConfig({
       lastUpdated: true,
       pagefind: false,
       head: [
-        { tag: "meta", attrs: { property: "og:type", content: "website" } },
+        // Theme & color scheme
+        { tag: "meta", attrs: { name: "color-scheme", content: "dark" } },
+        { tag: "meta", attrs: { name: "theme-color", content: "#06060c" } },
+        // SEO
+        { tag: "meta", attrs: { name: "author", content: "Gunther Brunner" } },
         {
           tag: "meta",
-          attrs: { property: "og:image", content: "https://ingraft.dev/visuals/og-default.png" }
+          attrs: {
+            name: "keywords",
+            content:
+              "ingraft, git subtree, git submodule, vendor source, coding agents, claude code, codex, cursor, effect, typescript, monorepo"
+          }
         },
+        {
+          tag: "meta",
+          attrs: {
+            name: "robots",
+            content: "index, follow, max-image-preview:large, max-snippet:-1"
+          }
+        },
+        // Open Graph
+        { tag: "meta", attrs: { property: "og:site_name", content: "Ingraft" } },
+        { tag: "meta", attrs: { property: "og:type", content: "article" } },
+        { tag: "meta", attrs: { property: "og:locale", content: "en_US" } },
+        { tag: "meta", attrs: { property: "og:image", content: OG_DOCS } },
+        { tag: "meta", attrs: { property: "og:image:secure_url", content: OG_DOCS } },
+        { tag: "meta", attrs: { property: "og:image:type", content: "image/png" } },
         { tag: "meta", attrs: { property: "og:image:width", content: "1200" } },
         { tag: "meta", attrs: { property: "og:image:height", content: "630" } },
-        { tag: "meta", attrs: { name: "twitter:card", content: "summary_large_image" } },
         {
           tag: "meta",
-          attrs: { name: "twitter:image", content: "https://ingraft.dev/visuals/og-default.png" }
+          attrs: {
+            property: "og:image:alt",
+            content: "Ingraft — vendor upstream source for coding agents."
+          }
+        },
+        // Twitter
+        { tag: "meta", attrs: { name: "twitter:card", content: "summary_large_image" } },
+        { tag: "meta", attrs: { name: "twitter:creator", content: "@gunta85" } },
+        { tag: "meta", attrs: { name: "twitter:image", content: OG_DOCS } },
+        {
+          tag: "meta",
+          attrs: {
+            name: "twitter:image:alt",
+            content: "Ingraft — vendor upstream source for coding agents."
+          }
+        },
+        // Icons / PWA
+        { tag: "link", attrs: { rel: "icon", type: "image/svg+xml", href: "/favicon.svg" } },
+        { tag: "link", attrs: { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32.png" } },
+        { tag: "link", attrs: { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16.png" } },
+        { tag: "link", attrs: { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" } },
+        { tag: "link", attrs: { rel: "mask-icon", href: "/favicon.svg", color: "#06060c" } },
+        { tag: "link", attrs: { rel: "manifest", href: "/manifest.webmanifest" } },
+        // Sitemap discovery
+        { tag: "link", attrs: { rel: "sitemap", type: "application/xml", href: "/sitemap-index.xml" } },
+        // Font preconnect
+        { tag: "link", attrs: { rel: "preconnect", href: "https://fonts.googleapis.com" } },
+        {
+          tag: "link",
+          attrs: { rel: "preconnect", href: "https://fonts.gstatic.com", crossorigin: "anonymous" }
         }
       ],
       sidebar: [
@@ -143,5 +220,22 @@ export default defineConfig({
         }
       ]
     })
-  ]
+  ],
+  vite: {
+    cacheDir: ".astro/vite",
+    server: {
+      strictPort: true,
+      ...(PORTLESS_ORIGIN
+        ? {
+            allowedHosts: [PORTLESS_ORIGIN.hostname],
+            hmr: {
+              clientPort: PORTLESS_CLIENT_PORT,
+              host: PORTLESS_ORIGIN.hostname,
+              protocol: PORTLESS_ORIGIN.protocol === "https:" ? "wss" : "ws"
+            },
+            origin: PORTLESS_ORIGIN.origin
+          }
+        : {})
+    }
+  }
 })

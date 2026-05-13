@@ -1,5 +1,6 @@
 ---
 import type { LandingSection } from "../../data/landing.ts"
+import Icon from "../icons/Icon.astro"
 
 interface Props {
   readonly gridClass: "problem-grid" | "strategy-grid"
@@ -28,6 +29,11 @@ const { gridClass, section, tileClass } = Astro.props
               width="1200"
               height="1200"
             />
+          )}
+          {card.icon && !card.image && (
+            <div class="tile-icon" aria-hidden="true">
+              <Icon name={card.icon as never} size={22} stroke={1.6} />
+            </div>
           )}
           <h3>{card.title}</h3>
           <p>{card.body}</p>

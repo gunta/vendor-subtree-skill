@@ -1,15 +1,19 @@
 ---
 import { finalActions } from "../../data/landing.ts"
+import { FinalShader } from "./BrandShader.tsx"
 import LandingActions from "./LandingActions.astro"
 ---
 
 <section class="final-band">
+  <div class="final-band-shader" aria-hidden="true">
+    <FinalShader client:visible />
+  </div>
   <div class="section">
     <p class="section-kicker">For agents and humans</p>
     <h2>Give the repo more context without giving it more chaos.</h2>
     <p class="section-intro">
-      `ingraft` turns upstream source into an intentional project surface: versioned,
-      observable, editor-aware, and removable when it no longer belongs.
+      <code class="inline">ingraft</code> turns upstream source into an intentional project surface:
+      versioned, observable, editor-aware, and removable when it no longer belongs.
     </p>
     <LandingActions links={finalActions} />
   </div>
