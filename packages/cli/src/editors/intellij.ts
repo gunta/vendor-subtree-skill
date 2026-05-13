@@ -9,7 +9,7 @@ import { Context, Effect, FileSystem, Layer, Path } from "effect"
 
 import { warn } from "../app/log.tsx"
 import { RuntimeConfig, type RuntimeConfigShape } from "../app/runtime.ts"
-import type { SettingsMergeResult } from "../config/jsonc-settings.ts"
+import { SettingsMergeResult } from "../config/jsonc-settings.ts"
 import { VENDOR_DIR } from "../domain/constants.ts"
 
 const VENDOR_SCOPE_NAME = "Vendor"
@@ -90,14 +90,13 @@ const parseXml = ({
   }
 }
 
-const serializeXml = (document: XmlDocument, malformedMessage: string) => {
+const serializeXml = (document: XmlDocument, malformedMessage: string): SettingsMergeResult => {
   try {
-    return {
-      _tag: "Updated" as const,
+    return SettingsMergeResult.Updated({
       text: new XMLSerializer().serializeToString(document)
-    }
+    })
   } catch {
-    return { _tag: "Invalid" as const, message: malformedMessage }
+    return SettingsMergeResult.Invalid({ message: malformedMessage })
   }
 }
 
@@ -176,19 +175,18 @@ const createSharedFileColorsComponent = (document: XmlDocument) => {
 }
 
 export const mergeIntellijVendorScopeText = (text = ""): SettingsMergeResult => {
-  if (text.trim() === "") return { _tag: "Updated", text: VENDOR_SCOPE_XML }
+  if (text.trim() === "") return SettingsMergeResult.Updated({ text: VENDOR_SCOPE_XML })
   const parsed = parseXml({
     invalidRootMessage: ".idea/scopes/Vendor.xml must contain a <component> root.",
     malformedMessage: ".idea/scopes/Vendor.xml is not well-formed XML.",
     rootName: "component",
     text
   })
-  if (parsed._tag === "Invalid") return parsed
+  if (parsed._tag === "Invalid") return SettingsMergeResult.Invalid({ message: parsed.message })
   if (parsed.root.getAttribute("name") !== DEPENDENCY_VALIDATION_COMPONENT) {
-    return {
-      _tag: "Invalid",
+    return SettingsMergeResult.Invalid({
       message: ".idea/scopes/Vendor.xml must contain a DependencyValidationManager component."
-    }
+    })
   }
   if (
     childElements(parsed.root, "scope").some(
@@ -197,7 +195,7 @@ export const mergeIntellijVendorScopeText = (text = ""): SettingsMergeResult => 
         scope.getAttribute("pattern") === VENDOR_SCOPE_PATTERN
     )
   ) {
-    return { _tag: "Unchanged" }
+    return SettingsMergeResult.Unchanged()
   }
   insertElementBeforeClosingWhitespace({
     closingIndent: "\n",
@@ -210,7 +208,7 @@ export const mergeIntellijVendorScopeText = (text = ""): SettingsMergeResult => 
 
 export const mergeIntellijFileColorsText = (text = ""): SettingsMergeResult => {
   if (text.trim() === "") {
-    return { _tag: "Updated", text: DEFAULT_FILE_COLORS_XML }
+    return SettingsMergeResult.Updated({ text: DEFAULT_FILE_COLORS_XML })
   }
   const parsed = parseXml({
     invalidRootMessage: ".idea/fileColors.xml must contain a <project> root.",
@@ -218,14 +216,14 @@ export const mergeIntellijFileColorsText = (text = ""): SettingsMergeResult => {
     rootName: "project",
     text
   })
-  if (parsed._tag === "Invalid") return parsed
+  if (parsed._tag === "Invalid") return SettingsMergeResult.Invalid({ message: parsed.message })
 
   const component = findComponent(parsed.root, SHARED_FILE_COLORS_COMPONENT)
   if (
     component &&
     hasChildElementWithAttribute(component, "fileColor", "scope", VENDOR_SCOPE_NAME)
   ) {
-    return { _tag: "Unchanged" }
+    return SettingsMergeResult.Unchanged()
   }
 
   if (component) {

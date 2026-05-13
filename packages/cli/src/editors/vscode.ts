@@ -8,7 +8,7 @@ import {
   ensureObjectProperty,
   initialSettingsState,
   parseSettings,
-  type SettingsMergeResult,
+  SettingsMergeResult,
   type SettingsMergeState
 } from "../config/jsonc-settings.ts"
 import { VENDOR_DIR } from "../domain/constants.ts"
@@ -111,7 +111,7 @@ export const mergeVscodeSettingsText = (
     text
   })
   if (parsed._tag === "Invalid") {
-    return { _tag: "Invalid", message: parsed.message }
+    return SettingsMergeResult.Invalid({ message: parsed.message })
   }
 
   return completeMerge(

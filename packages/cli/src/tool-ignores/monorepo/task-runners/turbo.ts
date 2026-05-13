@@ -10,10 +10,10 @@ import {
   jsoncConfigReport,
   packageHasDependency,
   parseSettings,
+  SettingsMergeResult,
   unsupportedReport,
   writeMerged,
   type MonorepoToolDefinition,
-  type SettingsMergeResult,
   type ToolFileContext
 } from "../common.ts"
 
@@ -24,9 +24,10 @@ const CONFIGS = ["turbo.json", "turbo.jsonc"] as const
 
 export const mergeTurboConfigText = (text = "{}\n"): SettingsMergeResult => {
   const parsed = parseSettings({ objectName: "turbo.json", text })
-  if (parsed._tag === "Invalid") return parsed
+  if (parsed._tag === "Invalid")
+    return SettingsMergeResult.Invalid({ message: parsed.message })
   const tasks = parsed.value.tasks
-  if (!isRecord(tasks)) return { _tag: "Unchanged" }
+  if (!isRecord(tasks)) return SettingsMergeResult.Unchanged()
 
   const state = Object.entries(tasks).reduce(
     (current, [taskName, task]) => {

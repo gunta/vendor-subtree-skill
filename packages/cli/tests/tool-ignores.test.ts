@@ -127,9 +127,7 @@ describe("tool ignore config mergers", () => {
   })
 
   test("does not invent a pnpm packages list", () => {
-    expect(mergePnpmWorkspaceText("catalog:\n  react: ^19.0.0\n")).toEqual({
-      _tag: "Unchanged"
-    })
+    expect(mergePnpmWorkspaceText("catalog:\n  react: ^19.0.0\n")._tag).toBe("Unchanged")
   })
 
   test("adds moon hasher ignore patterns", () => {

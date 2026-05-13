@@ -1,37 +1,26 @@
-import { applyEdits, modify, parse, printParseErrorCode, type ParseError } from "jsonc-parser"
+import { Data, Effect, Schema } from "effect"
+import {
+  applyEdits,
+  modify,
+  parse,
+  printParseErrorCode,
+  type ParseError
+} from "jsonc-parser"
 
-export interface UnchangedSettingsMerge {
-  readonly _tag: "Unchanged"
-}
+import { JsoncParseFailed, SchemaDecodeFailed } from "../domain/errors.ts"
 
-export interface UpdatedSettingsMerge {
-  readonly _tag: "Updated"
-  readonly text: string
-}
+export type SettingsMergeResult = Data.TaggedEnum<{
+  Unchanged: {}
+  Updated: { readonly text: string }
+  Invalid: { readonly message: string }
+}>
+export const SettingsMergeResult = Data.taggedEnum<SettingsMergeResult>()
 
-export interface InvalidSettingsMerge {
-  readonly _tag: "Invalid"
-  readonly message: string
-}
-
-export type SettingsMergeResult =
-  | UnchangedSettingsMerge
-  | UpdatedSettingsMerge
-  | InvalidSettingsMerge
-
-export interface ValidParsedSettings {
-  readonly _tag: "Valid"
-  readonly value: Record<string, unknown>
-  readonly source: string
-}
-
-export interface InvalidParsedSettings {
-  readonly _tag: "Invalid"
-  readonly message: string
-  readonly source: string
-}
-
-export type ParsedSettings = ValidParsedSettings | InvalidParsedSettings
+export type ParsedSettings = Data.TaggedEnum<{
+  Valid: { readonly value: Record<string, unknown>; readonly source: string }
+  Invalid: { readonly message: string; readonly source: string }
+}>
+export const ParsedSettings = Data.taggedEnum<ParsedSettings>()
 
 export interface SettingsMergeState {
   readonly changed: boolean
@@ -77,22 +66,47 @@ const formatOptions = { insertSpaces: true, tabSize: 2 }
 export const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value)
 
+export const parseJsoncText = (text: string): Effect.Effect<unknown, JsoncParseFailed> =>
+  Effect.try({
+    try: () => {
+      const errors: Array<ParseError> = []
+      const value = parse(text, errors, { allowTrailingComma: true }) as unknown
+      if (errors.length > 0) {
+        throw new Error(errors.map((error) => printParseErrorCode(error.error)).join("; "))
+      }
+      return value
+    },
+    catch: (cause) => new JsoncParseFailed({ cause })
+  })
+
+export const parseJsoncWith =
+  <S extends Schema.Top>(schema: S) =>
+  (
+    text: string
+  ): Effect.Effect<S["Type"], JsoncParseFailed | SchemaDecodeFailed, S["DecodingServices"]> =>
+    parseJsoncText(text).pipe(
+      Effect.flatMap((value) =>
+        Schema.decodeUnknownEffect(schema)(value).pipe(
+          Effect.mapError((error) => new SchemaDecodeFailed({ source: "jsonc", issue: error.issue }))
+        )
+      )
+    )
+
 export const parseSettings = ({ objectName, text }: ParseSettingsParams): ParsedSettings => {
   const errors: ParseError[] = []
   const source = text.trim() === "" ? "{}\n" : text
   const value = parse(source, errors, { allowTrailingComma: true })
   if (errors.length > 0) {
     const message = errors.map((error) => printParseErrorCode(error.error)).join(", ")
-    return { _tag: "Invalid" as const, message, source }
+    return ParsedSettings.Invalid({ message, source })
   }
   if (!isRecord(value)) {
-    return {
-      _tag: "Invalid" as const,
+    return ParsedSettings.Invalid({
       message: `${objectName} must contain a JSON object.`,
       source
-    }
+    })
   }
-  return { _tag: "Valid" as const, value, source }
+  return ParsedSettings.Valid({ value, source })
 }
 
 export const initialSettingsState = (
@@ -201,4 +215,6 @@ export const ensureObjectProperty = ({
 }
 
 export const completeMerge = (state: SettingsMergeState): SettingsMergeResult =>
-  state.changed ? { _tag: "Updated", text: state.text } : { _tag: "Unchanged" }
+  state.changed
+    ? SettingsMergeResult.Updated({ text: state.text })
+    : SettingsMergeResult.Unchanged()

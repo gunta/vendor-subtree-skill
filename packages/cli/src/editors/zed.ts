@@ -1,10 +1,9 @@
 import { Context, Effect, Layer, Option } from "effect"
 
-import { type SettingsMergeResult } from "../config/jsonc-settings.ts"
+import { SettingsMergeResult } from "../config/jsonc-settings.ts"
 
-export const mergeZedSettingsText = (_text = "{}\n"): SettingsMergeResult => ({
-  _tag: "Unchanged"
-})
+export const mergeZedSettingsText = (_text = "{}\n"): SettingsMergeResult =>
+  SettingsMergeResult.Unchanged()
 
 export interface ZedSettingsShape {
   readonly refresh: (cwd: string) => Effect.Effect<Option.Option<string>, never>

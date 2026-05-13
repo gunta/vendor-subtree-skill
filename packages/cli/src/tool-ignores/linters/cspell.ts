@@ -5,7 +5,7 @@ import {
   ensureArrayItems,
   initialSettingsState,
   parseSettings,
-  type SettingsMergeResult
+  SettingsMergeResult
 } from "../../config/jsonc-settings.ts"
 import {
   VENDOR_GLOB,
@@ -28,7 +28,7 @@ const CONFIG_CANDIDATES = [
 export const mergeCspellConfigText = (text = "{}\n"): SettingsMergeResult => {
   const parsed = parseSettings({ objectName: "CSpell config", text })
   if (parsed._tag === "Invalid") {
-    return { _tag: "Invalid", message: parsed.message }
+    return SettingsMergeResult.Invalid({ message: parsed.message })
   }
 
   return completeMerge(

@@ -3,11 +3,22 @@ import { describe, expect, test } from "bun:test"
 import { Cause, Effect, Exit, Option, Schema } from "effect"
 
 import { jsObjectHasArrayValue } from "../src/config/javascript-source.ts"
+import {
+  parseJsoncText,
+  parseJsoncWith,
+  ParsedSettings,
+  SettingsMergeResult
+} from "../src/config/jsonc-settings.ts"
 import { packageJsonHasDependency, packageJsonDependencySpec } from "../src/config/package-json.ts"
 import { parseTomlText, parseTomlWith, tomlHasPath, tomlPathHasArrayValue } from "../src/config/toml.ts"
 import { tsObjectHasArrayValue } from "../src/config/typescript-source.ts"
 import { parseYamlText, parseYamlWith, yamlHasPath } from "../src/config/yaml.ts"
-import { SchemaDecodeFailed, TomlParseFailed, YamlParseFailed } from "../src/domain/errors.ts"
+import {
+  JsoncParseFailed,
+  SchemaDecodeFailed,
+  TomlParseFailed,
+  YamlParseFailed
+} from "../src/domain/errors.ts"
 
 describe("non-destructive config parsers", () => {
   test("reads package.json dependency sections with JSONC-compatible parsing", () => {
@@ -146,6 +157,64 @@ describe("non-destructive config parsers", () => {
       const failures = exit.cause.reasons.filter(Cause.isFailReason)
       const error = failures[0]?.error
       expect(error).toBeInstanceOf(TomlParseFailed)
+    }
+  })
+
+  test("parseJsoncText surfaces JsoncParseFailed on malformed input", async () => {
+    const exit = await Effect.runPromiseExit(parseJsoncText("{ unterminated"))
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = exit.cause.reasons.filter(Cause.isFailReason)
+      expect(failures[0]?.error).toBeInstanceOf(JsoncParseFailed)
+    }
+  })
+
+  test("parseJsoncWith decodes valid JSONC matching the schema", async () => {
+    const schema = Schema.Struct({ name: Schema.String })
+    const result = await Effect.runPromise(parseJsoncWith(schema)('{ "name": "demo" }'))
+    expect(result.name).toBe("demo")
+  })
+
+  test("parseJsoncWith surfaces SchemaDecodeFailed when input is well-formed but shape mismatches", async () => {
+    const schema = Schema.Struct({ name: Schema.String })
+    const exit = await Effect.runPromiseExit(parseJsoncWith(schema)('{ "other": 1 }'))
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = exit.cause.reasons.filter(Cause.isFailReason)
+      expect(failures[0]?.error).toBeInstanceOf(SchemaDecodeFailed)
+    }
+  })
+
+  test("SettingsMergeResult constructors produce correctly tagged values", () => {
+    const unchanged = SettingsMergeResult.Unchanged()
+    expect(unchanged._tag).toBe("Unchanged")
+
+    const updated = SettingsMergeResult.Updated({ text: "{}" })
+    expect(updated._tag).toBe("Updated")
+    if (updated._tag === "Updated") {
+      expect(updated.text).toBe("{}")
+    }
+
+    const invalid = SettingsMergeResult.Invalid({ message: "broken" })
+    expect(invalid._tag).toBe("Invalid")
+    if (invalid._tag === "Invalid") {
+      expect(invalid.message).toBe("broken")
+    }
+  })
+
+  test("ParsedSettings constructors produce correctly tagged values", () => {
+    const valid = ParsedSettings.Valid({ value: { a: 1 }, source: "{}" })
+    expect(valid._tag).toBe("Valid")
+    if (valid._tag === "Valid") {
+      expect(valid.value).toEqual({ a: 1 })
+      expect(valid.source).toBe("{}")
+    }
+
+    const invalid = ParsedSettings.Invalid({ message: "bad", source: "{" })
+    expect(invalid._tag).toBe("Invalid")
+    if (invalid._tag === "Invalid") {
+      expect(invalid.message).toBe("bad")
+      expect(invalid.source).toBe("{")
     }
   })
 })

@@ -7,7 +7,7 @@ import {
   initialSettingsState,
   isRecord,
   parseSettings,
-  type SettingsMergeResult
+  SettingsMergeResult
 } from "../../config/jsonc-settings.ts"
 import {
   firstExisting,
@@ -25,7 +25,7 @@ export {
   isRecord,
   parseSettings,
   report,
-  type SettingsMergeResult,
+  SettingsMergeResult,
   type ToolFileContext,
   type ToolIgnoreReport
 }
@@ -219,26 +219,25 @@ export const mergeYamlArrayItemsAtPath = ({
   const source = text.trim() === "" ? "{}\n" : text
   const document = parseDocument(source)
   if (document.errors.length > 0) {
-    return {
-      _tag: "Invalid",
+    return SettingsMergeResult.Invalid({
       message: document.errors.map((error) => error.message).join(", ")
-    }
+    })
   }
   const current = document.getIn(path, true)
   if (current === undefined || current === null) {
-    if (requireExistingArray) return { _tag: "Unchanged" }
+    if (requireExistingArray) return SettingsMergeResult.Unchanged()
     document.setIn(path, [...fallback, ...items])
-    return { _tag: "Updated", text: document.toString() }
+    return SettingsMergeResult.Updated({ text: document.toString() })
   }
-  if (!isSeq(current)) return { _tag: "Unchanged" }
+  if (!isSeq(current)) return SettingsMergeResult.Unchanged()
 
   const existing = current.items
     .map(yamlScalarValue)
     .filter((item): item is string => typeof item === "string")
   const missing = items.filter((item) => !existing.includes(item))
-  if (missing.length === 0) return { _tag: "Unchanged" }
+  if (missing.length === 0) return SettingsMergeResult.Unchanged()
   for (const item of missing) current.add(item)
-  return { _tag: "Updated", text: document.toString() }
+  return SettingsMergeResult.Updated({ text: document.toString() })
 }
 
 export const jsoncConfigReport = ({

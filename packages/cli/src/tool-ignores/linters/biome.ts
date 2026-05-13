@@ -5,7 +5,7 @@ import {
   ensureArrayItemsAtPath,
   initialSettingsState,
   parseSettings,
-  type SettingsMergeResult
+  SettingsMergeResult
 } from "../../config/jsonc-settings.ts"
 import {
   firstExisting,
@@ -23,7 +23,7 @@ const CONFIG_CANDIDATES = ["biome.jsonc", "biome.json"] as const
 export const mergeBiomeConfigText = (text = "{}\n"): SettingsMergeResult => {
   const parsed = parseSettings({ objectName: "Biome config", text })
   if (parsed._tag === "Invalid") {
-    return { _tag: "Invalid", message: parsed.message }
+    return SettingsMergeResult.Invalid({ message: parsed.message })
   }
 
   const existingIncludes = parsed.value.files

@@ -6,7 +6,7 @@ import {
   ensureArrayItem,
   initialSettingsState,
   parseSettings,
-  type SettingsMergeResult
+  SettingsMergeResult
 } from "../../config/jsonc-settings.ts"
 import { tsObjectHasArrayValue } from "../../config/typescript-source.ts"
 import {
@@ -32,7 +32,7 @@ const CONFIG_CANDIDATES = [JSON_CONFIG, ...SOURCE_CONFIG_CANDIDATES] as const
 export const mergeOxlintConfigText = (text = "{}\n"): SettingsMergeResult => {
   const parsed = parseSettings({ objectName: "Oxlint config", text })
   if (parsed._tag === "Invalid") {
-    return { _tag: "Invalid", message: parsed.message }
+    return SettingsMergeResult.Invalid({ message: parsed.message })
   }
 
   return completeMerge(

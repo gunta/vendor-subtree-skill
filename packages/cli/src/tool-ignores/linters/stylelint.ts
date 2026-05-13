@@ -5,7 +5,7 @@ import {
   ensureArrayItem,
   initialSettingsState,
   parseSettings,
-  type SettingsMergeResult
+  SettingsMergeResult
 } from "../../config/jsonc-settings.ts"
 import {
   firstExisting,
@@ -23,7 +23,7 @@ const CONFIG_CANDIDATES = [".stylelintrc.json", "stylelint.config.json"] as cons
 export const mergeStylelintConfigText = (text = "{}\n"): SettingsMergeResult => {
   const parsed = parseSettings({ objectName: "Stylelint config", text })
   if (parsed._tag === "Invalid") {
-    return { _tag: "Invalid", message: parsed.message }
+    return SettingsMergeResult.Invalid({ message: parsed.message })
   }
 
   return completeMerge(

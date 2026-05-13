@@ -66,10 +66,10 @@ describe("IntelliJ settings", () => {
       ].join("\n")
     )
 
-    expect(result).toEqual({
-      _tag: "Invalid",
-      message: ".idea/fileColors.xml is not well-formed XML."
-    })
+    expect(result._tag).toBe("Invalid")
+    if (result._tag === "Invalid") {
+      expect(result.message).toBe(".idea/fileColors.xml is not well-formed XML.")
+    }
   })
 
   test("refresh writes JetBrains project files only when .idea exists", async () => {
