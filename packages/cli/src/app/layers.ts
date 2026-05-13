@@ -1,5 +1,6 @@
 import { NodeServices } from "@effect/platform-node"
 import { Layer } from "effect"
+import { FetchHttpClient } from "effect/unstable/http"
 
 import { RepositoryAliasesLive } from "../aliases/service.ts"
 import { IngraftConfigLive } from "../config/ingraft.ts"
@@ -47,7 +48,7 @@ const ConfigLive = IngraftConfigLive.pipe(Layer.provide(PlatformLive))
 const AliasesLive = RepositoryAliasesLive.pipe(
   Layer.provide(Layer.mergeAll(PlatformLive, ConfigLive))
 )
-const ArtifactsLive = CloudflareArtifactsLive
+const ArtifactsLive = CloudflareArtifactsLive.pipe(Layer.provide(FetchHttpClient.layer))
 const GitLayerLive = GitLive.pipe(Layer.provide(NodeServices.layer))
 const MetadataLive = GitMetadataLive
 const GhLive = GitHubCliLive.pipe(Layer.provide(NodeServices.layer))

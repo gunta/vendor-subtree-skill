@@ -1,4 +1,5 @@
 import { Config, Context, Effect, Layer, Option } from "effect"
+import { HttpClient, HttpClientRequest } from "effect/unstable/http"
 
 import {
   CloudflareArtifactsConfigMissing,
@@ -82,7 +83,27 @@ export const isCloudflareImportableRemote = (url: string): boolean =>
     })
   )
 
-export const cloudflareImportRequest = ({
+export const cloudflareImportEndpoint = ({
+  config,
+  name
+}: {
+  readonly config: CloudflareArtifactsConfig
+  readonly name: string
+}): string => `${config.baseUrl}/repos/${encodeURIComponent(name)}/import`
+
+export const cloudflareImportBody = ({
+  branch,
+  depth,
+  url
+}: Pick<CloudflareArtifactsImportParams, "branch" | "depth" | "url">): string =>
+  JSON.stringify({
+    url,
+    branch,
+    read_only: true,
+    ...(Option.isSome(depth) ? { depth: depth.value } : {})
+  })
+
+export const buildImportRequest = ({
   branch,
   config,
   depth,
@@ -90,22 +111,14 @@ export const cloudflareImportRequest = ({
   url
 }: CloudflareArtifactsImportParams & {
   readonly config: CloudflareArtifactsConfig
-}) => ({
-  url: `${config.baseUrl}/repos/${encodeURIComponent(name)}/import`,
-  init: {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${config.apiToken}`,
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify({
-      url,
-      branch,
-      read_only: true,
-      ...(Option.isSome(depth) ? { depth: depth.value } : {})
-    })
-  } satisfies RequestInit
-})
+}): HttpClientRequest.HttpClientRequest =>
+  HttpClientRequest.post(cloudflareImportEndpoint({ config, name })).pipe(
+    HttpClientRequest.bearerToken(config.apiToken),
+    HttpClientRequest.bodyText(
+      cloudflareImportBody({ branch, depth, url }),
+      "application/json"
+    )
+  )
 
 export const artifactRemoteWithCredentials = ({
   remote,
@@ -147,66 +160,70 @@ const parseImportEnvelope = (value: unknown): Option.Option<CloudflareArtifactIm
   })
 }
 
-const importRepo = (params: CloudflareArtifactsImportParams) =>
-  Effect.gen(function* () {
-    if (!isCloudflareImportableRemote(params.url)) {
-      return yield* Effect.fail(
-        new CloudflareArtifactsRequestFailed({
-          action: "import",
-          output: `Cloudflare Artifacts import requires an HTTPS Git remote. Got: ${params.url}`
-        })
-      )
-    }
+const importRepoWith =
+  (client: HttpClient.HttpClient) => (params: CloudflareArtifactsImportParams) =>
+    Effect.gen(function* () {
+      if (!isCloudflareImportableRemote(params.url)) {
+        return yield* Effect.fail(
+          new CloudflareArtifactsRequestFailed({
+            action: "import",
+            output: `Cloudflare Artifacts import requires an HTTPS Git remote. Got: ${params.url}`
+          })
+        )
+      }
 
-    const env = yield* readCloudflareEnv
-    const config = cloudflareArtifactsConfigFromEnv(env)
-    if (config === null) {
-      return yield* Effect.fail(
-        new CloudflareArtifactsConfigMissing({
-          reason: "Missing Cloudflare Artifacts REST configuration for --cloudflare-artifact."
-        })
-      )
-    }
+      const env = yield* readCloudflareEnv
+      const config = cloudflareArtifactsConfigFromEnv(env)
+      if (config === null) {
+        return yield* Effect.fail(
+          new CloudflareArtifactsConfigMissing({
+            reason: "Missing Cloudflare Artifacts REST configuration for --cloudflare-artifact."
+          })
+        )
+      }
 
-    const request = cloudflareImportRequest({ ...params, config })
-    const response = yield* Effect.tryPromise({
-      try: () => fetch(request.url, request.init),
-      catch: (error) =>
-        new CloudflareArtifactsRequestFailed({
-          action: "import",
-          output: String(error)
-        })
-    })
-    const text = yield* Effect.tryPromise({
-      try: () => response.text(),
-      catch: (error) =>
-        new CloudflareArtifactsRequestFailed({
-          action: "import",
-          status: response.status,
-          output: String(error)
-        })
-    })
-    const parsed = yield* Effect.try({
-      try: () => JSON.parse(text) as CloudflareEnvelope<CloudflareImportResult>,
-      catch: () =>
-        new CloudflareArtifactsRequestFailed({
-          action: "import",
-          status: response.status,
-          output: text
-        })
-    })
-    const result = parseImportEnvelope(parsed)
-    if (!response.ok || Option.isNone(result)) {
-      return yield* Effect.fail(
-        new CloudflareArtifactsRequestFailed({
-          action: "import",
-          status: response.status,
-          output: envelopeMessages(parsed) || text
-        })
+      const httpRequest = buildImportRequest({ ...params, config })
+      const response = yield* client.execute(httpRequest).pipe(
+        Effect.mapError(
+          (cause) =>
+            new CloudflareArtifactsRequestFailed({
+              action: "import",
+              output: String(cause)
+            })
+        )
       )
-    }
-    return result.value
-  })
+      const status = response.status
+      const text = yield* response.text.pipe(
+        Effect.mapError(
+          (cause) =>
+            new CloudflareArtifactsRequestFailed({
+              action: "import",
+              status,
+              output: String(cause)
+            })
+        )
+      )
+      const parsed = yield* Effect.try({
+        try: () => JSON.parse(text) as CloudflareEnvelope<CloudflareImportResult>,
+        catch: () =>
+          new CloudflareArtifactsRequestFailed({
+            action: "import",
+            status,
+            output: text
+          })
+      })
+      const result = parseImportEnvelope(parsed)
+      if (status < 200 || status >= 300 || Option.isNone(result)) {
+        return yield* Effect.fail(
+          new CloudflareArtifactsRequestFailed({
+            action: "import",
+            status,
+            output: envelopeMessages(parsed) || text
+          })
+        )
+      }
+      return result.value
+    })
 
 export interface CloudflareArtifactsShape {
   readonly importRepo: (
@@ -222,6 +239,10 @@ export class CloudflareArtifacts extends Context.Service<
   CloudflareArtifactsShape
 >()("ingraft/CloudflareArtifacts") {}
 
-export const CloudflareArtifactsLive = Layer.sync(CloudflareArtifacts, () => ({
-  importRepo
-}))
+export const CloudflareArtifactsLive = Layer.effect(
+  CloudflareArtifacts,
+  Effect.gen(function* () {
+    const client = yield* HttpClient.HttpClient
+    return { importRepo: importRepoWith(client) }
+  })
+)
