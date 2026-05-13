@@ -50,10 +50,14 @@ const jsonConfigPath = (context: ToolFileContext, cwd: string) =>
 const sourceConfigPath = (context: ToolFileContext, cwd: string) =>
   firstExisting(context, cwd, SOURCE_CONFIG_CANDIDATES)
 
-const sourceConfigIgnoresVendor = (path: string, content: string): boolean =>
+const sourceConfigIgnoresVendor = (path: string, content: string): Effect.Effect<boolean> =>
   path.endsWith(".ts")
-    ? tsObjectHasArrayValue(content, "ignorePatterns", VENDOR_GLOB)
-    : jsObjectHasArrayValue(content, "ignorePatterns", VENDOR_GLOB)
+    ? tsObjectHasArrayValue(content, "ignorePatterns", VENDOR_GLOB).pipe(
+        Effect.orElseSucceed(() => false)
+      )
+    : jsObjectHasArrayValue(content, "ignorePatterns", VENDOR_GLOB).pipe(
+        Effect.orElseSucceed(() => false)
+      )
 
 const isDetected = (context: ToolFileContext, cwd: string) =>
   Effect.gen(function* () {
@@ -100,7 +104,7 @@ const doctorWith = (context: ToolFileContext, cwd: string) =>
     if (!(yield* context.fs.exists(jsonTarget))) {
       const sourceTarget = yield* sourceConfigPath(context, cwd)
       if (Option.isSome(sourceTarget)) {
-        const ignored = sourceConfigIgnoresVendor(
+        const ignored = yield* sourceConfigIgnoresVendor(
           sourceTarget.value,
           yield* context.fs.readFileString(sourceTarget.value)
         )

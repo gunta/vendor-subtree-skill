@@ -1,4 +1,7 @@
+import { Effect } from "effect"
 import { Node, Project, ScriptKind, SyntaxKind, type ObjectLiteralExpression } from "ts-morph"
+
+import { TypeScriptParseFailed } from "../domain/errors.ts"
 
 const sourceFileFromText = (text: string) => {
   const project = new Project({ useInMemoryFileSystem: true })
@@ -31,13 +34,13 @@ export const tsObjectHasArrayValue = (
   text: string,
   propertyName: string,
   expected: string
-): boolean => {
-  try {
-    const sourceFile = sourceFileFromText(text)
-    return sourceFile
-      .getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)
-      .some((object) => propertyArrayHasValue(object, propertyName, expected))
-  } catch {
-    return false
-  }
-}
+): Effect.Effect<boolean, TypeScriptParseFailed> =>
+  Effect.try({
+    try: () => {
+      const sourceFile = sourceFileFromText(text)
+      return sourceFile
+        .getDescendantsOfKind(SyntaxKind.ObjectLiteralExpression)
+        .some((object) => propertyArrayHasValue(object, propertyName, expected))
+    },
+    catch: (cause) => new TypeScriptParseFailed({ cause })
+  })

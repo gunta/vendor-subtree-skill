@@ -1,4 +1,7 @@
+import { Effect } from "effect"
 import jscodeshift from "jscodeshift"
+
+import { JavaScriptParseFailed } from "../domain/errors.ts"
 
 const j = jscodeshift.withParser("babylon")
 
@@ -34,23 +37,27 @@ const arrayExpressionHasValue = (node: unknown, expected: string): boolean => {
   )
 }
 
-export const jsObjectHasArrayValue = (text: string, name: string, expected: string): boolean => {
-  try {
-    let found = false
-    j(text)
-      .find(j.ObjectExpression)
-      .forEach((path) => {
-        const node: unknown = path.node
-        if (!isRecord(node)) return
-        if (!Array.isArray(node.properties)) return
-        for (const property of node.properties) {
-          if (!isRecord(property)) continue
-          if (propertyName(property.key) !== name) continue
-          if (arrayExpressionHasValue(property.value, expected)) found = true
-        }
-      })
-    return found
-  } catch {
-    return false
-  }
-}
+export const jsObjectHasArrayValue = (
+  text: string,
+  name: string,
+  expected: string
+): Effect.Effect<boolean, JavaScriptParseFailed> =>
+  Effect.try({
+    try: () => {
+      let found = false
+      j(text)
+        .find(j.ObjectExpression)
+        .forEach((path) => {
+          const node: unknown = path.node
+          if (!isRecord(node)) return
+          if (!Array.isArray(node.properties)) return
+          for (const property of node.properties) {
+            if (!isRecord(property)) continue
+            if (propertyName(property.key) !== name) continue
+            if (arrayExpressionHasValue(property.value, expected)) found = true
+          }
+        })
+      return found
+    },
+    catch: (cause) => new JavaScriptParseFailed({ cause })
+  })

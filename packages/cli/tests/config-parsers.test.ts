@@ -14,9 +14,11 @@ import { parseTomlText, parseTomlWith, tomlHasPath, tomlPathHasArrayValue } from
 import { tsObjectHasArrayValue } from "../src/config/typescript-source.ts"
 import { parseYamlText, parseYamlWith, yamlHasPath } from "../src/config/yaml.ts"
 import {
+  JavaScriptParseFailed,
   JsoncParseFailed,
   SchemaDecodeFailed,
   TomlParseFailed,
+  TypeScriptParseFailed,
   YamlParseFailed
 } from "../src/domain/errors.ts"
 
@@ -110,7 +112,7 @@ describe("non-destructive config parsers", () => {
       }
     `
 
-    expect(tsObjectHasArrayValue(text, "ignorePatterns", "vendor/**")).toBe(true)
+    expect(Effect.runSync(tsObjectHasArrayValue(text, "ignorePatterns", "vendor/**"))).toBe(true)
   })
 
   test("uses jscodeshift for JavaScript config source detection", () => {
@@ -120,7 +122,35 @@ describe("non-destructive config parsers", () => {
       }
     `
 
-    expect(jsObjectHasArrayValue(text, "ignorePatterns", "vendor/**")).toBe(true)
+    expect(Effect.runSync(jsObjectHasArrayValue(text, "ignorePatterns", "vendor/**"))).toBe(true)
+  })
+
+  test("jsObjectHasArrayValue surfaces JavaScriptParseFailed on malformed input", async () => {
+    const exit = await Effect.runPromiseExit(
+      jsObjectHasArrayValue("const x = { unclosed", "ignorePatterns", "vendor/**")
+    )
+    expect(Exit.isFailure(exit)).toBe(true)
+    if (Exit.isFailure(exit)) {
+      const failures = exit.cause.reasons.filter(Cause.isFailReason)
+      expect(failures[0]?.error).toBeInstanceOf(JavaScriptParseFailed)
+    }
+  })
+
+  test("tsObjectHasArrayValue surfaces TypeScriptParseFailed on malformed input", async () => {
+    // ts-morph is permissive and tries to recover from most parse errors. If it
+    // never throws on a given input, the operation succeeds and we simply assert
+    // the boolean result. When it does throw (e.g. on internal failures), the
+    // error must be the tagged TypeScriptParseFailed.
+    const exit = await Effect.runPromiseExit(
+      tsObjectHasArrayValue("const x: =", "ignorePatterns", "vendor/**")
+    )
+    if (Exit.isFailure(exit)) {
+      const failures = exit.cause.reasons.filter(Cause.isFailReason)
+      expect(failures[0]?.error).toBeInstanceOf(TypeScriptParseFailed)
+    } else {
+      // ts-morph recovered; the function should still return a boolean
+      expect(typeof exit.value).toBe("boolean")
+    }
   })
 
   const PackageMetadataSchema = Schema.Struct({
