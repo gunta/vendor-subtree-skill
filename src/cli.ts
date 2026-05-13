@@ -23,7 +23,7 @@ export const vendorCommand = Cli.make("vendor", {}, () =>
   )
 ).pipe(
   Cli.withDescription(
-    "Manage vendored external git repositories as git subtrees so coding agents can read them as plain files."
+    "Manage vendored external git repositories for coding agents using subtree, submodule, or clone-ignore strategies."
   ),
   Cli.withSubcommands([
     initCmd,
@@ -36,7 +36,7 @@ export const vendorCommand = Cli.make("vendor", {}, () =>
 )
 
 export const runCli = Cli.run(vendorCommand, {
-  name: "vendor — git subtree manager for coding agents",
+  name: "vendor — git reference manager for coding agents",
   version: VERSION
 })
 

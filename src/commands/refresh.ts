@@ -18,6 +18,6 @@ export const refreshImpl = Effect.gen(function* () {
 
 export const refreshCmd = Cli.make("refresh", {}, () => refreshImpl).pipe(
   Cli.withDescription(
-    "Re-generate AGENTS.md sections + .vscode/settings.json from the current git state."
+    "Re-generate AGENTS.md sections, clone-ignore .gitignore entries, and .vscode/settings.json from the current git state."
   )
 )

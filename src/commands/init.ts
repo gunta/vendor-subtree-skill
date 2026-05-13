@@ -25,6 +25,6 @@ export const initImpl = Effect.gen(function* () {
 
 export const initCmd = Cli.make("init", {}, () => initImpl).pipe(
   Cli.withDescription(
-    "Bootstrap the AGENTS.md (and CLAUDE.md) section + .vscode/settings.json exclusions, and commit."
+    "Bootstrap the AGENTS.md (and CLAUDE.md) section, .gitignore clone-ignore section, and .vscode/settings.json exclusions, then commit."
   )
 )

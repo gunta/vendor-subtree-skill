@@ -474,6 +474,6 @@ export const addCmd = Cli.make(
   addImpl
 ).pipe(
   Cli.withDescription(
-    "Add a new vendored repository as a squashed git subtree, with metadata trailers."
+    "Add a new vendored repository using subtree, submodule, or clone-ignore strategy metadata."
   )
 )
