@@ -14,6 +14,7 @@ import { ProjectSurfacesLive } from "../project/surfaces.ts"
 import { CloudflareArtifactsLive } from "../services/cloudflare-artifacts.ts"
 import { GitHubCliLive } from "../services/gh.ts"
 import { GitHubOrgLive } from "../services/github-org.ts"
+import { GitHubRepoMetaLive } from "../services/github-repo-meta.ts"
 import { GitMetadataLive } from "../services/git-metadata.ts"
 import { GitLive } from "../services/git.ts"
 import { GitLabCliLive } from "../services/glab.ts"
@@ -89,6 +90,7 @@ const FilesLive = ProjectFilesLive.pipe(
 const SurfacesLive = ProjectSurfacesLive.pipe(Layer.provide(PlatformLive))
 const HostsLive = RepositoryHostsLive.pipe(Layer.provide(Layer.mergeAll(GhLive, GlabLive)))
 const GitHubOrgLayerLive = GitHubOrgLive.pipe(Layer.provide(GhLive))
+const GitHubRepoMetaLayerLive = GitHubRepoMetaLive.pipe(Layer.provide(GhLive))
 const PkgSyncLive = PackageVersionSyncLive.pipe(
   Layer.provide(Layer.mergeAll(PlatformLive, GitLayerLive, FetchHttpClient.layer))
 )
@@ -111,5 +113,6 @@ export const LiveLayer = Layer.mergeAll(
   PkgSyncLive,
   PrmptsLive,
   LocalStateLive,
-  GitHubOrgLayerLive
+  GitHubOrgLayerLive,
+  GitHubRepoMetaLayerLive
 )
