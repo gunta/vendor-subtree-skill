@@ -24,8 +24,7 @@ const CONFIGS = ["turbo.json", "turbo.jsonc"] as const
 
 export const mergeTurboConfigText = (text = "{}\n"): SettingsMergeResult => {
   const parsed = parseSettings({ objectName: "turbo.json", text })
-  if (parsed._tag === "Invalid")
-    return SettingsMergeResult.Invalid({ message: parsed.message })
+  if (parsed._tag === "Invalid") return SettingsMergeResult.Invalid({ message: parsed.message })
   const tasks = parsed.value.tasks
   if (!isRecord(tasks)) return SettingsMergeResult.Unchanged()
 

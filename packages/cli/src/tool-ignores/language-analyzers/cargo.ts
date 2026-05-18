@@ -20,11 +20,9 @@ const cargoManifestIgnoresVendor = (content: string): Effect.Effect<boolean> =>
       VENDOR_PATTERNS
     ).pipe(Effect.orElseSucceed(() => false))
     if (workspace) return true
-    return yield* tomlPathHasAnyArrayValue(
-      content,
-      ["package", "exclude"],
-      VENDOR_PATTERNS
-    ).pipe(Effect.orElseSucceed(() => false))
+    return yield* tomlPathHasAnyArrayValue(content, ["package", "exclude"], VENDOR_PATTERNS).pipe(
+      Effect.orElseSucceed(() => false)
+    )
   })
 
 const doctorWith = (context: ToolFileContext, cwd: string) =>

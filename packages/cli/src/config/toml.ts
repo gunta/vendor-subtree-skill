@@ -19,7 +19,9 @@ export const parseTomlText = (text: string): Effect.Effect<unknown, TomlParseFai
 
 export const parseTomlWith =
   <S extends Schema.Top>(schema: S) =>
-  (text: string): Effect.Effect<S["Type"], TomlParseFailed | SchemaDecodeFailed, S["DecodingServices"]> =>
+  (
+    text: string
+  ): Effect.Effect<S["Type"], TomlParseFailed | SchemaDecodeFailed, S["DecodingServices"]> =>
     parseTomlText(text).pipe(
       Effect.flatMap((value) =>
         Schema.decodeUnknownEffect(schema)(value).pipe(
@@ -34,7 +36,9 @@ const parseToRecord = (text: string): Effect.Effect<TomlRecord, TomlParseFailed>
       isRecord(value)
         ? Effect.succeed(value)
         : Effect.die(
-            new Error("Unreachable: TOML.parse always returns a record on success per TOML 1.0 spec")
+            new Error(
+              "Unreachable: TOML.parse always returns a record on success per TOML 1.0 spec"
+            )
           )
     )
   )

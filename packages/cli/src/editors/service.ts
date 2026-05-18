@@ -1,7 +1,6 @@
 import { Context, Effect, Layer, Option, type PlatformError } from "effect"
 
 import type { GitMetadataFailed, InkRenderFailed } from "../domain/errors.ts"
-
 import { IntellijSettings } from "./intellij.ts"
 import { VscodeSettings } from "./vscode.ts"
 import { ZedSettings } from "./zed.ts"

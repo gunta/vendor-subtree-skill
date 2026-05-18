@@ -25,7 +25,9 @@ export const parseYamlText = (text: string): Effect.Effect<unknown, YamlParseFai
 
 export const parseYamlWith =
   <S extends Schema.Top>(schema: S) =>
-  (text: string): Effect.Effect<S["Type"], YamlParseFailed | SchemaDecodeFailed, S["DecodingServices"]> =>
+  (
+    text: string
+  ): Effect.Effect<S["Type"], YamlParseFailed | SchemaDecodeFailed, S["DecodingServices"]> =>
     parseYamlText(text).pipe(
       Effect.flatMap((value) =>
         Schema.decodeUnknownEffect(schema)(value).pipe(

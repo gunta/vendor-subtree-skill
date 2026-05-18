@@ -1,11 +1,5 @@
 import { Data, Effect, Schema } from "effect"
-import {
-  applyEdits,
-  modify,
-  parse,
-  printParseErrorCode,
-  type ParseError
-} from "jsonc-parser"
+import { applyEdits, modify, parse, printParseErrorCode, type ParseError } from "jsonc-parser"
 
 import { JsoncParseFailed, SchemaDecodeFailed } from "../domain/errors.ts"
 
@@ -87,7 +81,9 @@ export const parseJsoncWith =
     parseJsoncText(text).pipe(
       Effect.flatMap((value) =>
         Schema.decodeUnknownEffect(schema)(value).pipe(
-          Effect.mapError((error) => new SchemaDecodeFailed({ source: "jsonc", issue: error.issue }))
+          Effect.mapError(
+            (error) => new SchemaDecodeFailed({ source: "jsonc", issue: error.issue })
+          )
         )
       )
     )

@@ -1631,11 +1631,14 @@ const resolveHexPackageVersion = (
       onSome: Effect.succeed
     })
     const detected = yield* detectProjectPackageVersionWith(fs, path, params.cwd, dependency)
-    const metadata = yield* Option.match(yield* hexPackageMetadata(client, params.cwd, identity.name), {
-      onNone: () =>
-        Effect.fail(failedSync(params, "Hex metadata did not include a usable version.")),
-      onSome: Effect.succeed
-    })
+    const metadata = yield* Option.match(
+      yield* hexPackageMetadata(client, params.cwd, identity.name),
+      {
+        onNone: () =>
+          Effect.fail(failedSync(params, "Hex metadata did not include a usable version.")),
+        onSome: Effect.succeed
+      }
+    )
     const version = hexVersionFromMetadata(detected, metadata)
     const tag = yield* firstExistingTag(
       git,
@@ -1679,11 +1682,16 @@ const resolveHexPackageSource = (
       spec: "latest"
     }))
     const detected = yield* detectProjectPackageVersionWith(fs, path, params.cwd, dependency)
-    const metadata = yield* Option.match(yield* hexPackageMetadata(client, params.cwd, identity.name), {
-      onNone: () =>
-        Effect.fail(failedPackageSource(params, "Hex metadata did not include a usable version.")),
-      onSome: Effect.succeed
-    })
+    const metadata = yield* Option.match(
+      yield* hexPackageMetadata(client, params.cwd, identity.name),
+      {
+        onNone: () =>
+          Effect.fail(
+            failedPackageSource(params, "Hex metadata did not include a usable version.")
+          ),
+        onSome: Effect.succeed
+      }
+    )
     const repoUrl = yield* Option.match(metadata.repositoryUrl, {
       onNone: () =>
         Effect.fail(failedPackageSource(params, "Hex metadata did not include a repository URL.")),

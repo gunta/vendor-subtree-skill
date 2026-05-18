@@ -14,7 +14,12 @@ import {
   packageJsonDependencySpec,
   parsePackageJsonShape
 } from "../src/config/package-json.ts"
-import { parseTomlText, parseTomlWith, tomlHasPath, tomlPathHasArrayValue } from "../src/config/toml.ts"
+import {
+  parseTomlText,
+  parseTomlWith,
+  tomlHasPath,
+  tomlPathHasArrayValue
+} from "../src/config/toml.ts"
 import { tsObjectHasArrayValue } from "../src/config/typescript-source.ts"
 import { parseYamlText, parseYamlWith, yamlHasPath } from "../src/config/yaml.ts"
 import {

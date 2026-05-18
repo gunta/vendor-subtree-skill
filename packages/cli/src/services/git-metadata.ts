@@ -32,9 +32,7 @@ const listCommits = (
     catch: (cause) => new GitMetadataFailed({ operation: "listCommits", cwd, cause })
   })
 
-const listProjectFiles = (
-  cwd: string
-): Effect.Effect<ReadonlyArray<string>, GitMetadataFailed> =>
+const listProjectFiles = (cwd: string): Effect.Effect<ReadonlyArray<string>, GitMetadataFailed> =>
   Effect.tryPromise({
     try: async () => {
       const matrix = await git.statusMatrix({
@@ -47,10 +45,7 @@ const listProjectFiles = (
     catch: (cause) => new GitMetadataFailed({ operation: "listProjectFiles", cwd, cause })
   })
 
-const pathKnownToGit = (
-  cwd: string,
-  filepath: string
-): Effect.Effect<boolean, GitMetadataFailed> =>
+const pathKnownToGit = (cwd: string, filepath: string): Effect.Effect<boolean, GitMetadataFailed> =>
   Effect.tryPromise({
     try: async () => {
       const status = await git.status({ fs: nodeFs, dir: cwd, filepath })
@@ -59,10 +54,7 @@ const pathKnownToGit = (
     catch: (cause) => new GitMetadataFailed({ operation: "pathKnownToGit", cwd, filepath, cause })
   })
 
-const isIgnored = (
-  cwd: string,
-  filepath: string
-): Effect.Effect<boolean, GitMetadataFailed> =>
+const isIgnored = (cwd: string, filepath: string): Effect.Effect<boolean, GitMetadataFailed> =>
   Effect.tryPromise({
     try: () => git.isIgnored({ fs: nodeFs, dir: cwd, filepath }),
     catch: (cause) => new GitMetadataFailed({ operation: "isIgnored", cwd, filepath, cause })

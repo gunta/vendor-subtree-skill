@@ -14,7 +14,10 @@ const ALLOW_INK_OR_TEST = (p: string) =>
   p.includes(`src${sep}app${sep}ink${sep}`) || p.includes(`tests${sep}`)
 
 const rules: ReadonlyArray<Rule> = [
-  { name: "Effect.promise (use Effect.tryPromise with a tagged error)", pattern: /\bEffect\.promise\s*\(/ },
+  {
+    name: "Effect.promise (use Effect.tryPromise with a tagged error)",
+    pattern: /\bEffect\.promise\s*\(/
+  },
   { name: "Effect.catchAll (v4: Effect.catch)", pattern: /\bEffect\.catchAll\b/ },
   { name: "Effect.catchAllCause (v4: Effect.catchCause)", pattern: /\bEffect\.catchAllCause\b/ },
   { name: "Effect.catchAllDefect (v4: Effect.catchDefect)", pattern: /\bEffect\.catchAllDefect\b/ },
@@ -25,7 +28,10 @@ const rules: ReadonlyArray<Rule> = [
   { name: "Scope.extend (v4: Scope.provide)", pattern: /\bScope\.extend\b/ },
   { name: "FiberRef (v4: Context.Reference)", pattern: /\bFiberRef\.\b/ },
   { name: "Either (v4: Result)", pattern: /\bEither\b/ },
-  { name: "Untyped error channel Effect.Effect<X, unknown>", pattern: /Effect\.Effect<[^>]*,\s*unknown[\s,>]/ },
+  {
+    name: "Untyped error channel Effect.Effect<X, unknown>",
+    pattern: /Effect\.Effect<[^>]*,\s*unknown[\s,>]/
+  },
   { name: "@effect/cli import (v4: effect/unstable/cli)", pattern: /from\s+["']@effect\/cli["']/ },
   { name: "@effect/platform import (v4: effect)", pattern: /from\s+["']@effect\/platform["']/ },
   { name: "@effect/schema import (v4: effect Schema)", pattern: /from\s+["']@effect\/schema["']/ },
@@ -64,9 +70,7 @@ for (const file of targets) {
     if (rule.allow?.(file)) continue
     lines.forEach((line, i) => {
       if (rule.pattern.test(line)) {
-        violations.push(
-          `${relative(repoRoot, file)}:${i + 1}  ${rule.name}\n    ${line.trim()}`
-        )
+        violations.push(`${relative(repoRoot, file)}:${i + 1}  ${rule.name}\n    ${line.trim()}`)
       }
     })
   }

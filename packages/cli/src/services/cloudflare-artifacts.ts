@@ -114,10 +114,7 @@ export const buildImportRequest = ({
 }): HttpClientRequest.HttpClientRequest =>
   HttpClientRequest.post(cloudflareImportEndpoint({ config, name })).pipe(
     HttpClientRequest.bearerToken(config.apiToken),
-    HttpClientRequest.bodyText(
-      cloudflareImportBody({ branch, depth, url }),
-      "application/json"
-    )
+    HttpClientRequest.bodyText(cloudflareImportBody({ branch, depth, url }), "application/json")
   )
 
 export const artifactRemoteWithCredentials = ({
