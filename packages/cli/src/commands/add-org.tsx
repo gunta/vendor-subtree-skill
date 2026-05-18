@@ -1,3 +1,5 @@
+import { stdin, stdout } from "node:process"
+
 import { Effect, Option } from "effect"
 import { Argument, Command, Flag } from "effect/unstable/cli"
 
@@ -8,6 +10,15 @@ import { type VendorStrategy } from "../domain/vendor-strategy.ts"
 import { repoRoot } from "../services/git.ts"
 import { GitHubOrg } from "../services/github-org.ts"
 import { LocalState, type OrgRepository } from "../services/local-state.ts"
+import { handleAddOrgKey } from "../tui/add-org/keyboard.ts"
+import { renderAddOrg } from "../tui/add-org/render.ts"
+import { runSelected } from "../tui/add-org/runner.ts"
+import {
+  AddOrgAction,
+  createAddOrgState,
+  dispatchAddOrg,
+  type AddOrgState
+} from "../tui/add-org/state.ts"
 import { addImpl } from "./add.tsx"
 
 export interface AddOrgCommandParams {
@@ -107,6 +118,20 @@ export const addOrgImpl = (params: AddOrgCommandParams) =>
     }
 
     const concurrency = clampConcurrency(params.concurrency)
+
+    if (!params.yes && stdin.isTTY && stdout.isTTY) {
+      yield* launchAddOrgTui({
+        owner: params.owner,
+        repos: selected,
+        strategy: params.strategy,
+        concurrency,
+        ref: params.ref,
+        tag: params.tag,
+        release: params.release
+      })
+      return
+    }
+
     yield* Effect.forEach(
       selected,
       (repo) =>
@@ -280,3 +305,98 @@ export const addOrgCmd = Command.make(
     "Discover every repository under a GitHub organization or user and vendor them into vendor/<owner>/<repo>."
   )
 )
+
+interface AddOrgTuiParams {
+  readonly owner: string
+  readonly repos: ReadonlyArray<OrgRepository>
+  readonly strategy: VendorStrategy
+  readonly concurrency: number
+  readonly ref: Option.Option<string>
+  readonly tag: Option.Option<string>
+  readonly release: Option.Option<string>
+}
+
+const writeFrame = (state: AddOrgState): void => {
+  // Clear screen + move cursor to home (ANSI escape sequences).
+  stdout.write("[2J[H")
+  for (const line of renderAddOrg(state)) stdout.write(`${line}\n`)
+}
+
+// Stage 1: blocking raw-stdin keyboard loop. Resolves with the final state
+// once the user either confirms (Enter -> mode === "running") or cancels
+// (q -> mode === "browsing" or "done"). The Effect has no dependencies.
+const runTuiKeyboardLoop = (initial: AddOrgState) =>
+  Effect.callback<AddOrgState>((resume) => {
+    let state = initial
+
+    const cleanup = () => {
+      stdin.removeListener("data", onData)
+      if (stdin.setRawMode) stdin.setRawMode(false)
+      stdin.pause()
+    }
+
+    const onData = (chunk: Buffer) => {
+      const key = chunk.toString("utf8")
+      if (key === "") {
+        // Ctrl-C: treat as cancel.
+        cleanup()
+        resume(Effect.succeed({ ...state, mode: "done" as const }))
+        return
+      }
+      const action = handleAddOrgKey(key, state)
+      if (action) {
+        state = dispatchAddOrg(state, action)
+        writeFrame(state)
+      }
+      // Confirming sequence: first Enter sets mode "confirming-run", second
+      // sets "running". When we reach "running", the user has approved the
+      // batch and we exit the loop so the runner can take over.
+      if (state.mode === "running") {
+        cleanup()
+        resume(Effect.succeed(state))
+        return
+      }
+      if (state.mode === "done") {
+        cleanup()
+        resume(Effect.succeed(state))
+      }
+    }
+
+    if (stdin.setRawMode) stdin.setRawMode(true)
+    stdin.resume()
+    stdin.on("data", onData)
+    writeFrame(state)
+
+    // Interruption cleanup.
+    return Effect.sync(() => cleanup())
+  })
+
+const launchAddOrgTui = ({
+  owner,
+  repos,
+  strategy,
+  concurrency,
+  ref,
+  tag,
+  release
+}: AddOrgTuiParams) =>
+  Effect.gen(function* () {
+    const initial = createAddOrgState({
+      owner,
+      repos,
+      vendored: new Set(),
+      strategy,
+      concurrency
+    })
+
+    let state = yield* runTuiKeyboardLoop(initial)
+    if (state.mode !== "running") return
+
+    // Stage 2: run selected repos. Dispatch updates state + re-renders.
+    const dispatch = (action: AddOrgAction) => {
+      state = dispatchAddOrg(state, action)
+      writeFrame(state)
+    }
+    yield* runSelected({ state, dispatch, options: { ref, tag, release } })
+    yield* ok(`Processed ${state.selected.size} repos from ${owner}.`)
+  })
