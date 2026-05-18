@@ -11,8 +11,11 @@ import { GitMetadataLive } from "../src/services/git-metadata.ts"
 import {
   defaultAddParams,
   initBareUpstream,
-  initLocalRepo
+  initLocalRepo,
+  setForkMode
 } from "./helpers/local-vendor-fixture.ts"
+
+const originalCwd = process.cwd()
 
 describe("add --local-only (clone-ignore)", () => {
   test("writes .git/info/exclude, state.json, and produces zero new commits", async () => {
@@ -20,7 +23,6 @@ describe("add --local-only (clone-ignore)", () => {
     const upstream = initBareUpstream()
     const headBefore = execSync("git rev-parse HEAD", { cwd }).toString().trim()
 
-    const originalCwd = process.cwd()
     process.chdir(cwd)
     try {
       await Effect.runPromise(
@@ -62,7 +64,6 @@ describe("add --local-only (clone-ignore)", () => {
     const cwd = initLocalRepo()
     const upstream = initBareUpstream()
 
-    const originalCwd = process.cwd()
     process.chdir(cwd)
     let exit: Awaited<ReturnType<typeof Effect.runPromiseExit>>
     try {
@@ -81,5 +82,31 @@ describe("add --local-only (clone-ignore)", () => {
     }
 
     expect(exit._tag).toBe("Failure")
+  })
+
+  test("forkMode=personal makes --local-only the implicit default", async () => {
+    const cwd = initLocalRepo()
+    const upstream = initBareUpstream()
+    setForkMode(cwd, "personal")
+    process.chdir(cwd)
+
+    try {
+      await Effect.runPromise(
+        addImpl(
+          defaultAddParams({
+            repo: upstream,
+            ref: Option.some("main"),
+            name: Option.some("upstream"),
+            strategy: "clone-ignore",
+            localOnly: false
+          })
+        ).pipe(Effect.provide(LiveLayer), Effect.provide(GitMetadataLive))
+      )
+
+      expect(existsSync(join(cwd, ".git", "ingraft", "state.json"))).toBe(true)
+      expect(existsSync(join(cwd, ".gitignore"))).toBe(false)
+    } finally {
+      process.chdir(originalCwd)
+    }
   })
 })

@@ -56,6 +56,7 @@ import {
 import { ensureCacheLinkCheckout, linkCacheCheckout } from "../project/cache-link.ts"
 import { checkoutFilteredRepo, materializeFilteredRepo } from "../project/filtered-checkout.ts"
 import { updateGitignore, updateIgnoreFile } from "../project/gitignore.ts"
+import { readForkMode } from "../domain/fork-mode.ts"
 import { upsertLocalVendorEntry } from "../domain/local-state.ts"
 import { ProjectFiles } from "../project/service.ts"
 import {
@@ -1092,9 +1093,20 @@ export const addImpl = ({
         ? target.url
         : Option.getOrThrow(Option.getOrThrow(packageResolution).repositoryUrl)
     const finalName = yield* optionOrElseEffect(name, inferRepoName(url))
-    const finalPrefix = (
-      Option.isSome(prefix) ? prefix.value : `${VENDOR_DIR}/${finalName}`
-    ).replace(/\/+$/, "")
+    const ownerSegment = (() => {
+      if (Option.isSome(prefix)) return null
+      const hosted = hostedRepoFromInput(url)
+      const owner = hosted?.nameWithOwner?.split("/")[0]
+      return owner ?? null
+    })()
+    const defaultPrefix =
+      ownerSegment === null
+        ? `${VENDOR_DIR}/${finalName}`
+        : `${VENDOR_DIR}/${ownerSegment}/${finalName}`
+    const finalPrefix = (Option.isSome(prefix) ? prefix.value : defaultPrefix).replace(
+      /\/+$/,
+      ""
+    )
     const finalRef =
       target._tag === "PackageTarget" && selector._tag === "Default"
         ? Option.getOrThrow(packageResolution).ref
@@ -1133,7 +1145,13 @@ export const addImpl = ({
         })
       )
     }
-    if (localOnly && (finalStrategy === "subtree" || finalStrategy === "submodule")) {
+    const forkMode = yield* readForkMode({ cwd })
+    const effectiveLocalOnly = localOnly || forkMode === "personal"
+    if (effectiveLocalOnly && !localOnly) {
+      yield* info("ingraft.forkMode=personal → using --local-only by default.")
+    }
+
+    if (effectiveLocalOnly && (finalStrategy === "subtree" || finalStrategy === "submodule")) {
       return yield* Effect.fail(new InvalidLocalOnlyStrategy({ strategy: finalStrategy }))
     }
 
@@ -1149,13 +1167,13 @@ export const addImpl = ({
       finalPrefix,
       finalRef,
       filter,
-      localOnly,
+      localOnly: effectiveLocalOnly,
       strategy: finalStrategy,
       syncPackage: resolvedSyncPackage,
       url
     })
 
-    if (!localOnly) {
+    if (!effectiveLocalOnly) {
       const projectFiles = yield* ProjectFiles
       const repos = yield* listVendored(cwd)
       yield* projectFiles.refresh({
@@ -1204,13 +1222,17 @@ export const addManyImpl = ({ repos, ...params }: AddManyCommandParams) =>
       )
     }
 
+    const cwd = yield* repoRoot
+    const forkMode = yield* readForkMode({ cwd })
+    const effectiveLocalOnly = addParams.localOnly || forkMode === "personal"
+
     if (expandedRepos.length === 1) {
       const target = expandedTargets[0]!
       yield* addImpl({
         ...addParams,
         repo: target.target,
         strategy:
-          addParams.localOnly && Option.isNone(addParams.strategy)
+          effectiveLocalOnly && Option.isNone(addParams.strategy)
             ? "clone-ignore"
             : resolveVendorStrategyPreference({
                 recommended: target.strategy,
@@ -1234,7 +1256,7 @@ export const addManyImpl = ({ repos, ...params }: AddManyCommandParams) =>
             ...addParams,
             repo,
             strategy:
-              addParams.localOnly && Option.isNone(addParams.strategy)
+              effectiveLocalOnly && Option.isNone(addParams.strategy)
                 ? "clone-ignore"
                 : resolveVendorStrategyPreference({
                     recommended: target.strategy,
