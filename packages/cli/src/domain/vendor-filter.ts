@@ -37,8 +37,8 @@ export const VendorFilterSchema = Schema.Struct({
   exclude: Schema.Array(Schema.String),
   excludeDirs: Schema.Array(Schema.String),
   excludeExtensions: Schema.Array(Schema.String),
-  include: Schema.optional(Schema.Array(Schema.String)),
-  includeDirs: Schema.optional(Schema.Array(Schema.String)),
+  include: Schema.Array(Schema.String),
+  includeDirs: Schema.Array(Schema.String),
   maxFileSizeBytes: Schema.NullOr(Schema.Number)
 })
 
@@ -248,13 +248,14 @@ export const formatVendorFilterTrailer = (filter: VendorFilter): string =>
 
 export const parseVendorFilterTrailer = (value: string): VendorFilter => {
   if (value.trim().length === 0) return EMPTY_VENDOR_FILTER
-  const decoded = Schema.decodeUnknownSync(VendorFilterSchema)(JSON.parse(value))
-  return {
-    exclude: decoded.exclude,
-    excludeDirs: decoded.excludeDirs,
-    excludeExtensions: decoded.excludeExtensions,
-    include: decoded.include ?? [],
-    includeDirs: decoded.includeDirs ?? [],
-    maxFileSizeBytes: decoded.maxFileSizeBytes
+  const raw = JSON.parse(value) as Record<string, unknown>
+  const backfilled = {
+    exclude: raw["exclude"] ?? [],
+    excludeDirs: raw["excludeDirs"] ?? [],
+    excludeExtensions: raw["excludeExtensions"] ?? [],
+    include: raw["include"] ?? [],
+    includeDirs: raw["includeDirs"] ?? [],
+    maxFileSizeBytes: raw["maxFileSizeBytes"] ?? null
   }
+  return Schema.decodeUnknownSync(VendorFilterSchema)(backfilled)
 }

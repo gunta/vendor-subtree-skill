@@ -16,6 +16,8 @@ const repo = {
     exclude: [],
     excludeDirs: [],
     excludeExtensions: [],
+    include: [],
+    includeDirs: [],
     maxFileSizeBytes: null
   },
   name: "effect",

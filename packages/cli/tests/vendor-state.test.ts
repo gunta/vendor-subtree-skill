@@ -4,9 +4,11 @@ import { join } from "node:path"
 
 import { NodeServices } from "@effect/platform-node"
 import { describe, expect, test } from "bun:test"
-import { Effect } from "effect"
+import { Effect, Layer } from "effect"
 
 import { GitMetadataLive } from "../src/services/git-metadata.ts"
+import { GitLive } from "../src/services/git.ts"
+import { RuntimeConfigLive } from "../src/app/runtime.ts"
 import {
   listVendored,
   parseVendoredCommits,
@@ -303,8 +305,14 @@ describe("listVendored with local state", () => {
 
     const repos = await Effect.runPromise(
       listVendored(cwd).pipe(
-        Effect.provide(GitMetadataLive),
-        Effect.provide(NodeServices.layer)
+        Effect.provide(
+          Layer.mergeAll(
+            GitMetadataLive,
+            GitLive.pipe(Layer.provide(NodeServices.layer)),
+            NodeServices.layer,
+            RuntimeConfigLive
+          )
+        )
       )
     )
 

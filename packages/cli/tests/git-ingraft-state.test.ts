@@ -34,7 +34,6 @@ const sampleEntry = (overrides: Partial<LocalVendorEntry> = {}): LocalVendorEntr
     includeDirs: [],
     maxFileSizeBytes: null
   },
-  syncPackage: undefined,
   addedAt: "2026-05-19T10:00:00.000Z",
   ...overrides
 })

@@ -11,10 +11,10 @@ export interface LocalVendorEntry {
   readonly prefix: string
   readonly url: string
   readonly ref: string
-  readonly resolvedRef: string | undefined
+  readonly resolvedRef?: string
   readonly strategy: VendorStrategy
   readonly filter: VendorFilter
-  readonly syncPackage: string | undefined
+  readonly syncPackage?: string
   readonly addedAt: string
 }
 
@@ -23,10 +23,10 @@ const LocalVendorEntrySchema = Schema.Struct({
   prefix: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
   url: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
   ref: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
-  resolvedRef: Schema.optional(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
+  resolvedRef: Schema.optionalKey(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
   strategy: VendorStrategySchema,
   filter: VendorFilterSchema,
-  syncPackage: Schema.optional(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
+  syncPackage: Schema.optionalKey(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
   addedAt: Schema.String.pipe(Schema.check(Schema.isMinLength(1)))
 })
 
@@ -59,10 +59,10 @@ const normalizeEntry = (entry: LocalVendorEntry): LocalVendorEntry => ({
   prefix: entry.prefix.replace(/\/+$/, ""),
   url: entry.url,
   ref: entry.ref,
-  resolvedRef: entry.resolvedRef,
+  ...(entry.resolvedRef === undefined ? {} : { resolvedRef: entry.resolvedRef }),
   strategy: entry.strategy,
   filter: entry.filter,
-  syncPackage: entry.syncPackage,
+  ...(entry.syncPackage === undefined ? {} : { syncPackage: entry.syncPackage }),
   addedAt: entry.addedAt
 })
 
