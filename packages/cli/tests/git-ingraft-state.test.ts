@@ -85,6 +85,56 @@ describe("local-state store", () => {
     expect(result).toEqual([second])
   })
 
+  test("rejects entries with empty string resolvedRef from disk (treats as corrupt)", async () => {
+    const cwd = makeRepo()
+    const { writeFileSync, mkdirSync } = await import("node:fs")
+    mkdirSync(join(cwd, ".git", "ingraft"), { recursive: true })
+    writeFileSync(
+      join(cwd, ".git", "ingraft", "state.json"),
+      JSON.stringify({
+        version: 1,
+        vendors: [
+          {
+            name: "effect",
+            prefix: "vendor/effect",
+            url: "https://github.com/Effect-TS/effect.git",
+            ref: "main",
+            resolvedRef: "", // empty string should be rejected
+            strategy: "clone-ignore",
+            filter: {
+              exclude: [],
+              excludeDirs: [],
+              excludeExtensions: [],
+              include: [],
+              includeDirs: [],
+              maxFileSizeBytes: null
+            },
+            addedAt: "2026-05-19T10:00:00.000Z"
+          }
+        ]
+      })
+    )
+
+    const result = await Effect.runPromise(
+      readLocalVendorState({ cwd }).pipe(Effect.provide(NodeServices.layer))
+    )
+
+    expect(result).toEqual([])
+  })
+
+  test("returns empty list and logs a warning when state.json is malformed JSON", async () => {
+    const cwd = makeRepo()
+    const { writeFileSync, mkdirSync } = await import("node:fs")
+    mkdirSync(join(cwd, ".git", "ingraft"), { recursive: true })
+    writeFileSync(join(cwd, ".git", "ingraft", "state.json"), "{not valid json")
+
+    const result = await Effect.runPromise(
+      readLocalVendorState({ cwd }).pipe(Effect.provide(NodeServices.layer))
+    )
+
+    expect(result).toEqual([])
+  })
+
   test("remove drops the entry for a given prefix", async () => {
     const cwd = makeRepo()
     const a = sampleEntry({ name: "effect", prefix: "vendor/effect" })

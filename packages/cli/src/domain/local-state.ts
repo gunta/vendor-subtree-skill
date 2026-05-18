@@ -23,10 +23,10 @@ const LocalVendorEntrySchema = Schema.Struct({
   prefix: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
   url: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
   ref: Schema.String.pipe(Schema.check(Schema.isMinLength(1))),
-  resolvedRef: Schema.optional(Schema.String),
+  resolvedRef: Schema.optional(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
   strategy: VendorStrategySchema,
   filter: VendorFilterSchema,
-  syncPackage: Schema.optional(Schema.String),
+  syncPackage: Schema.optional(Schema.String.pipe(Schema.check(Schema.isMinLength(1)))),
   addedAt: Schema.String.pipe(Schema.check(Schema.isMinLength(1)))
 })
 
@@ -93,7 +93,10 @@ export const readLocalVendorState = ({ cwd }: ReadLocalVendorStateParams) =>
     try {
       const decoded = decodeState(JSON.parse(raw))
       return decoded.vendors.map(normalizeEntry)
-    } catch {
+    } catch (cause) {
+      yield* Effect.logWarning(
+        `Ignoring corrupt ingraft state.json at ${target}: ${String(cause)}`
+      )
       return [] as ReadonlyArray<LocalVendorEntry>
     }
   })
