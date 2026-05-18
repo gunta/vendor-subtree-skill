@@ -236,3 +236,14 @@ export const commitPathsIfChanged = ({ cwd, message, paths }: CommitPathsIfChang
 
 export const emptyCommit = ({ cwd, message }: EmptyCommitParams) =>
   gitChecked(["commit", "--allow-empty", "-m", message], { cwd }).pipe(Effect.asVoid)
+
+export const readResolvedRef = ({
+  cwd,
+  prefix
+}: {
+  readonly cwd: string
+  readonly prefix: string
+}) =>
+  git(["-C", prefix, "rev-parse", "HEAD"], { cwd }).pipe(
+    Effect.map((result) => (result.exitCode === 0 ? result.stdout.trim() : undefined))
+  )

@@ -55,7 +55,8 @@ import {
 } from "../package-sync/service.ts"
 import { ensureCacheLinkCheckout, linkCacheCheckout } from "../project/cache-link.ts"
 import { checkoutFilteredRepo, materializeFilteredRepo } from "../project/filtered-checkout.ts"
-import { updateGitignore } from "../project/gitignore.ts"
+import { updateGitignore, updateIgnoreFile } from "../project/gitignore.ts"
+import { upsertLocalVendorEntry } from "../domain/local-state.ts"
 import { ProjectFiles } from "../project/service.ts"
 import {
   artifactRemoteWithCredentials,
@@ -67,6 +68,7 @@ import {
   detectDefaultBranch,
   emptyCommit,
   git,
+  readResolvedRef,
   repoRoot
 } from "../services/git.ts"
 import { Jujutsu } from "../services/jujutsu.ts"
@@ -145,6 +147,7 @@ interface AddSubtreeParams {
 interface AddStrategyParams extends AddSubtreeParams {
   readonly strategy: VendorStrategy
   readonly existingRepos: ReadonlyArray<VendoredRepo>
+  readonly localOnly: boolean
 }
 
 interface CheckoutVendorRefParams {
@@ -803,6 +806,7 @@ const addCloneIgnore = ({
   finalName,
   finalPrefix,
   finalRef,
+  localOnly,
   syncPackage,
   strategy,
   url
@@ -860,11 +864,42 @@ const addCloneIgnore = ({
         })
       }
     }
+
+    const resolvedRefValue = yield* readResolvedRef({ cwd, prefix: finalPrefix })
+
+    if (localOnly) {
+      yield* updateIgnoreFile({
+        cwd,
+        target: "info-exclude",
+        prefixes: [
+          ...existingRepos
+            .filter((repo) => isLocalIgnoredVendorStrategy(repo.strategy) && repo.localOnly === true)
+            .map((repo) => repo.prefix),
+          finalPrefix
+        ]
+      })
+      yield* upsertLocalVendorEntry({
+        cwd,
+        entry: {
+          name: finalName,
+          prefix: finalPrefix,
+          url,
+          ref: finalRef,
+          ...(resolvedRefValue === undefined ? {} : { resolvedRef: resolvedRefValue }),
+          strategy,
+          filter,
+          ...(Option.isSome(syncPackage) ? { syncPackage: syncPackage.value } : {}),
+          addedAt: new Date().toISOString()
+        }
+      })
+      return
+    }
+
     yield* updateGitignore({
       cwd,
       prefixes: [
         ...existingRepos
-          .filter((repo) => isLocalIgnoredVendorStrategy(repo.strategy))
+          .filter((repo) => isLocalIgnoredVendorStrategy(repo.strategy) && repo.localOnly !== true)
           .map((repo) => repo.prefix),
         finalPrefix
       ]
@@ -905,6 +940,7 @@ const addCacheLink = ({
   finalName,
   finalPrefix,
   finalRef,
+  localOnly,
   syncPackage,
   strategy,
   url
@@ -922,11 +958,40 @@ const addCacheLink = ({
       cwd,
       prefix: finalPrefix
     })
+
+    if (localOnly) {
+      yield* updateIgnoreFile({
+        cwd,
+        target: "info-exclude",
+        prefixes: [
+          ...existingRepos
+            .filter((repo) => isLocalIgnoredVendorStrategy(repo.strategy) && repo.localOnly === true)
+            .map((repo) => repo.prefix),
+          finalPrefix
+        ]
+      })
+      yield* upsertLocalVendorEntry({
+        cwd,
+        entry: {
+          name: finalName,
+          prefix: finalPrefix,
+          url,
+          ref: finalRef,
+          resolvedRef: checkout.resolvedRef,
+          strategy,
+          filter,
+          ...(Option.isSome(syncPackage) ? { syncPackage: syncPackage.value } : {}),
+          addedAt: new Date().toISOString()
+        }
+      })
+      return
+    }
+
     yield* updateGitignore({
       cwd,
       prefixes: [
         ...existingRepos
-          .filter((repo) => isLocalIgnoredVendorStrategy(repo.strategy))
+          .filter((repo) => isLocalIgnoredVendorStrategy(repo.strategy) && repo.localOnly !== true)
           .map((repo) => repo.prefix),
         finalPrefix
       ]
@@ -1084,19 +1149,22 @@ export const addImpl = ({
       finalPrefix,
       finalRef,
       filter,
+      localOnly,
       strategy: finalStrategy,
       syncPackage: resolvedSyncPackage,
       url
     })
 
-    const projectFiles = yield* ProjectFiles
-    const repos = yield* listVendored(cwd)
-    yield* projectFiles.refresh({
-      cwd,
-      repos,
-      commitMessage: `vendor: register ${finalName}`,
-      editorSettings: true
-    })
+    if (!localOnly) {
+      const projectFiles = yield* ProjectFiles
+      const repos = yield* listVendored(cwd)
+      yield* projectFiles.refresh({
+        cwd,
+        repos,
+        commitMessage: `vendor: register ${finalName}`,
+        editorSettings: true
+      })
+    }
 
     yield* ok(`Vendored '${finalName}' at ${finalPrefix}/ using ${finalStrategy}.`)
   }).pipe(withCommandTelemetry("add"))
