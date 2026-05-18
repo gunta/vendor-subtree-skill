@@ -66,6 +66,13 @@ ingraft add Effect-TS/effect --no-commit
 ingraft add Effect-TS/effect --include-dir packages/effect/src
 ingraft add Effect-TS/effect --include 'src/**/*.ts'
 ingraft add Effect-TS/effect --local-only --include-dir packages/effect
+ingraft add-org gunta
+ingraft add-org gunta --yes
+ingraft add-org gunta --language typescript,svelte --since 90d
+ingraft add-org gunta --include-archived --include-forks
+ingraft add-org gunta --strategy clone-ignore --concurrency 8
+ingraft add-org gunta --dry-run
+ingraft add-org gunta --refresh
 ingraft update effect
 ingraft update --all
 ingraft list
@@ -117,6 +124,23 @@ Unknown names still fall through to the npm package metadata flow, so ordinary
 package names continue to work. Use `hex:<package>` for Hex, `swift:<owner/repo>`
 or `swift:<url>` for Swift Package sources, and
 `android:<group>:<artifact>` for Maven-backed Android dependencies.
+
+## Adding entire organizations
+
+`ingraft add-org <owner>` discovers every repository under a GitHub
+organization or user account, lets you filter and select them interactively
+in a TUI, and clones the selected repos in parallel under
+`vendor/<owner>/<repo>`.
+
+Filters can be applied as CLI flags (`--language`, `--since`, `--visibility`,
+`--include-archived`, `--include-forks`) or interactively in the TUI. The
+default strategy for org-wide adds is `clone-ignore` so a hundred-repo org
+doesn't bloat the host repository's history. Pass `--yes` (or run from a
+non-TTY environment) to skip the TUI.
+
+`add-org` uses the same `gh` CLI dependency as `add`. The first call for
+each owner caches the repository list for one hour under `.ingraft/state/`;
+pass `--refresh` to bypass the cache.
 
 ## Local Configuration
 
@@ -219,6 +243,13 @@ Running `ingraft` with no arguments opens the interactive dashboard. It shows de
 ## Tooling Integration
 
 `refresh` keeps agent docs and detected local tooling configuration in sync. It only writes ignore settings for tools that are present, including common TypeScript, JavaScript, Python, Rust, Swift, Android, Elixir, Zig, CSS, Markdown, editor, code-agent, and monorepo surfaces. `doctor` reports detected languages, editors, agent files, lint/format tools, monorepo tools, durable source routes, context-tool routes, ignore status, and version-sync status. `doctor --fix` runs the same generated-file repair pass before reporting, which is the fastest way to repair drift in agent docs, `.gitattributes`, editor excludes, and detected tool ignores.
+
+The "Durable source routes" table now includes a `Type` column that
+classifies each route as `own` (you own the upstream), `fork` (the
+vendored repo is a fork of another GitHub repo), `upstream` (external
+upstream you don't own), `non-github` (other hosts), or `unknown`
+(metadata not yet cached). The classification uses `gh repo view` /
+`gh api user` and caches results under `.ingraft/state/`.
 
 Monorepo support covers package-manager workspaces plus Turborepo, Nx/Lerna, pnpm workspaces, moon, Bazel, Rush, Lage, Pants, Buck2, Gradle, Maven reactor projects, and Please. Safe automatic edits are currently applied to `turbo.json`/`turbo.jsonc`, `nx.json`, `pnpm-workspace.yaml`, `.moon/workspace.yml`, `.moon/workspace.yaml`, and `.bazelignore`; the other tools are detected and reported without source-config rewrites.
 
