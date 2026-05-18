@@ -287,12 +287,12 @@
 \IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
 \urlstyle{same}
 \hypersetup{
-  pdftitle={Context Routing for AI Coding Agents},
+  pdftitle={Context Engineering for AI Coding Agents --- A Field Guide to Strategies, Tools, and Fit},
   pdfauthor={Gunther Brunner},
-  pdfkeywords={AI coding agents, context routing, context
-engineering, retrieval-augmented code generation, repository-level code
-retrieval, vendoring, Model Context Protocol, agent skills, software
-engineering tools},
+  pdfkeywords={AI coding agents, context engineering, retrieval-augmented
+code generation, repository-level code retrieval, vendoring,
+Model Context Protocol, agent skills, software engineering tools,
+practitioner field guide},
   colorlinks=true,
   linkcolor={RoyalBlue},
   filecolor={Maroon},
@@ -303,48 +303,62 @@ engineering tools},
 \input{figures.tex}
 
 
-\title{Context Routing for AI Coding Agents}
+\title{Context Engineering for AI Coding Agents}
 \usepackage{etoolbox}
 \makeatletter
 \providecommand{\subtitle}[1]{% add subtitle to \maketitle
   \apptocmd{\@title}{\par {\large #1 \par}}{}{}
 }
 \makeatother
-\subtitle{A Research Agenda for Context Allocation Under Attention,
-Authority, Freshness, Privacy, and Cost Constraints}
+\subtitle{A Field Guide to Strategies, Tools, and Fit}
 \author{Gunther Brunner}
-\date{2026-05-13}
+\date{2026-05-15}
 \begin{document}
 \maketitle
 \begin{abstract}
-AI coding agents increasingly fail not because relevant knowledge is
-unavailable, but because it is poorly allocated: too much, too stale,
-retrieved from the wrong authority, positioned where the model attends
-weakly, or exposed through the wrong trust boundary. Context windows are
-storage budgets, not attention guarantees. A million-token window lets
-an agent carry more material; it does not imply that the model will
-retrieve, prioritize, and apply the right evidence under task pressure.
+AI coding agents do real work now --- patching production repositories,
+migrating frameworks, fixing failing tests, answering questions about
+large codebases --- and their success rate is bounded by something less
+fashionable than raw model capability: \emph{which context they have at
+hand and how it got there.} A million-token window does not guarantee
+that the right tokens are present, attended to, version-correct, or
+trustworthy.
 
-This paper surveys academic evidence on long-context degradation,
-retrieval-augmented code generation, repository-level retrieval,
-structural code search, and distractor sensitivity, alongside
-practitioner designs from source vendoring, agentic search, code
-indexing, repo maps, managed context engines, and progressive-disclosure
-skills. The synthesis is simple: no single context strategy dominates
-across model, task, repository, package, privacy, freshness, and latency
-conditions. The correct unit of design is a context-routing policy.
+This is a practitioner's field guide to the answer space. It does three
+things:
 
-We therefore propose the context router: an explicit policy layer that
-selects, per task and knowledge object, among vendored source, lazy
-source fetch, documentation retrieval, semantic or structural search,
-packaged snapshots, skills, and agent-mediated inspection. We formalize
-the routing problem, separate the design space into orthogonal axes,
-identify failure modes and policy signals, define source authority and
-provenance requirements, outline a router-level evaluation agenda, and
-map current standards onto the abstraction. The paper is motivated by
-work on ingraft, but its primary claim is broader: context routing
-should become an inspectable, overrideable, standards-based layer rather
-than an opaque feature hidden inside individual coding agents.
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  Catalogs the seven ways context flows into an agent today --- vendoring,
+  lazy fetch, repo packing, prose rules, pre-built indices, code overlays,
+  and tool-mediated agentic search --- with the mechanism, the winning
+  conditions, the failure modes, and the cost profile of each.
+\item
+  Surveys the May 2026 tooling landscape grouped by which strategy each
+  tool implements: 80+ products spanning IDE-native context engines, MCP
+  servers, embeddings/RAG, code search, repo packers, multi-repo systems,
+  and adjacent safety/workflow tools.
+\item
+  Offers a fit guide --- a decision matrix and a set of worked scenarios
+  --- that connects task class, scale, and constraints to a concrete
+  combination of strategies and tools that suits the job.
+\end{enumerate}
+
+Empirical evidence (LongCodeBench, CodeRAG-Bench, RULER, structural
+retrieval studies, distractor sensitivity work) sits underneath the guide
+as supporting material: it explains \emph{why} the recommendations break
+the way they do, without becoming the paper's central argument. Standards
+and interoperability (MCP, AGENTS.md, Skills, llms.txt) are surveyed
+briefly because they determine which combinations are portable across
+agents.
+
+The guide is shaped by work on \emph{ingraft}, an open-source CLI for
+vendoring upstream source into agent-ready repositories, but ingraft is
+treated here as one slot in the landscape rather than the protagonist.
+The reader's question is the protagonist: ``what should I use for this
+job?''
 \end{abstract}
 
 \renewcommand*\contentsname{Table of contents}
@@ -365,78 +379,109 @@ is context allocation: which information should enter the agent's
 working set, in which representation, through which trust boundary, at
 what point in the loop, and under what budget.
 
-The central claim of this paper is:
-
-\begin{quote}
-No single context strategy dominates. The correct unit of design is a
-context-routing policy.
-\end{quote}
-
 \figureContextAtGlance
 
-That claim is deliberately broader than source vendoring or any single
-product architecture. A coding agent needs many kinds of knowledge:
-package source, repository source, local conventions, issue threads,
-stack traces, failing test logs, API docs, examples, migration guides,
-previous decisions, generated summaries, dependency lockfiles, CI logs,
-design docs, architecture diagrams, code-search indexes, human
-instructions, and memory across sessions. A package is only one context
-object.
+This guide treats that question as a practical problem with practical
+answers, not a research thesis. Seven distinct ways of moving context
+into an agent are in active use today, dozens of products implement each
+one, and most real tasks need a \emph{combination} of two or three. The
+goal of the guide is to make those choices legible to the person who
+has to make them.
 
-The more general abstraction is:
+\subsection{What this guide covers}\label{sec-guide-scope}
 
-\begin{quote}
-A context router selects a representation, retrieval mechanism, trust
-boundary, and loading schedule for each knowledge object relevant to a
-coding task.
-\end{quote}
+The body answers a reader's questions in order:
 
-In that framing, ingraft is not the proof of the thesis. It is a case
-study: ingraft implements the package-knowledge slice of a larger
-context-allocation problem. For third-party package knowledge, the
-router may choose vendored source, lazy source fetch, docs retrieval,
-semantic search, packaged snapshots, skills, or agentic inspection. For
-other knowledge objects, the same routing logic applies to issue
-trackers, project docs, CI logs, API specs, or local architecture notes.
-
-The immediate product trigger was Maxwell Brown's Effect post on using
-git subtrees for coding-agent context (Brown 2026). Brown's short
-version was ``Coding agents rely on patterns and examples, not
-descriptions'' and ``give your agent real library code to learn from.''
-That claim is intentionally narrower than this paper's thesis. It does
-not settle the general problem; it exposes it: if subtree is the right
-route for Effect, what policy decides when subtree is right, when docs
-are better, and when neither should be loaded?
-
-This paper contributes five things:
-
-\begin{enumerate}
-\def\labelenumi{\arabic{enumi}.}
+\begin{itemize}
 \tightlist
 \item
-  A problem formulation for coding-agent context allocation.
+  \textbf{\S\ref{sec-strategies}, The strategies} --- the seven ways
+  context flows into an agent today. For each: how it works, where it
+  wins, where it loses, what it costs.
 \item
-  An evidence synthesis that distinguishes peer-reviewed research,
-  preprints, vendor engineering posts, practitioner experience,
-  standards, and the author's interpretation.
+  \textbf{\S\ref{sec-tools}, The tools} --- the May 2026 product catalog
+  grouped by which strategy each implements.
 \item
-  A multidimensional design space for context strategies: placement,
-  representation, selector, timing, and constraints.
+  \textbf{\S\ref{sec-fit}, The fit guide} --- a decision matrix and
+  seven worked scenarios that connect task class, scale, and
+  constraints to a concrete combination of strategies and tools.
 \item
-  A context-router design model covering policy signals, source
-  authority, provenance, trust classes, task-phase routing, and context
-  lockfiles.
+  \textbf{\S\ref{sec-evidence}, The evidence} --- the research papers
+  and benchmarks that explain \emph{why} the recommendations break the
+  way they do.
 \item
-  A router-level evaluation agenda with ablations and falsification
-  tests.
-\end{enumerate}
+  \textbf{\S\ref{sec-routing}, How to think about routing} --- a
+  framework (placement, representation, selector, timing, constraints)
+  for reasoning about a route when the decision matrix does not cover
+  the case.
+\item
+  \textbf{\S\ref{sec-standards}, Standards and interop} --- the
+  ecosystem-wide protocols (MCP, AGENTS.md, Skills, llms.txt) that
+  determine which combinations are portable across agents.
+\item
+  \textbf{\S\ref{sec-ingraft}, Where ingraft fits} --- one slot in the
+  vendoring strategy.
+\end{itemize}
 
-The intended result is not a larger landscape memo. It is a sharper
-argument: context engineering for coding agents is routing under
-attention, authority, freshness, privacy, and cost constraints. Existing
-tools each solve one region of that design space. A router is the
-abstraction that makes those partial solutions composable.
+The guide is a dated snapshot. Most tool and standards claims were
+checked against public documentation, repositories, specifications, or
+vendor posts available during March--May 2026. Tool counts and product
+features age fast.
 
+The immediate product trigger was Maxwell Brown's Effect post on using
+git subtrees for coding-agent context (Brown 2026): ``coding agents
+rely on patterns and examples, not descriptions; give your agent real
+library code to learn from.'' That claim is intentionally narrower than
+this guide. It does not settle the general problem; it points at it: if
+subtree is the right route for Effect, what decides when subtree is
+right, when docs are better, and when neither should be loaded? The
+field-guide answer is: it depends on the task, the scale, and the
+constraints --- and the rest of the document is the dependency table.
+
+\subsection{Vocabulary}\label{sec-vocabulary}
+
+Six terms recur throughout. They are defined once here.
+
+\begin{itemize}
+\item
+  \textbf{Context} --- any information made available to an agent during
+  a task: prompt tokens, files it can read, tool results, memory,
+  indexes, skills, instructions, logs, external service responses.
+\item
+  \textbf{Context object} --- a knowledge unit that might be relevant: a
+  package, file, repository, issue, stack trace, lockfile entry, API
+  document, design note, generated summary, skill.
+\item
+  \textbf{Strategy} --- a way of exposing a context object to the agent.
+  The seven strategies in \S\ref{sec-strategies} are the catalog of
+  options.
+\item
+  \textbf{Bundle} --- the concrete material exposed to the agent for a
+  given task: selected files, docs, snippets, index hits, rules, tool
+  affordances.
+\item
+  \textbf{Authority} --- which source should win for a specific
+  question: the lockfile for installed version, official docs for public
+  API intent, source and tests for behavior, local code for project
+  convention, human instructions for constraints.
+\item
+  \textbf{Provenance} --- where a bundle came from, which version it
+  represents, when it was fetched, how trustworthy it is, and what it
+  is intended to be used for.
+\end{itemize}
+
+A seventh term, \textbf{context router}, appears in \S\ref{sec-routing}
+as the name for the explicit policy that selects among strategies. It
+is one organizing lens, not a prescription. The guide works whether or
+not you adopt the term.
+
+%====================================================================
+%  CUT: Method and Scope, Definitions, Utility Model, Policy Signals.
+%  The essential vocabulary is absorbed into \S\ref{sec-vocabulary}.
+%  The utility model and policy signals tables are repositioned in
+%  \S\ref{sec-routing} where they are operationally relevant.
+%====================================================================
+\iffalse
 \section{Method and Scope}\label{sec-method}
 
 This paper is a dated synthesis, not an exhaustive census. The review
@@ -673,8 +718,534 @@ Repository size and churn & Determines index/search break-even \\
 Language ecosystem support & Determines whether AST, LSP, or SCIP
 retrieval is available \\
 \end{longtable}
+\fi
+%====================================================================
+%  END CUT
+%====================================================================
 
-\section{Why Context Allocation Is Hard}\label{sec-hard}
+\section{The Strategies}\label{sec-strategies}
+
+Seven distinct strategies move context from somewhere outside the agent
+into the agent's working set. Almost every product on the market
+implements one or more of them; the difference between products is which
+combination they bake in. This chapter is the catalog: for each
+strategy, the mechanism, where it wins, where it fails, and the cost
+profile.
+
+A reader who only reads this chapter should be able to recognize, given
+any tool, which strategy or combination of strategies the tool
+implements --- and therefore which jobs the tool was built to do.
+
+\subsection{Strategy 1 --- Vendoring (source becomes part of the
+workspace)}\label{sec-strat-vendor}
+
+\textbf{Mechanism.} Upstream source is committed or mounted directly
+inside the project, typically under a reference directory like
+\texttt{vendor/}, marked read-only for humans and visible to the agent.
+Implementations range from raw \texttt{git subtree}, \texttt{git
+submodule}, and \texttt{git clone} to wrappers like ingraft, Vendir,
+and Carvel that automate update, ignore-pattern injection, and
+provenance.
+
+\textbf{Wins when:} a single package is a load-bearing idiom source for
+the project (Effect, Inertia.js, complex internal frameworks); the
+agent needs concrete patterns and tests, not prose descriptions; the
+source is navigable and version-matched; privacy rules out cloud
+indexing; offline operation matters.
+
+\textbf{Loses when:} the package is huge, generated, or full of distractors
+(Chromium-scale repos); the project will get tens of dependencies vendored
+and the repo bloats; the codebase needs public-API \emph{intent} more than
+implementation behavior (docs win there); the team needs to upgrade often
+and the wrapper does not automate updates.
+
+\textbf{Cost profile.} High upfront setup and ongoing maintenance.
+Near-zero per-request latency and per-request token cost (the agent
+just reads files). High determinism. Privacy is local-by-default.
+
+\subsection{Strategy 2 --- Lazy fetch (on-demand pull into a side
+cache)}\label{sec-strat-fetch}
+
+\textbf{Mechanism.} The agent asks for a package or doc, the tool
+resolves it (npm, PyPI, crates.io, etc.), and the result lands in a
+side cache (\texttt{\~{}/.opensrc}, \texttt{node\_modules\_cache}). The
+cache is read like a local filesystem, then either retained or pruned.
+
+\textbf{Wins when:} most packages are used occasionally and not worth
+vendoring; the project's dependency surface is large but shallow; one
+or two packages may need deeper inspection during debugging.
+
+\textbf{Loses when:} latency on the first cache miss matters; the
+project needs guaranteed offline operation; package registries are
+themselves a privacy or supply-chain risk.
+
+\textbf{Cost profile.} Very low upfront cost, low maintenance. Latency
+spikes on cache miss; otherwise local-fast. Token cost low because only
+needed files are loaded.
+
+\subsection{Strategy 3 --- Repo packing (snapshot the project into a
+single artifact)}\label{sec-strat-pack}
+
+\textbf{Mechanism.} A tool (Repomix, code2prompt, gitingest,
+files-to-prompt, yek, ai-digest, gpt-repository-loader) walks the
+repository, applies ignore rules, and produces one large markdown or
+XML blob that the user pastes (or the agent loads) as a single prompt
+attachment.
+
+\textbf{Wins when:} the agent has no filesystem or shell tools (web
+chat interfaces, hosted assistants without code access); the task is a
+one-shot Q\&A about a repo (``what does this project do?''); the team
+wants a reproducible artifact tied to a specific commit.
+
+\textbf{Loses when:} the repo is larger than the pack will compress
+into; the model has limited effective context length; the task requires
+multi-turn agent loops (the packed snapshot goes stale immediately on
+any edit); position-sensitive attention biases hurt the buried files.
+
+\textbf{Cost profile.} Cheap per snapshot, expensive per token in
+context. Zero determinism over time (one snapshot is deterministic; a
+re-pack on a later commit is not).
+
+\subsection{Strategy 4 --- Instruct (prose rules and skills)}
+\label{sec-strat-instruct}
+
+\textbf{Mechanism.} Project-level instruction files
+(\texttt{AGENTS.md}, \texttt{CLAUDE.md}, \texttt{GEMINI.md},
+\texttt{.cursor/rules}, Anthropic Agent Skills) tell the agent how this
+codebase wants to be worked on. Skills are progressive-disclosure
+units: a short \texttt{SKILL.md} that the agent reads first, with
+deeper procedural files the agent loads only when needed.
+
+\textbf{Wins when:} the knowledge is procedural (``always run the
+linter before committing''), conventional (``we use snake\_case in
+Python, camelCase in TypeScript''), or stable (``never modify
+\texttt{vendor/}''); the team wants a single canonical place for
+``things every agent should know.''
+
+\textbf{Loses when:} the rules are wording-sensitive (Vercel's Next.js
+evals: skill-based docs lookup only worked with explicit instruction;
+default skill triggering was ignored); the rules drift away from the
+code as the project evolves; the model decides not to follow them.
+
+\textbf{Cost profile.} Almost free to author and maintain. Always-on
+prompt overhead is small if rules are concise; large if rules are bloated.
+
+\subsection{Strategy 5 --- Pre-built index (semantic, symbolic, or
+graph)}\label{sec-strat-index}
+
+\textbf{Mechanism.} A background process indexes the codebase
+(embeddings, BM25, AST, LSP symbols, code graph) and exposes a search
+interface to the agent. The agent searches the index instead of reading
+files directly. Implementations: Cursor's built-in index, Sourcegraph's
+code graph (SCIP), Augment's enterprise index, Cody, Sourcebot, Bloop,
+Tabnine, Glean, Continue.
+
+\textbf{Wins when:} the codebase is large enough that grep is slow or
+the search query is semantic rather than lexical; cross-file
+relationships matter; the same agent will run many tasks against the
+same codebase and the index is amortized.
+
+\textbf{Loses when:} the codebase changes rapidly and the index drifts;
+the index is hosted in the cloud and the codebase is sensitive; setup
+cost is large for one-shot use.
+
+\textbf{Cost profile.} High upfront index build and ongoing
+re-indexing. Low per-request latency once warm. Token cost low (only
+hits are loaded).
+
+\subsection{Strategy 6 --- Annotate (overlays from external
+systems)}\label{sec-strat-annotate}
+
+\textbf{Mechanism.} Context that does not live in the repo --- code
+review threads, Jira issues, design docs, Slack discussions, customer
+feedback --- is exposed as overlays linked to lines, symbols, or files.
+OpenCtx (now relatively dormant), NLWeb, and Sourcegraph's code-graph
+context retrieval are the canonical patterns.
+
+\textbf{Wins when:} the missing context is institutional knowledge that
+explains \emph{why} code looks the way it does; the team has discipline
+about putting decisions in linked systems.
+
+\textbf{Loses when:} the overlay systems are stale; ACLs prevent the
+agent from reading them; the institutional context never made it into a
+queryable system.
+
+\textbf{Cost profile.} Low per-request once integrated; integration is
+itself the cost.
+
+\subsection{Strategy 7 --- Tool-mediated agentic search}\label{sec-strat-agentic}
+
+\textbf{Mechanism.} The agent has bash, grep, file reads, edit, and
+sometimes web tools, and the model decides what to inspect each turn.
+There is no pre-built index --- the model navigates the filesystem in
+real time, often with reasoning between each tool call. Claude Code,
+Cline, OpenHands, SWE-agent, aider, and many MCP-enabled CLIs work this
+way.
+
+\textbf{Wins when:} local files are available; the codebase changes
+faster than an index can re-build; the model is strong enough to plan
+multi-step searches; freshness matters (uncommitted changes, recent
+edits).
+
+\textbf{Loses when:} the search loop drags on (latency and token cost
+blow up); the task requires cross-file structural reasoning that grep
+cannot produce; the model spirals through file reads without
+converging.
+
+\textbf{Cost profile.} Zero upfront cost (you already have a shell).
+High latency and high token cost per task. Lowest determinism: two
+runs can search different files in different orders.
+
+\subsection{Strategies compose}\label{sec-strat-compose}
+
+In real deployments the seven rarely run alone. A typical Claude Code
+setup combines instruct (CLAUDE.md), tool-mediated (bash + grep +
+read), skill (progressive disclosure), and lazy fetch via MCP. Cursor
+combines index (default), retrieve (\texttt{@docs}), and instruct
+(\texttt{.cursor/rules}). Effect's git-subtree recommendation is pure
+vendor leveraging the agent's tool-mediated capability over the
+embedded source.
+
+Figure~\ref{fig-latency-profile} compares the seven strategies on four
+cost axes (per-request latency, token cost, upfront cost,
+non-determinism), so a strategy can be picked by which costs the task
+can afford.
+
+\section{The Tools}\label{sec-tools}
+
+What follows is a May 2026 snapshot of the products and projects that
+implement each strategy. Tool counts and product features age fast;
+treat this as a navigation aid, not a static reference. The full
+extended snapshot lives in Appendix~\ref{sec-tools-appendix}.
+
+\subsection{IDE-native context engines}\label{sec-tools-ide}
+
+These are the products developers spend most hours inside. Each one
+bakes in a default combination of strategies.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.22}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.30}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.48}}@{}}
+\caption{IDE-native context engines and the strategies they
+implement.}\label{tbl-tools-ide}\tabularnewline
+\toprule\noalign{}
+\textbf{Tool} & \textbf{Default strategy mix} & \textbf{Where it fits best}\\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\textbf{Tool} & \textbf{Default strategy mix} & \textbf{Where it fits best}\\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Cursor & Index + instruct (\texttt{.cursor/rules}) + retrieve (\texttt{@docs}) & Day-to-day work in a large, stable codebase that benefits from amortized indexing\\
+Claude Code & Tool-mediated agentic + instruct (CLAUDE.md) + skills + lazy MCP fetch & High-context single-task work where freshness and exploration matter more than pre-built indices\\
+GitHub Copilot & Index + tool-mediated (Copilot Chat agent mode) & Teams already deep in the GitHub ecosystem; PR-and-IDE workflows\\
+Augment Code & Enterprise index + tool-mediated; 100M+ LOC repos; on-prem option & Highly regulated or massive proprietary codebases\\
+Sourcegraph Amp & Code graph (SCIP) + tool-mediated; multi-repo & Cross-repo enterprise navigation\\
+JetBrains AI / Junie & Index + tool-mediated, IDE-native & Teams committed to JetBrains IDEs\\
+Cline / Roo Code / Kilo Code & Tool-mediated agentic via MCP & VS Code users who want bring-your-own-model\\
+aider & Tool-mediated agentic + tree-sitter repo map + git-native commits & Terminal-first developers who want repo-aware AI pair programming\\
+Continue & Open-source IDE assistant; pluggable & Organizations that need fully auditable open-source tooling\\
+Devin / Factory Droid / OpenHands & Autonomous agent with managed env & Long-horizon autonomous tasks where the agent runs unattended\\
+Warp (Agent Mode) & Tool-mediated + WarpGrep RL retriever & Terminal-centric workflows; large local repos\\
+Amazon Q Developer / Kiro & Index + instruct, on AWS Bedrock & Teams already standardized on AWS\\
+\end{longtable}
+
+\subsection{MCP servers and standalone fetchers}\label{sec-tools-mcp}
+
+MCP servers expose context as tools the agent can call. The 2026 MCP
+ecosystem includes 10{,}000+ public servers; the table covers the
+ones most relevant to coding agents.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.22}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.30}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.48}}@{}}
+\caption{MCP servers and standalone context fetchers.}\label{tbl-tools-mcp}\tabularnewline
+\toprule\noalign{}
+\textbf{Server / tool} & \textbf{Strategy implemented} & \textbf{Where it fits best}\\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\textbf{Server / tool} & \textbf{Strategy implemented} & \textbf{Where it fits best}\\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Context7 & Pre-built per-library docs index over 33K+ libraries & Public-API \& migration tasks; version-matched docs\\
+filesystem MCP & Tool-mediated access to a sandboxed local FS & Universal building block for agentic search\\
+GitHub MCP / GitLab MCP & Tool-mediated access to issues, PRs, code & Tasks that need repo metadata beyond the working tree\\
+DeepWiki MCP & Pre-built docs/wiki index from public repos & ``What does library X do?'' research\\
+mgrep / Serena MCP & Symbol/AST/LSP retrieval (Strategy 5, structural variant) & Cross-file structural questions; languages with LSP support\\
+Mem0 / Letta / Mnemos / Pieces LTM-2 & Long-term memory store (Strategy 6, annotate-style) & Multi-session work that needs continuity\\
+OpenSrc & Lazy package fetcher into \texttt{\~{}/.opensrc} & On-demand source inspection without vendoring\\
+Exa MCP / Tavily MCP / Perplexity MCP & Web search exposed as a tool & Tasks that need fresh web evidence beyond the repo\\
+\end{longtable}
+
+\subsection{Embeddings, RAG, and code search components}\label{sec-tools-embed}
+
+These are substrates inside other tools more often than end-user
+products. They get picked when teams build their own retrieval stack.
+
+\begin{itemize}
+\tightlist
+\item
+  \textbf{Code-trained embeddings:} voyage-code-3, Jina code embeddings,
+  mxbai-embed-large, CodeBERT, GraphCodeBERT, UniXcoder, CodeT5+,
+  CodeSage. Pick by language coverage and corpus size; benchmark on
+  your own data because cross-domain transfer is uneven.
+\item
+  \textbf{Vector databases:} ChromaDB, Qdrant, Pinecone, Weaviate,
+  Milvus, pgvector. The pick rarely matters at small scale; at large
+  scale, focus on incremental updates and ACL support.
+\item
+  \textbf{Code search engines:} Sourcebot, Zoekt, Livegrep, Hound,
+  ast-grep, Comby, Bloop, Greptile, Tabby. Pick AST/structural over flat
+  embedding wherever language tooling permits (Pillar C evidence in
+  \S\ref{sec-evidence}).
+\item
+  \textbf{Indexing pipelines:} CocoIndex, Indexify, FreshStack-style
+  fresh document retrieval. Pick when freshness or incremental updates
+  are first-class.
+\end{itemize}
+
+\subsection{Repo packaging and snapshots}\label{sec-tools-pack}
+
+\textbf{Repomix, code2prompt, gitingest, files-to-prompt, yek,
+ai-digest, gpt-repository-loader.} Each walks the repo, applies ignore
+rules, and emits a single artifact. Pick by language support, default
+ignore behavior, and whether you need XML, markdown, or JSON output.
+None of these is wrong; they differ in defaults, not in capability.
+
+\subsection{Multi-repo and org context}\label{sec-tools-multi}
+
+\textbf{RepoSwarm, Backstage TechDocs, Roadie RAG, Glean, Sourcegraph,
+DeepWiki, Unblocked.} The defining constraint here is ACLs and
+multi-repo scale --- ordinary IDE engines do not handle either well.
+Pick when ``the right context is in another repo'' is a routine
+problem.
+
+\subsection{Vendoring wrappers}\label{sec-tools-vendor}
+
+\textbf{ingraft, Vendir (Carvel), git subtree directly, git submodule
+directly, git clone with ignored directory.} These differ in how they
+handle updates, ignore-pattern injection, and provenance, not in what
+they store. \S\ref{sec-ingraft} covers ingraft's specific slot.
+
+\subsection{Adjacent safety, review, and workflow tools}\label{sec-tools-adjacent}
+
+\textbf{Qodo Merge, CodeRabbit, Greptile review mode, Sourcery review,
+GitGuardian ggshield AI Hook, MCP-omnisearch, GPTScript, Jujutsu,
+agentjj.} These are not primary context providers but they consume,
+filter, or audit the context routed to agents during PR review,
+secret detection, search aggregation, or VCS workflows.
+
+\section{The Fit Guide}\label{sec-fit}
+
+This is the chapter the rest of the guide exists for: given a concrete
+task and a set of constraints, which combination of strategies and
+tools should the reader reach for? The decision matrix
+(Table~\ref{tbl-fit-matrix}) maps task class to recommended primary and
+supporting strategies, and the worked scenarios that follow show each
+combination playing out in practice.
+
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.22}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.28}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.25}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.25}}@{}}
+\caption{Decision matrix --- task class to recommended strategy
+combination.}\label{tbl-fit-matrix}\tabularnewline
+\toprule\noalign{}
+\textbf{Task class} & \textbf{Primary strategy} & \textbf{Supporting strategies} & \textbf{Representative tools}\\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\textbf{Task class} & \textbf{Primary strategy} & \textbf{Supporting strategies} & \textbf{Representative tools}\\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Learn an idiom-heavy framework & Vendor & Tool-mediated agentic + instruct & ingraft / git subtree + Claude Code\\
+Major version migration & Docs index (instruct) & Lazy fetch + tool-mediated & Context7 / AGENTS.md docs index + Claude Code or Cursor\\
+Onboard to large unfamiliar codebase & Pre-built index & Tool-mediated + repo map & Cursor or Sourcegraph Amp + aider repo-map\\
+Cross-repo enterprise refactor & Multi-repo index (Strategy 5+6) & Tool-mediated & Sourcegraph Amp / Glean / Augment\\
+Debug a flaky / failing test & Tool-mediated agentic & Lazy fetch for package source & Claude Code / Cline / aider + OpenSrc\\
+One-shot Q\&A on an unfamiliar repo & Repo pack & --- & Repomix / gitingest\\
+Security review on a sensitive codebase & On-prem index + instruct & Tool-mediated, agentic search disabled & Augment / Tabnine on-prem; strict trust policy\\
+Test repair after a refactor & Tool-mediated agentic & Symbol/AST index & Claude Code + Serena MCP / mgrep\\
+\end{longtable}
+
+\subsection{Scenario 1 --- Learn an idiom-heavy
+framework}\label{sec-fit-scenario-effect}
+
+\textbf{Situation.} The team starts a TypeScript service that depends
+heavily on Effect, a framework whose human-facing docs are precise but
+deliberately abstract; the patterns live in the source.
+
+\textbf{Recommended bundle.} Vendor (Strategy~1) the Effect source into
+\texttt{vendor/effect}, mark it read-only via \texttt{AGENTS.md}
+(Strategy~4), and use Claude Code or Cursor (Strategy~7,
+tool-mediated) over the embedded source. The agent finds idioms by
+grep + read on real code and tests. Pulled docs (Strategy~2 lazy
+fetch) cover migration questions when the source view is not enough.
+
+\textbf{Why this wins.} Source-over-docs evidence (Brown 2026) is
+strongest for idiom-heavy frameworks. The vendored copy gives the
+agent navigable, version-matched patterns with zero per-request
+latency or token cost. The \texttt{AGENTS.md} rule keeps humans from
+editing vendored files by mistake.
+
+\textbf{Antipatterns.} Pasting Effect docs into the prompt every turn;
+indexing a third-party library that changes weekly; relying on the
+model's pre-training memory of Effect 2.x while the project uses 3.x.
+
+\subsection{Scenario 2 --- Major version migration (Next.js
+15 \texorpdfstring{$\to$}{->} 16)}\label{sec-fit-scenario-nextjs}
+
+\textbf{Situation.} A team must upgrade a Next.js 15 app to Next.js
+16. Hundreds of small API changes, several breaking ones, and the
+existing code uses deprecated hooks.
+
+\textbf{Recommended bundle.} Always-on docs index (Strategy~4, the
+Vercel pattern): a compressed \texttt{AGENTS.md} that points at a
+local \texttt{.next-docs/} directory with version-matched migration
+docs. Pair with Strategy~5 (symbol/AST index of the local codebase) so
+the agent can locate every deprecated API call by symbol, not by
+substring. Tool-mediated agentic (Strategy~7) does the edits.
+
+\textbf{Why this wins.} Vercel's own Next.js eval suite
+(Figure~\ref{fig-vercel-eval}): the \texttt{AGENTS.md} docs-index
+pattern scored 100\% on their hardened eval, versus 53\% baseline and
+79\% with skill plus explicit instruction (Gao 2026a). Migration tasks
+are public-API tasks; docs are authority, source is not.
+
+\figureVercelEval
+
+\textbf{Antipatterns.} Vendoring Next.js source (huge, generated,
+distractor-heavy); web-searching every API change (stale, no version
+guarantee); relying on the model's pre-training memory of an older
+Next.js.
+
+\subsection{Scenario 3 --- Onboarding to a large unfamiliar
+codebase}\label{sec-fit-scenario-onboard}
+
+\textbf{Situation.} A new engineer joins a 2M-LOC monorepo.
+
+\textbf{Recommended bundle.} Pre-built index (Strategy~5, semantic +
+structural) for orientation; tool-mediated agentic (Strategy~7) for
+deep dives; aider-style tree-sitter repo map (Strategy~3,
+pack-compressed) for ``which files matter for X''. Instruct
+(Strategy~4) project rules via \texttt{AGENTS.md} or
+\texttt{CLAUDE.md} so the agent inherits team conventions.
+
+\textbf{Why this wins.} 2M LOC is past the break-even point where
+index maintenance pays off: indexing wins over agentic search when
+repository size, query frequency, and cross-file complexity are large
+enough to amortize the build and re-indexing cost
+($C_\mathrm{toolCalls} + C_\mathrm{tokens} + C_\mathrm{latency} >
+C_\mathrm{indexBuild} + C_\mathrm{indexDrift} +
+C_\mathrm{retrievalErrors}$). Repo maps are the right orientation tool
+because exact code is too long for orientation and architecture
+diagrams drift.
+
+\textbf{Antipatterns.} Repo-packing 2M LOC into a single prompt;
+forcing agentic search to grep across the entire monorepo on every
+turn; skipping \texttt{AGENTS.md} and re-learning conventions task by
+task.
+
+\subsection{Scenario 4 --- Cross-repo enterprise
+refactor}\label{sec-fit-scenario-multi}
+
+\textbf{Situation.} A platform team must rename a deprecated API used
+across 40 internal repos.
+
+\textbf{Recommended bundle.} Multi-repo managed index (Strategy~5 +
+Strategy~6 annotate, Glean / Sourcegraph / Augment) with ACL-aware
+search. Tool-mediated agentic (Strategy~7) per repo to do the edits.
+Instruct (Strategy~4) the policy via \texttt{AGENTS.md} in each repo
+so the agent picks up project-specific overrides.
+
+\textbf{Why this wins.} Org context requires ACLs, multi-repo scale,
+and governance that IDE engines do not handle well.
+
+\textbf{Antipatterns.} Doing it from a single IDE with no cross-repo
+visibility; using a public cloud index for proprietary code.
+
+\subsection{Scenario 5 --- Debug a flaky / failing
+test}\label{sec-fit-scenario-debug}
+
+\textbf{Situation.} Test \texttt{TestPaymentRetry} fails intermittently
+on CI.
+
+\textbf{Recommended bundle.} Tool-mediated agentic (Strategy~7) is the
+primary: the agent reads logs, greps the test, follows call chains,
+inspects the package source if needed. Lazy fetch (Strategy~2)
+provides on-demand package source for any third-party retry library.
+No pre-built index needed.
+
+\textbf{Why this wins.} Debugging is exploratory by nature; pre-built
+indexes go stale faster than uncommitted changes; the cost of agentic
+search is amortized over a short interactive session, not 40
+production tasks.
+
+\textbf{Antipatterns.} Indexing for a one-off debug; vendoring a
+dependency just to read three functions; repo-packing the entire
+codebase when the bug is in two files.
+
+\subsection{Scenario 6 --- One-shot Q\&A on an unfamiliar
+repo}\label{sec-fit-scenario-oneshot}
+
+\textbf{Situation.} An engineer wants to ask ``what does this
+open-source repo do, and how does its auth module work?'' from a web
+chat interface with no shell tools.
+
+\textbf{Recommended bundle.} Repo pack (Strategy~3) with Repomix or
+gitingest, paste into the chat.
+
+\textbf{Why this wins.} Repo packs are the right tool when (a) the
+agent has no filesystem and (b) the task is one-shot. The downsides
+(staleness, position bias) do not matter for a single Q\&A.
+
+\textbf{Antipatterns.} Setting up an MCP server, an index, and a
+vendoring pipeline for a question that takes 60 seconds.
+
+\subsection{Scenario 7 --- Security-sensitive
+codebase}\label{sec-fit-scenario-security}
+
+\textbf{Situation.} A regulated team works on financial-services code
+where source must not leave the corporate network.
+
+\textbf{Recommended bundle.} On-prem index (Strategy~5; Augment VPC /
+Tabnine air-gapped / self-hosted Sourcegraph) + instruct (Strategy~4)
+with strict trust policy that disables web fetch and external MCP
+servers. Tool-mediated agentic (Strategy~7) only against local files.
+
+\textbf{Why this wins.} Privacy constraints rule out cloud retrieval.
+The on-prem index keeps the productivity gain without the data egress.
+Strict trust policy on \texttt{AGENTS.md} closes the prompt-injection
+surface.
+
+\textbf{Antipatterns.} Sending repo content through any third-party
+LLM that retains training data; using public MCP servers without
+auditing them; relying on developer discipline alone to keep secrets
+out of prompts.
+
+\section{The Evidence --- Why These Choices Matter}\label{sec-evidence}
+
+The recommendations in \S\ref{sec-strategies}--\S\ref{sec-fit} are
+shaped by a decade of research on long-context models, retrieval, and
+agent scaffolding. This chapter is the supporting layer: the studies
+and benchmarks that explain \emph{why} the strategies break the way
+they do. A reader who trusts the recommendations can skim it; a reader
+who wants to argue with them should not.
+
+The original section title was ``Why Context Allocation Is Hard,'' and
+that framing still organizes the material into four pillars: long
+context degrades, retrieval is conditional, structure beats flat, and
+distractors actively hurt.
 
 \subsection{Context windows are not attention
 guarantees}\label{sec-attention}
@@ -690,15 +1261,43 @@ synthetic tasks.
 LongCodeBench extends the problem to realistic code comprehension and
 repair (Rando et al. 2025). It evaluates LongCodeQA and LongSWE-Bench
 across 32K, 64K, 128K, 256K, 512K, and 1M context brackets where
-supported. The precise headline is:
+supported. The two tasks have to be reported separately --- collapsing
+them into one ``LongCodeBench accuracy'' number is the most common
+misreading of the paper, and it obscures the result that matters.
 
 \begin{quote}
-On LongSWE-Bench, Claude 3.5 Sonnet solved 29\% of issues at 32K context
-and 3\% at 256K; it was not a 1M-token Claude result. On LongCodeQA,
-Qwen2.5 peaked at 70.2\% at 512K and fell to 40.0\% at 1M.
+On \textbf{LongSWE-Bench} (executable bug-fix pass rate on real GitHub
+issues), Claude 3.5 Sonnet solved 29\% of issues at 32K and 3\% at 256K;
+it was not evaluated at 512K or 1M. Gemini 2.5 Pro held 22--25\% through
+256K and only collapsed at 512K/1M (12\%, 7\%). GPT-4.1 sat near 1\% at
+every bracket. Qwen2.5, Llama 3.1, and Llama 4 Scout each solved zero
+issues at every bracket. On \textbf{LongCodeQA} (multiple-choice
+comprehension), Qwen2.5 peaked at 70.2\% at 512K and fell to 40.0\% at
+1M, while GPT-4.1 and Gemini 2.5 Pro showed no comparable cliff.
 \end{quote}
 
 \figureLongContextDegradation
+
+Three observations follow that single context degradation is not enough
+to characterize. First, the cliff is \emph{not} monotonic across models:
+Gemini 2.5 Pro on LongSWE-Bench is the clean counterexample, and GPT-4.1
+on LongCodeQA actively improves with more context. Second, the cliff is
+\emph{not} the same across tasks: the ranking that picks the best
+1M-token comprehender and the ranking that picks the best 256K-token
+bug-fixer are different rankings. Third, the often-quoted ``Claude
+collapses from 29\% to 3\% at 1M'' headline silently extrapolates beyond
+the published 256K bracket; the honest version is 32K to 256K. A router
+that picks a single ``effective length'' for all models and all tasks is
+discarding the part of the result that has operational consequences.
+
+Figure~\ref{fig-longcodebench-heatmap} extends the same data to the full
+grid of ten models across six brackets and two tasks. The bug-fix grid is
+mostly red --- four models score zero at every bracket; the comprehension
+grid is mostly green for GPT-4.1, Gemini 2.5 Pro, and Llama 4 Scout. The
+visual contrast is the operational point: the model that comprehends well
+at 1M and the model that repairs code well at 256K are not the same model.
+
+\figureLongCodeBenchHeatmap
 
 The newer context-rot literature sharpens the same point. Chroma's
 technical report evaluates 18 models and isolates cases where increasing
@@ -728,6 +1327,17 @@ effectively. Asai et al. (2024) reaches a similar architectural lesson
 from a broader RAG setting: indiscriminate fixed retrieval can reduce
 versatility and produce unhelpful generations; retrieval should be
 adaptive.
+
+Figure~\ref{fig-retrieval-conditional} crystallizes the empirical pattern.
+The same retrieval mechanism is a clear win in one quadrant
+(weaker models on basic tasks --- CodeRAG-Bench reports +15.6 to +17.8 pp
+for StarCoder2-7B on HumanEval and MBPP) and a clear loss in the opposite
+quadrant (frontier reasoning models hit by semantic distractors). The
+operational consequence is that ``do we retrieve?'' has to be evaluated
+against \emph{the agent's model strength and the task's complexity
+together,} not as a global default.
+
+\figureRetrievalConditional
 
 The router should not ask ``RAG or not?'' It should ask which retrieval
 substrate has the lowest expected miss, distractor, staleness, and
@@ -822,6 +1432,19 @@ The careful implication is not ``AST plus graph must always be the
 default.'' It is: for repository-scale retrieval, the prior should favor
 structural retrieval whenever the language ecosystem and latency budget
 permit it.
+
+Figure~\ref{fig-structural-gains} collects nine reported gains from six
+independent studies. The metric varies across studies (Recall@5, Pass@1,
+exact match, top-1 precision, identifier match), so the bars are not
+strictly comparable, but every published comparison points the same
+direction. Even the smallest cAST result (+2.7 percentage points on
+SWE-bench Pass@1) materially shifts real bug-fix rates; the larger
+relative gains (CoCoMIC +33.94\%, RepoHyper +49\%, REPOFUSE +50\%,
+Code-Craft +82\%) are large enough that the question for the router stops
+being ``does structure help?'' and becomes ``which structural substrate
+fits this language and latency budget?''
+
+\figureStructuralRetrievalGains
 
 \subsection{Wrong context has concrete harms}\label{sec-wrong-context}
 
@@ -934,7 +1557,35 @@ configuration files, guidance documents, and tool manifests vary widely,
 which means context policy itself becomes part of the software
 architecture rather than an afterthought (Mohsenimofidi et al. 2025).
 
-\section{Design Space}\label{sec-design-space}
+\section{How to Think About Routing}\label{sec-routing}
+
+When the decision matrix in \S\ref{sec-fit} does not cover the case, the
+reader needs a framework for reasoning from scratch. This chapter is
+that framework: five orthogonal axes that any routing decision can be
+described along, followed by the mechanics of an explicit routing
+policy (inputs, scoring, authority, provenance, trust, explainability).
+
+The axes are the same five used by every coding-agent stack on the
+market, whether or not their docs name them: where context lives
+(\emph{placement}), what form it takes (\emph{representation}), what
+chooses it (\emph{selector}), when it loads (\emph{timing}), and which
+constraint binds (\emph{dominant constraint}). Naming them makes a
+fuzzy decision into a sequence of small, defensible decisions.
+
+Before the axes, one principle holds across all of them: the operational
+goal is \textbf{smallest sufficient context}, not maximum context.
+Sufficiency means the agent can identify the relevant authority,
+produce a correct change, and verify it without materially misleading
+distractors. Smallest does not mean fewest tokens; it means lowest
+total cost across tokens, latency, privacy, staleness, trust, and
+distractor risk. Figure~\ref{fig-utility-tradeoff} shows the typical
+curve: utility climbs as relevant context is added, plateaus, then
+falls as the bundle grows past the model's effective attention.
+
+\figureUtilityTradeoff
+
+\subsection*{The five axes}
+\addcontentsline{toc}{subsection}{The five axes}
 
 The earlier ``seven primitives'' vocabulary is useful as shorthand, but
 it mixes dimensions. Vendoring, indexing, retrieving, packing, skills,
@@ -1144,6 +1795,14 @@ Privacy scope & What boundary constrains it? & Repo-safe, local-only,
 restricted, remote-call-required \\
 \end{longtable}
 
+%====================================================================
+%  CUT: Old "Practitioner Strategies as Operating Zones".
+%  This material is superseded by \S\ref{sec-strategies} (The Strategies)
+%  and \S\ref{sec-fit} (The Fit Guide). Preserved here in case a future
+%  edit wants to pull specific quotes (Vercel evals, Effect origin,
+%  source-vs-docs decision table, break-even formula).
+%====================================================================
+\iffalse
 \section{Practitioner Strategies as Operating
 Zones}\label{sec-practitioner}
 
@@ -1353,8 +2012,20 @@ complexity are large enough to amortize index maintenance. This depends
 on churn, local change frequency, language tooling, privacy rules, and
 whether cross-repo search matters. The router should make that
 break-even explicit rather than choosing a side globally.
+\fi
+%====================================================================
+%  END CUT (Practitioner Strategies)
+%====================================================================
 
-\section{Router Design}\label{sec-router}
+\subsection*{Routing in practice}\label{sec-router}
+\addcontentsline{toc}{subsection}{Routing in practice}
+
+The five axes describe \emph{where} a routing decision lives. The
+remainder of this chapter describes \emph{how} an explicit policy
+actually selects a route: what inputs it consumes, how it scores
+candidates, how source authority resolves conflicts, how provenance
+travels with the bundle, how trust policy gates the choice, and how
+the route is explained to a human reviewer.
 
 \subsection{Inputs and outputs}\label{sec-router-io}
 
@@ -1456,6 +2127,19 @@ Distractor risk & High if huge & Medium & Medium & Medium & Low \\
 Best for & Deep idioms & Occasional inspection & Public API/migration &
 Large repos & Conventions/procedures \\
 \end{longtable}
+
+Figure~\ref{fig-latency-profile} re-encodes the strategy choice as four
+cost axes (per-request latency, token cost per task, upfront/maintenance
+cost, and determinism) on a shared 1--10 scale. No strategy minimizes all
+four. Strategies on the left (vendor, cache, pack) pay an upfront and
+maintenance cost but recover it on latency, tokens, and determinism;
+strategies on the right (MCP fetch, agentic search) are cheap to set up
+and expensive per call, with agentic search the only strategy that is
+expensive on \emph{both} latency and tokens while losing determinism. The
+router's job is to pick the strategy whose dominant cost the task can
+afford --- not the strategy that is cheapest in the abstract.
+
+\figureLatencyProfile
 
 Default policy rules follow from the table:
 
@@ -1814,6 +2498,11 @@ It is: AGENTS.md for durable project policy, MCP for tool access, Agent
 Skills for procedural knowledge, and language/index standards for
 structural retrieval.
 
+%====================================================================
+%  CUT: Evaluation Agenda. Field guides don't need eval agendas;
+%  this material lives in the project repo's evals/ directory now.
+%====================================================================
+\iffalse
 \section{Evaluation Agenda}\label{sec-eval}
 
 The router thesis needs a router eval. The key research question is:
@@ -1962,79 +2651,100 @@ The thesis should be considered weakened if:
 Strong papers say what would falsify them. These are the falsification
 tests.
 
-\section{Case Study: ingraft}\label{sec-ingraft}
+\fi
+%====================================================================
+%  END CUT (Evaluation Agenda)
+%====================================================================
 
-This paper is motivated by ingraft, an open-source CLI for package and
-repository context routing (Brunner 2026). The case study should be read
-as an implementation path, not as empirical proof that the router wins.
+\section{Where ingraft Fits}\label{sec-ingraft}
 
-\subsection{Scope}\label{sec-ingraft-scope}
+ingraft (Brunner 2026) is an open-source CLI that automates one specific
+slot in the landscape: \textbf{vendoring third-party packages and
+repositories into agent-ready reference directories}, with provenance,
+update tooling, and \texttt{AGENTS.md} guidance baked in.
 
-ingraft's natural first slice is package knowledge:
+In the language of \S\ref{sec-strategies}, ingraft implements
+Strategy~1 (vendoring) end-to-end and emits the Strategy~4 (instruct)
+glue that keeps the vendored source read-only for humans while
+remaining visible to agents. It does not try to be a full routing
+runtime; the seven strategies coexist in any non-trivial workflow, and
+the other six are best implemented by the tools surveyed in
+\S\ref{sec-tools}.
+
+\subsection*{What ingraft does today}
+\addcontentsline{toc}{subsection}{What ingraft does today}
 
 \begin{itemize}
 \tightlist
 \item
-  inspect package manager state and lockfiles;
+  Inspects the project's package manager state and lockfiles.
 \item
-  route core dependencies to read-only vendored source when justified;
+  Adds chosen upstream repositories as committed subtrees under
+  \texttt{vendor/}, with the same revision pin recorded in
+  \texttt{.gitattributes} so PR diffs stay focused.
 \item
-  route long-tail dependencies to lazy fetch;
+  Supports four vendoring modes: \texttt{subtree} (committed source),
+  \texttt{submodule} (gitlink), \texttt{clone-ignore} (local ignored
+  clone), and \texttt{cache-link} (ignored symlink to a shared cache
+  checkout).
 \item
-  route public API or migration tasks to docs-first;
+  Filters vendored repositories to omit media, generated directories,
+  archives, fixtures, and oversized files when configured.
 \item
-  expose provenance and route explanations;
+  Generates \texttt{AGENTS.md} blocks listing what is vendored, the
+  upstream URL and revision, and the rule that humans should not edit
+  the vendored files.
 \item
-  write AGENTS.md guidance so agents treat vendored source as reference
-  material and do not import from it.
+  Provides \texttt{list}, \texttt{add}, and \texttt{update}
+  subcommands so the catalog stays maintainable.
 \end{itemize}
 
-This maps to the project rule already used in this repository: vendored
-repositories under \texttt{vendor/} are read-only reference material,
-not application code.
+\subsection*{When ingraft is the right pick}
+\addcontentsline{toc}{subsection}{When ingraft is the right pick}
 
-\subsection{From package routing to knowledge
-routing}\label{sec-knowledge-routing}
+The fit matches Scenario~1 in \S\ref{sec-fit-scenario-effect}: a
+project depends on a small set of idiom-heavy frameworks whose source
+is more useful to coding agents than their human-facing docs, where
+the team wants version-matched local source available to every agent
+session without per-task fetches. Effect, Inertia.js, complex internal
+TypeScript frameworks, and ``learn this library deeply'' onboarding
+work are the natural domain.
 
-The same design generalizes to non-code knowledge, but with sharper
-privacy and authority rules. A Linear ticket, Notion decision page,
-OpenAPI spec, CI log, or Figma design note can be treated as a context
-object. The router can choose to vendor it as committed text, fetch it
-into a local cache, mount it read-only, query it through an MCP server,
-or summarize it into a skill.
+\subsection*{When ingraft is the wrong pick}
+\addcontentsline{toc}{subsection}{When ingraft is the wrong pick}
 
-The important design point is not ``everything belongs in
-\texttt{vendor/}.'' It is that every artifact needs an explicit route,
-provenance record, privacy class, and authority label.
+Vendoring is not the right strategy for migration tasks (Scenario~2),
+multi-repo enterprise refactors (Scenario~4), one-shot Q\&A
+(Scenario~6), or security-sensitive codebases where the constraint is
+on-prem indexing rather than local source. For those, the tools and
+strategy combinations in \S\ref{sec-fit} are better answers than
+ingraft.
 
-Example workspace layout:
+\subsection*{Project structure}
+\addcontentsline{toc}{subsection}{Project structure}
+
+A workspace using ingraft typically looks like:
 
 \begin{Shaded}
 \begin{Highlighting}[]
-\NormalTok{vendor/                         \# committed, read{-}only reference material}
-\NormalTok{  github/effect{-}ts/effect/       \# source snapshot}
-\NormalTok{  notion/team{-}handbook/index.md  \# exported page}
-\NormalTok{  linear/DEV{-}42/index.md         \# ticket snapshot}
-\NormalTok{  openapi/payments{-}api.json      \# pinned API spec}
+\NormalTok{vendor/                         \# committed, read{-}only reference}
+\NormalTok{  effect/                        \# subtree snapshot, version{-}pinned}
+\NormalTok{  effect{-}smol/                   \# another subtree}
 
-\NormalTok{.ingraft/}
-\NormalTok{  config.toml                    \# committed routing policy}
-\NormalTok{  context.lock                   \# committed or reviewed provenance lock}
-\NormalTok{  cache/                         \# gitignored lazy fetches}
-\NormalTok{  mounts/                        \# gitignored live mounts}
+\NormalTok{AGENTS.md                        \# tells agents \textquotesingle vendor/ is reference\textquotesingle}
+\NormalTok{.gitattributes                   \# marks vendor/ as vendored/generated}
 \end{Highlighting}
 \end{Shaded}
 
-\subsection{ingraft limitations}\label{sec-ingraft-limitations}
+\noindent The full project layout and CLI reference are documented at
+\url{https://ingraft.dev}.
 
-The current evidence supports ingraft as a promising implementation of a
-repo-resident router, not as an established empirical winner. The next
-step is the router eval in Section~\ref{sec-eval}. ingraft should also
-treat security as a first class feature: signed connector metadata,
-local-first defaults, privacy-class checks, provenance logs, and
-explicit user confirmation before executable skills or connector scripts
-run.
-
+%====================================================================
+%  CUT: Threats to Validity, Predictions. Both were oriented to the
+%  earlier "research agenda" framing. For a field guide, the relevant
+%  caveats are folded into individual chapter prose.
+%====================================================================
+\iffalse
 \section{Threats to Validity and Counterexamples}\label{sec-threats}
 
 \textbf{Benchmark validity.} SWE-bench, LongCodeBench, CodeRAG-Bench,
@@ -2100,36 +2810,56 @@ The router thesis makes testable predictions:
   by making overrides possible.
 \end{enumerate}
 
+\fi
+%====================================================================
+%  END CUT (Threats and Predictions)
+%====================================================================
+
 \section{Conclusion}\label{sec-conclusion}
 
-The 2026 context-engineering landscape is not a contest between ``vendor
-source'' and ``use RAG.'' It is a routing problem. Context windows
-remain attention scarce, retrieval is conditional, structure matters,
-authority matters, freshness matters, and privacy often constrains the
-route before quality optimization begins.
+The 2026 context-engineering landscape is not a contest between
+``vendor source'' and ``use RAG.'' It is a catalog --- seven strategies
+that solve different parts of the same problem --- and a set of fit
+rules that say which combination wins for which task.
 
-The strongest form of the thesis is:
+Three operational principles fall out of the guide:
 
-\begin{quote}
-Context engineering for coding agents is context allocation under
-attention, authority, freshness, privacy, trust, and cost constraints.
-Existing tools each solve one region of the design space. A router is
-the abstraction that makes those partial solutions composable.
-\end{quote}
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\tightlist
+\item
+  \textbf{No strategy dominates.} The seven win on different task
+  classes, different scales, and different constraints. A team that
+  picks one and uses it for everything is leaving accuracy and tokens
+  on the table.
+\item
+  \textbf{Combinations are normal.} Almost every real workflow uses
+  two or three strategies together: vendor + tool-mediated + instruct;
+  docs index + symbol index + tool-mediated; pre-built index +
+  tool-mediated + repo map. The interesting design choices are about
+  the combination, not the primary.
+\item
+  \textbf{Constraints choose the route before quality does.} Privacy,
+  freshness, latency, and trust often eliminate strategies before the
+  accuracy comparison even starts. Picking a route means knowing
+  which constraints bind first.
+\end{enumerate}
 
-An open, repo-resident routing layer is a promising default because it
-is inspectable, overrideable, local-first, and portable across agent
-vendors. Demonstrating its empirical advantage over fixed strategies
-remains the next evaluation task.
+The fit guide in \S\ref{sec-fit} is the artefact most readers will
+return to. The strategies in \S\ref{sec-strategies} are the catalog
+that explains what each row means. The tools in \S\ref{sec-tools} are
+the implementations to reach for. The evidence in \S\ref{sec-evidence}
+is the part to consult when the guide gets it wrong --- which it will,
+because the field is moving and the May 2026 snapshot is dated by the
+time it is read.
 
 \begin{tcolorbox}[enhanced jigsaw, arc=.35mm, bottomrule=.15mm, bottomtitle=1mm, breakable, colback=white, colbacktitle=paper-callout-tip-color!10!white, colframe=paper-callout-tip-color-frame, coltitle=black, left=2mm, leftrule=.75mm, opacityback=0, opacitybacktitle=0.6, rightrule=.15mm, title=\textcolor{paper-callout-tip-color}{\faLightbulb}\hspace{0.5em}{Citation}, titlerule=0mm, toprule=.15mm, toptitle=1mm]
 
 If you reference this work in academic or industry writing:
 
 \begin{quote}
-Brunner, G. \emph{Context Routing for AI Coding Agents: A Research
-Agenda for Context Allocation Under Attention, Authority, Freshness,
-Privacy, and Cost Constraints.} ingraft project, May 2026.
+Brunner, G. \emph{Context Engineering for AI Coding Agents: A Field
+Guide to Strategies, Tools, and Fit.} ingraft project, May 2026.
 \url{https://ingraft.dev/whitepaper}
 \end{quote}
 
@@ -2143,7 +2873,7 @@ Issues, corrections, and disagreements are welcome at
 freely with attribution.}
 
 \section{Appendix A: Representative Tool Snapshot, May
-2026}\label{sec-tools}
+2026}\label{sec-tools-appendix}
 
 This appendix preserves the tool-catalog value without letting the
 catalog drive the main argument. It is a representative snapshot, not a

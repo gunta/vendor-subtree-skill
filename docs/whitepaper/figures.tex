@@ -147,35 +147,77 @@
 \centering
 \begin{tikzpicture}
 \begin{groupplot}[
-  group style={group size=2 by 1, horizontal sep=1.2cm},
-  width=0.46\linewidth,
-  height=5.3cm,
+  group style={group size=2 by 1, horizontal sep=1.5cm},
+  width=0.49\linewidth,
+  height=6.2cm,
   ymin=0,
-  ymax=80,
+  ymax=90,
   ymajorgrids=true,
   grid style={draw=RuleGray!45},
-  ylabel={Success / score (\%)},
+  ylabel={Score (\%)},
   label style={font=\sffamily\small},
   tick label style={font=\sffamily\footnotesize},
   title style={font=\sffamily\small\bfseries},
-  nodes near coords,
-  every node near coord/.append style={font=\sffamily\scriptsize, yshift=2pt},
+  symbolic x coords={32K,64K,128K,256K,512K,1M},
+  xtick=data,
+  legend style={
+    font=\sffamily\scriptsize,
+    draw=RuleGray!60,
+    fill=white,
+    at={(0.5,-0.28)},
+    anchor=north,
+    legend columns=3,
+    /tikz/every even column/.append style={column sep=0.4cm},
+  },
+  every axis plot/.append style={line width=0.9pt},
 ]
 \nextgroupplot[
-  title={LongSWE-Bench},
-  symbolic x coords={32K,256K},
-  xtick=data,
+  title={LongSWE-Bench --- code-repair pass rate},
+  ymax=35,
 ]
-\addplot[AccentBlue, mark=*, line width=1pt] coordinates {(32K,29) (256K,3)};
+\addplot[AccentBlue, mark=*]
+  coordinates {(32K,29) (64K,19) (128K,15) (256K,3)};
+\addlegendentry{Claude 3.5 Sonnet}
+\addplot[AccentGreen, mark=triangle*]
+  coordinates {(32K,23) (64K,25) (128K,22) (256K,24) (512K,12) (1M,7)};
+\addlegendentry{Gemini 2.5 Pro}
+\addplot[AccentRed, mark=square*, dashed]
+  coordinates {(32K,1) (64K,1) (128K,1) (256K,1) (512K,1) (1M,2)};
+\addlegendentry{GPT-4.1}
+\node[font=\sffamily\scriptsize, anchor=south west, AccentBlue]
+  at (axis cs:32K,29) {29};
+\node[font=\sffamily\scriptsize, anchor=south, AccentBlue]
+  at (axis cs:256K,3) {3};
+
 \nextgroupplot[
-  title={LongCodeQA},
-  symbolic x coords={512K,1M},
-  xtick=data,
+  title={LongCodeQA --- comprehension accuracy},
+  ymax=90,
 ]
-\addplot[AccentGold, mark=square*, line width=1pt] coordinates {(512K,70.2) (1M,40.0)};
+\addplot[AccentGold, mark=diamond*]
+  coordinates {(32K,61.9) (64K,65.8) (128K,68.5) (256K,63.1) (512K,70.2) (1M,40.0)};
+\addlegendentry{Qwen2.5 14B}
+\addplot[AccentRed, mark=square*, dashed]
+  coordinates {(32K,72.6) (64K,73.7) (128K,78.3) (256K,72.3) (512K,78.7) (1M,80.0)};
+\addlegendentry{GPT-4.1}
+\addplot[AccentGreen, mark=triangle*]
+  coordinates {(32K,75.2) (64K,71.1) (128K,71.7) (256K,67.7) (512K,68.1) (1M,69.8)};
+\addlegendentry{Gemini 2.5 Pro}
+\node[font=\sffamily\scriptsize, anchor=south, AccentGold]
+  at (axis cs:512K,70.2) {70.2};
+\node[font=\sffamily\scriptsize, anchor=north, AccentGold]
+  at (axis cs:1M,40.0) {40.0};
 \end{groupplot}
 \end{tikzpicture}
-\caption{LongCodeBench examples used in this paper. Claude 3.5 Sonnet drops on LongSWE-Bench from 29\% at 32K to 3\% at 256K; Qwen2.5 drops on LongCodeQA from 70.2\% at 512K to 40.0\% at 1M. The point is calibration, not a universal threshold.}
+\caption{LongCodeBench reported per task, not collapsed into a single
+narrative. \textbf{Left:} bug-fix pass rate on real GitHub issues with
+executable patch grading. Claude 3.5 Sonnet falls from 29\% at 32K to 3\% at
+256K and was not evaluated at 512K or 1M. Gemini 2.5 Pro holds 22--25\% through
+256K before its own cliff at 512K/1M. GPT-4.1 sits near 1\% across all
+brackets. Qwen2.5, Llama 3.1, and Llama 4 Scout scored 0\% at every bracket and
+are omitted. \textbf{Right:} multiple-choice comprehension. Qwen2.5 peaks at
+70.2\% at 512K and collapses to 40\% at 1M, while GPT-4.1 and Gemini 2.5 Pro
+show no comparable cliff. The figure exists to argue calibration per model and
+per task, not a universal context-length threshold (Rando et al.\ 2025).}
 \label{fig-longcodebench}
 \end{figure}
 }
@@ -389,5 +431,381 @@ Router                 & +  & +  & +  & +  & +  & +  & +  & +  \\
 \end{tikzpicture}
 \caption{Tool-landscape fragmentation in the May 2026 snapshot. The distribution itself motivates routing: tools cluster around different context surfaces rather than one universal context strategy.}
 \label{fig-tool-counts}
+\end{figure}
+}
+
+%======================================================================
+%  Structural retrieval gains across six independent studies (\S3.3)
+%======================================================================
+\newcommand{\figureStructuralRetrievalGains}{%
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  xbar,
+  width=0.86\linewidth,
+  height=8.2cm,
+  xmin=0, xmax=98,
+  xlabel={Reported gain over flat-retrieval baseline},
+  symbolic y coords={
+    {cAST (SWE-bench Pass@1)},
+    {cAST (CrossCodeEval EM)},
+    {cAST (RepoEval R@5)},
+    {GraphCoder (ID match)},
+    {RepoCoder},
+    {CoCoMIC},
+    {RepoHyper},
+    {REPOFUSE},
+    {Code-Craft}
+  },
+  ytick=data,
+  y dir=reverse,
+  yticklabel style={font=\sffamily\footnotesize, align=right},
+  nodes near coords,
+  nodes near coords align={horizontal},
+  every node near coord/.append style={font=\sffamily\scriptsize},
+  tick label style={font=\sffamily\footnotesize},
+  label style={font=\sffamily\small},
+  xmajorgrids=true,
+  grid style={draw=RuleGray!45},
+  bar width=7pt,
+  enlarge y limits=0.06,
+]
+\addplot[draw=Ink, fill=AccentGreen!28,
+  postaction={pattern={Lines[angle=45,distance=4pt,line width=0.4pt]}}]
+  coordinates {
+    (82,{Code-Craft})
+    (50,{REPOFUSE})
+    (49,{RepoHyper})
+    (33.94,{CoCoMIC})
+    (10,{RepoCoder})
+    (6.23,{GraphCoder (ID match)})
+    (5.5,{cAST (RepoEval R@5)})
+    (4.3,{cAST (CrossCodeEval EM)})
+    (2.7,{cAST (SWE-bench Pass@1)})
+  };
+\node[font=\sffamily\scriptsize, anchor=west, AccentGreen]
+  at (axis cs:55,{REPOFUSE}) {\textit{relative \%}};
+\node[font=\sffamily\scriptsize, anchor=west, AccentBlue]
+  at (axis cs:13,{cAST (RepoEval R@5)}) {\textit{percentage points}};
+\end{axis}
+\end{tikzpicture}
+\caption{Nine reported results from six independent studies, all favoring
+structural or graph-aware retrieval over flat embedding retrieval. Top
+four bars (Code-Craft, REPOFUSE, RepoHyper, CoCoMIC) report
+\emph{relative} \% improvement; bottom five (RepoCoder, GraphCoder, three
+cAST settings) report \emph{absolute} percentage-point gains, so the
+two groups should be read separately. The smallest cAST gain
+(+2.7 pp on SWE-bench Pass@1) is also the most adversarial benchmark;
+small pp gains on real bug-fix rates are large in practical terms. The
+router default for code retrieval should be structural; flat embeddings
+should be a fallback, not the front line (Code-Craft 2025;
+{Phan et al.\ } 2024; {Liang et al.\ } 2024; {Ding et al.\ } 2024;
+{F. Zhang et al.\ } 2023; {W. Liu et al.\ } 2024;
+{Y. (Sherry). Zhang et al.\ } 2025).}
+\label{fig-structural-gains}
+\end{figure}
+}
+
+%======================================================================
+%  Full LongCodeBench grid as a colored matrix (\S3.1 supplement)
+%======================================================================
+\newcommand{\figureLongCodeBenchHeatmap}{%
+\begin{figure}[H]
+\centering
+\sffamily\scriptsize
+\setlength{\tabcolsep}{4pt}
+\renewcommand{\arraystretch}{1.25}
+
+\begin{minipage}{\linewidth}
+\centering
+\textbf{LongSWE-Bench --- code-repair pass rate (\%)}\\[3pt]
+\begin{tabular}{l|cccccc}
+\toprule
+\textbf{Model} & 32K & 64K & 128K & 256K & 512K & 1M\\
+\midrule
+Claude 3.5 Sonnet
+  & \cellcolor{AccentGreen!55}\textbf{29}
+  & \cellcolor{AccentGreen!35}19
+  & \cellcolor{AccentGreen!28}15
+  & \cellcolor{AccentRed!22}\textbf{3}
+  & \cellcolor{SoftGray}---
+  & \cellcolor{SoftGray}---\\
+Gemini 2.5 Pro
+  & \cellcolor{AccentGreen!42}23
+  & \cellcolor{AccentGreen!45}25
+  & \cellcolor{AccentGreen!40}22
+  & \cellcolor{AccentGreen!44}24
+  & \cellcolor{AccentGreen!18}12
+  & \cellcolor{AccentRed!18}7\\
+GPT-4o
+  & \cellcolor{AccentGreen!20}11
+  & \cellcolor{AccentRed!16}6
+  & \cellcolor{AccentRed!18}5
+  & \cellcolor{SoftGray}---
+  & \cellcolor{SoftGray}---
+  & \cellcolor{SoftGray}---\\
+Gemini 2 Flash
+  & \cellcolor{AccentGreen!18}10
+  & \cellcolor{AccentRed!16}6
+  & \cellcolor{AccentRed!16}7
+  & \cellcolor{AccentRed!22}3
+  & \cellcolor{AccentRed!28}2
+  & \cellcolor{AccentRed!28}2\\
+Jamba 1.5 Large
+  & \cellcolor{AccentRed!22}3
+  & \cellcolor{AccentRed!30}1
+  & \cellcolor{AccentRed!30}1
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{SoftGray}---
+  & \cellcolor{SoftGray}---\\
+GPT-4.1
+  & \cellcolor{AccentRed!30}1
+  & \cellcolor{AccentRed!30}1
+  & \cellcolor{AccentRed!30}1
+  & \cellcolor{AccentRed!30}1
+  & \cellcolor{AccentRed!30}1
+  & \cellcolor{AccentRed!28}2\\
+Qwen2.5 14B
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0\\
+Llama 3.1 405B
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!30}1
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{SoftGray}---
+  & \cellcolor{SoftGray}---
+  & \cellcolor{SoftGray}---\\
+Llama 4 Scout
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0
+  & \cellcolor{AccentRed!50}0\\
+\bottomrule
+\end{tabular}
+\end{minipage}
+\\[10pt]
+\begin{minipage}{\linewidth}
+\centering
+\textbf{LongCodeQA --- comprehension accuracy (\%)}\\[3pt]
+\begin{tabular}{l|cccccc}
+\toprule
+\textbf{Model} & 32K & 64K & 128K & 256K & 512K & 1M\\
+\midrule
+GPT-4.1
+  & \cellcolor{AccentGreen!42}72.6
+  & \cellcolor{AccentGreen!45}73.7
+  & \cellcolor{AccentGreen!55}\textbf{78.3}
+  & \cellcolor{AccentGreen!42}72.3
+  & \cellcolor{AccentGreen!55}78.7
+  & \cellcolor{AccentGreen!60}\textbf{80.0}\\
+Gemini 2.5 Pro
+  & \cellcolor{AccentGreen!50}75.2
+  & \cellcolor{AccentGreen!40}71.1
+  & \cellcolor{AccentGreen!40}71.7
+  & \cellcolor{AccentGreen!35}67.7
+  & \cellcolor{AccentGreen!36}68.1
+  & \cellcolor{AccentGreen!38}69.8\\
+Llama 4 Scout
+  & \cellcolor{AccentGreen!32}66.4
+  & \cellcolor{AccentGreen!45}73.7
+  & \cellcolor{AccentGreen!40}70.7
+  & \cellcolor{AccentGreen!28}63.1
+  & \cellcolor{AccentGreen!55}78.7
+  & \cellcolor{AccentGreen!50}76.0\\
+Gemini 1.5 Pro
+  & \cellcolor{AccentGreen!35}67.3
+  & \cellcolor{AccentGreen!28}63.2
+  & \cellcolor{AccentGreen!45}72.8
+  & \cellcolor{AccentGreen!30}64.6
+  & \cellcolor{AccentGreen!45}72.3
+  & \cellcolor{AccentGreen!35}66.0\\
+Claude 3.5 Sonnet
+  & \cellcolor{AccentGreen!30}65.5
+  & \cellcolor{AccentGreen!38}69.7
+  & \cellcolor{AccentGreen!42}71.7
+  & \cellcolor{AccentGreen!32}66.6
+  & \cellcolor{SoftGray}---
+  & \cellcolor{SoftGray}---\\
+Jamba 1.5 Large
+  & \cellcolor{AccentGreen!38}69.0
+  & \cellcolor{AccentGreen!38}69.7
+  & \cellcolor{AccentGreen!42}72.8
+  & \cellcolor{AccentRed!12}54.2
+  & \cellcolor{SoftGray}---
+  & \cellcolor{SoftGray}---\\
+Qwen2.5 14B
+  & \cellcolor{AccentGreen!22}61.9
+  & \cellcolor{AccentGreen!30}65.8
+  & \cellcolor{AccentGreen!35}68.5
+  & \cellcolor{AccentGreen!28}63.1
+  & \cellcolor{AccentGreen!38}\textbf{70.2}
+  & \cellcolor{AccentRed!22}\textbf{40.0}\\
+\bottomrule
+\end{tabular}
+\end{minipage}
+
+\caption{Full LongCodeBench grid, ten models across six brackets. Green
+intensity tracks score; red intensity tracks floor performance; gray
+``---'' means the model was not evaluated at that bracket. Two readings the
+side-by-side line chart in Figure~\ref{fig-longcodebench} cannot deliver:
+\textbf{(top)} the bug-fix grid is mostly red --- only Claude (at 32K) and
+Gemini 2.5 Pro (through 256K) clear single digits, and four
+models score zero at every bracket; \textbf{(bottom)} the comprehension grid
+is mostly green for GPT-4.1, Gemini 2.5 Pro, and Llama 4 Scout, with
+Qwen2.5's red cell at 1M visible as the genuine collapse. Same models,
+opposite stories. The router cannot reuse a model's comprehension reputation
+as a proxy for its repair reliability.}
+\label{fig-longcodebench-heatmap}
+\end{figure}
+}
+
+%======================================================================
+%  Retrieval conditional 2x2 (\S3.2)
+%======================================================================
+\newcommand{\figureRetrievalConditional}{%
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[font=\sffamily, x=1cm, y=1cm]
+  % Axes
+  \draw[paper arrow] (0,0) -- (10.4,0) node[right, font=\sffamily\small] {Task complexity};
+  \draw[paper arrow] (0,0) -- (0,7.4) node[above, font=\sffamily\small] {Model strength};
+  % Axis end labels
+  \node[font=\sffamily\scriptsize, anchor=north, MutedInk] at (0.7,-0.05) {basic};
+  \node[font=\sffamily\scriptsize, anchor=north, MutedInk] at (9.6,-0.05) {SWE-bench};
+  \node[font=\sffamily\scriptsize, anchor=east, MutedInk] at (-0.1,0.7) {small};
+  \node[font=\sffamily\scriptsize, anchor=east, MutedInk] at (-0.1,6.6) {frontier};
+  % Quadrant divider lines
+  \draw[RuleGray, dashed] (5,0.1) -- (5,7.0);
+  \draw[RuleGray, dashed] (0.1,3.6) -- (10,3.6);
+  % Quadrants
+  \node[paper box, fill=AccentGreen!12, minimum width=4.0cm, minimum height=2.4cm,
+        align=center] at (2.5,1.8)
+    {\textbf{RAG: clear win}\\[2pt]
+     \scriptsize StarCoder2-7B + retrieval:\\[-1pt]
+     \scriptsize \textbf{+15.6 to +17.8 pp}\\[-1pt]
+     \scriptsize on HumanEval / MBPP\\[-1pt]
+     \scriptsize (CodeRAG-Bench)};
+  \node[paper box, fill=AccentGold!18, minimum width=4.0cm, minimum height=2.4cm,
+        align=center] at (7.5,1.8)
+    {\textbf{RAG: variable}\\[2pt]
+     \scriptsize small models, hard tasks:\\[-1pt]
+     \scriptsize gains shrink, sometimes negative\\[-1pt]
+     \scriptsize on DS-1000, ODEX};
+  \node[paper box, fill=AccentGold!18, minimum width=4.0cm, minimum height=2.4cm,
+        align=center] at (2.5,5.4)
+    {\textbf{RAG: marginal}\\[2pt]
+     \scriptsize frontier model can already solve;\\[-1pt]
+     \scriptsize retrieval rarely improves,\\[-1pt]
+     \scriptsize sometimes adds noise};
+  \node[paper box, fill=AccentRed!14, minimum width=4.0cm, minimum height=2.4cm,
+        align=center] at (7.5,5.4)
+    {\textbf{RAG: can hurt}\\[2pt]
+     \scriptsize reasoning models +\\[-1pt]
+     \scriptsize semantic distractors:\\[-1pt]
+     \scriptsize \textbf{82.58\% win-rate} for smaller\\[-1pt]
+     \scriptsize model with RAG --- but frontier\\[-1pt]
+     \scriptsize sensitivity flips the result\\[-1pt]
+     \scriptsize (U-NIAH 2025)};
+\end{tikzpicture}
+\caption{Whether retrieval helps depends on \emph{both} model strength and
+task complexity. The bottom-left quadrant (CodeRAG-Bench: StarCoder2-7B
++15--17 pp on HumanEval/MBPP) is where RAG is uncontroversial. The top-right
+quadrant (U-NIAH: frontier reasoning models distracted by semantic noise)
+is where adding retrieved context can actively reduce accuracy. A router
+should treat ``do we retrieve?'' as a conditional gate, not a default
+(Z.~Z.~Wang et al.\ 2025; Asai et al.\ 2024; U-NIAH 2025).}
+\label{fig-retrieval-conditional}
+\end{figure}
+}
+
+%======================================================================
+%  Latency/cost profile of routing strategies (\S6)
+%======================================================================
+\newcommand{\figureLatencyProfile}{%
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=0.96\linewidth,
+  height=6.4cm,
+  ybar=2pt,
+  bar width=8.5pt,
+  enlarge x limits=0.10,
+  ymin=0, ymax=10,
+  symbolic x coords={
+    Vendoring,
+    Local cache,
+    Repo pack,
+    Docs index,
+    Semantic index,
+    Symbol/AST index,
+    MCP fetch,
+    Agentic search
+  },
+  xtick=data,
+  xticklabel style={font=\sffamily\footnotesize, rotate=18, anchor=north east},
+  ylabel={Cost index (1 = lowest, 10 = highest)},
+  ymajorgrids=true,
+  grid style={draw=RuleGray!45},
+  label style={font=\sffamily\small},
+  legend style={
+    font=\sffamily\scriptsize,
+    draw=RuleGray!60,
+    fill=white,
+    at={(0.5,-0.40)},
+    anchor=north,
+    legend columns=4,
+    /tikz/every even column/.append style={column sep=0.30cm}
+  },
+  tick label style={font=\sffamily\footnotesize},
+]
+\addplot[draw=Ink, fill=AccentBlue!40,
+  postaction={pattern={Lines[angle=45,distance=3pt,line width=0.35pt]}}]
+  coordinates {
+    (Vendoring,1) (Local cache,2) (Repo pack,3) (Docs index,2)
+    (Semantic index,3) (Symbol/AST index,3) (MCP fetch,6) (Agentic search,9)
+  };
+\addlegendentry{Per-request latency}
+\addplot[draw=Ink, fill=AccentGold!50,
+  postaction={pattern={Dots[angle=0,distance=3pt,radius=0.55pt]}}]
+  coordinates {
+    (Vendoring,2) (Local cache,3) (Repo pack,4) (Docs index,3)
+    (Semantic index,4) (Symbol/AST index,4) (MCP fetch,4) (Agentic search,8)
+  };
+\addlegendentry{Token cost per task}
+\addplot[draw=Ink, fill=AccentRed!35,
+  postaction={pattern={Lines[angle=-45,distance=3pt,line width=0.35pt]}}]
+  coordinates {
+    (Vendoring,8) (Local cache,7) (Repo pack,6) (Docs index,4)
+    (Semantic index,4) (Symbol/AST index,5) (MCP fetch,4) (Agentic search,2)
+  };
+\addlegendentry{Upfront / maintenance cost}
+\addplot[draw=Ink, fill=AccentGreen!40,
+  postaction={pattern={Lines[angle=0,distance=3pt,line width=0.35pt]}}]
+  coordinates {
+    (Vendoring,1) (Local cache,2) (Repo pack,3) (Docs index,4)
+    (Semantic index,5) (Symbol/AST index,3) (MCP fetch,5) (Agentic search,7)
+  };
+\addlegendentry{Drift / non-determinism}
+\end{axis}
+\end{tikzpicture}
+\caption{Four cost axes per routing strategy on a shared 1--10 scale.
+Every axis is oriented so \emph{taller is worse} --- low bars are
+strictly better than high bars. Strategies on the left (vendor, cache,
+pack) pay tall red bars for upfront and maintenance work but stay short
+on latency, tokens, and drift. Strategies on the right (MCP fetch,
+agentic search) skip the upfront work and pay per-call; agentic search is
+the only strategy with tall bars on \emph{both} latency and tokens, and
+it also leads on drift because each turn is non-deterministic. No
+strategy minimizes all four; the router's job is to pick the strategy
+whose tallest bar the task can afford.}
+\label{fig-latency-profile}
 \end{figure}
 }
