@@ -2,7 +2,7 @@ import { execSync } from "node:child_process"
 import { existsSync, readFileSync } from "node:fs"
 import { join } from "node:path"
 
-import { describe, expect, test } from "bun:test"
+import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 import { Effect, Option } from "effect"
 
 import { LiveLayer } from "../src/app/layers.ts"
@@ -16,6 +16,16 @@ import {
 } from "./helpers/local-vendor-fixture.ts"
 
 describe("remove --local-only", () => {
+  let originalCwd: string
+
+  beforeEach(() => {
+    originalCwd = process.cwd()
+  })
+
+  afterEach(() => {
+    process.chdir(originalCwd)
+  })
+
   test("removing a local-only entry does not create a commit and clears state.json", async () => {
     const cwd = initLocalRepo()
     const upstream = initBareUpstream()
