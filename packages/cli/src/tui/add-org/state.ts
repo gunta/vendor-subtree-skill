@@ -4,7 +4,7 @@ import { filterOrgRepos, type OrgFilter } from "../../domain/org-filter.ts"
 import type { VendorStrategy } from "../../domain/vendor-strategy.ts"
 import type { OrgRepository } from "../../services/local-state.ts"
 
-export type AddOrgMode = "filtering" | "browsing" | "confirming-run" | "running" | "done"
+export type AddOrgMode = "browsing" | "confirming-run" | "running" | "done"
 
 export type RunStatus = "queued" | "running" | "success" | "error"
 
@@ -83,6 +83,8 @@ export const createAddOrgState = (input: {
 export const filteredRepos = (state: AddOrgState): ReadonlyArray<OrgRepository> =>
   filterOrgRepos(state.repos, state.filters)
 
+const hasSelection = (state: AddOrgState): boolean => state.selected.size > 0
+
 const clampFocus = (state: AddOrgState, value: number): number => {
   const max = Math.max(0, filteredRepos(state).length - 1)
   if (max === 0) return 0
@@ -95,7 +97,59 @@ const withFilters = (state: AddOrgState, filters: OrgFilter): AddOrgState => ({
   focusedIndex: 0
 })
 
+const canDispatchAddOrg = (state: AddOrgState, action: AddOrgAction): boolean => {
+  switch (state.mode) {
+    case "browsing":
+      switch (action._tag) {
+        case "MoveDown":
+        case "MoveUp":
+        case "PageDown":
+        case "PageUp":
+        case "ToggleSelected":
+        case "SelectAllFiltered":
+        case "ClearSelection":
+        case "SetLanguage":
+        case "SetSince":
+        case "SetVisibility":
+        case "ToggleArchived":
+        case "ToggleForks":
+        case "SetSearch":
+        case "SetStrategy":
+        case "SetConcurrency":
+        case "Cancel":
+          return true
+        case "Confirm":
+          return hasSelection(state)
+        default:
+          return false
+      }
+    case "confirming-run":
+      switch (action._tag) {
+        case "Cancel":
+          return true
+        case "StartRun":
+          return hasSelection(state)
+        default:
+          return false
+      }
+    case "running":
+      switch (action._tag) {
+        case "TickProgress":
+          return state.selected.has(action.id)
+        case "AppendLog":
+        case "FinishRun":
+          return true
+        default:
+          return false
+      }
+    case "done":
+      return false
+  }
+}
+
 export const dispatchAddOrg = (state: AddOrgState, action: AddOrgAction): AddOrgState => {
+  if (!canDispatchAddOrg(state, action)) return state
+
   switch (action._tag) {
     case "MoveDown":
       return { ...state, focusedIndex: clampFocus(state, state.focusedIndex + 1) }

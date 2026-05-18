@@ -1,7 +1,19 @@
 import { AddOrgAction, type AddOrgState } from "./state.ts"
 
 export const handleAddOrgKey = (key: string, state: AddOrgState): AddOrgAction | null => {
-  if (state.mode === "done") return null
+  if (state.mode === "done" || state.mode === "running") return null
+  if (state.mode === "confirming-run") {
+    switch (key) {
+      case "q":
+        return AddOrgAction.Cancel()
+      case "\r":
+      case "\n":
+        return AddOrgAction.StartRun()
+      default:
+        return null
+    }
+  }
+
   switch (key) {
     case "j":
       return AddOrgAction.MoveDown()
@@ -21,11 +33,7 @@ export const handleAddOrgKey = (key: string, state: AddOrgState): AddOrgAction |
       return AddOrgAction.Cancel()
     case "\r":
     case "\n":
-      return state.mode === "browsing"
-        ? AddOrgAction.Confirm()
-        : state.mode === "confirming-run"
-          ? AddOrgAction.StartRun()
-          : null
+      return AddOrgAction.Confirm()
     default:
       return null
   }

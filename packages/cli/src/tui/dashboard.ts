@@ -188,10 +188,54 @@ const setSelected = (
   selectedTaskIndexes: normalizeSelectedIndexes(selectedTaskIndexes, state.snapshot)
 })
 
+const canDispatchDashboard = (state: DashboardState, action: DashboardAction): boolean => {
+  switch (state.mode) {
+    case "browsing":
+      switch (action._tag) {
+        case "AppendLog":
+        case "Cancel":
+        case "FinishRun":
+        case "StartRun":
+          return false
+        case "ConfirmRun":
+          return commandPlanForSelection(state).length > 0
+        default:
+          return true
+      }
+    case "confirming-run":
+      switch (action._tag) {
+        case "Cancel":
+          return true
+        case "StartRun":
+          return commandPlanForSelection(state).length > 0
+        default:
+          return false
+      }
+    case "running":
+      switch (action._tag) {
+        case "AppendLog":
+        case "FinishRun":
+          return true
+        default:
+          return false
+      }
+  }
+}
+
 export const dispatchDashboard = (
   state: DashboardState,
   action: DashboardAction
 ): DashboardState => {
+  if (!canDispatchDashboard(state, action)) {
+    if (state.mode === "browsing" && action._tag === "ConfirmRun") {
+      return {
+        ...state,
+        statusMessage: "No source-context tasks to run."
+      }
+    }
+    return state
+  }
+
   switch (action._tag) {
     case "AppendLog":
       return {
@@ -211,16 +255,11 @@ export const dispatchDashboard = (
         statusMessage: "Selection cleared."
       }
     case "ConfirmRun":
-      return commandPlanForSelection(state).length === 0
-        ? {
-            ...state,
-            statusMessage: "No source-context tasks to run."
-          }
-        : {
-            ...state,
-            mode: "confirming-run",
-            statusMessage: "Press y to run selected tasks, n to cancel."
-          }
+      return {
+        ...state,
+        mode: "confirming-run",
+        statusMessage: "Press y to run selected tasks, n to cancel."
+      }
     case "FinishRun": {
       const snapshot = action.snapshot ?? state.snapshot
       return {

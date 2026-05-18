@@ -139,6 +139,33 @@ describe("tui dashboard", () => {
     expect(state.mode).toBe("confirming-run")
   })
 
+  test("ignores dashboard lifecycle actions that are illegal for the current mode", () => {
+    const browsing = createDashboardState(snapshot)
+    expect(dispatchDashboard(browsing, DashboardAction.StartRun()).mode).toBe("browsing")
+    expect(dispatchDashboard(browsing, DashboardAction.FinishRun({ message: "done" })).mode).toBe(
+      "browsing"
+    )
+
+    const confirming = dispatchDashboard(
+      dispatchDashboard(browsing, DashboardAction.SelectAll()),
+      DashboardAction.ConfirmRun()
+    )
+    expect(dispatchDashboard(confirming, DashboardAction.MoveDown())).toBe(confirming)
+
+    const running = dispatchDashboard(confirming, DashboardAction.StartRun())
+    expect(dispatchDashboard(running, DashboardAction.MoveDown())).toBe(running)
+    expect(dispatchDashboard(running, DashboardAction.ConfirmRun())).toBe(running)
+    expect(
+      dispatchDashboard(
+        confirming,
+        DashboardAction.Refresh({ snapshot, message: "background refresh" })
+      )
+    ).toBe(confirming)
+
+    const finished = dispatchDashboard(running, DashboardAction.FinishRun({ message: "done" }))
+    expect(finished.mode).toBe("browsing")
+  })
+
   test("maps keyboard input onto dashboard actions", () => {
     const key = (name: string, sequence = name) =>
       ({ name, sequence }) as Parameters<typeof handleDashboardKey>[0]

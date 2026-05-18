@@ -87,12 +87,46 @@ describe("dispatchAddOrg", () => {
   })
 
   test("Confirm + StartRun mode transition", () => {
-    const confirmed = dispatchAddOrg(initial, AddOrgAction.Confirm())
+    const selected = dispatchAddOrg(initial, AddOrgAction.ToggleSelected())
+    const confirmed = dispatchAddOrg(selected, AddOrgAction.Confirm())
     expect(confirmed.mode).toBe("confirming-run")
     const running = dispatchAddOrg(confirmed, AddOrgAction.StartRun())
     expect(running.mode).toBe("running")
     const done = dispatchAddOrg(running, AddOrgAction.FinishRun())
     expect(done.mode).toBe("done")
+  })
+
+  test("ignores lifecycle actions that are illegal for the current mode", () => {
+    const browsing = initial
+    expect(dispatchAddOrg(browsing, AddOrgAction.StartRun()).mode).toBe("browsing")
+    expect(dispatchAddOrg(browsing, AddOrgAction.FinishRun()).mode).toBe("browsing")
+
+    const selected = dispatchAddOrg(browsing, AddOrgAction.ToggleSelected())
+    const confirming = dispatchAddOrg(selected, AddOrgAction.Confirm())
+    expect(dispatchAddOrg(confirming, AddOrgAction.ToggleSelected())).toBe(confirming)
+
+    const running = dispatchAddOrg(confirming, AddOrgAction.StartRun())
+    expect(dispatchAddOrg(running, AddOrgAction.MoveDown())).toBe(running)
+    expect(dispatchAddOrg(running, AddOrgAction.Confirm())).toBe(running)
+
+    const done = dispatchAddOrg(running, AddOrgAction.FinishRun())
+    expect(dispatchAddOrg(done, AddOrgAction.MoveDown())).toBe(done)
+  })
+
+  test("does not confirm or start a run with no selected repositories", () => {
+    const confirmed = dispatchAddOrg(initial, AddOrgAction.Confirm())
+    expect(confirmed.mode).toBe("browsing")
+
+    const selected = dispatchAddOrg(initial, AddOrgAction.ToggleSelected())
+    const confirming = dispatchAddOrg(selected, AddOrgAction.Confirm())
+    const cleared = dispatchAddOrg(confirming, AddOrgAction.ClearSelection())
+    expect(cleared).toBe(confirming)
+    expect(dispatchAddOrg(cleared, AddOrgAction.StartRun()).mode).toBe("running")
+
+    const forgedEmptyConfirmation = { ...initial, mode: "confirming-run" as const }
+    expect(dispatchAddOrg(forgedEmptyConfirmation, AddOrgAction.StartRun())).toBe(
+      forgedEmptyConfirmation
+    )
   })
 
   test("Cancel exits the TUI loop", () => {
@@ -101,8 +135,9 @@ describe("dispatchAddOrg", () => {
   })
 
   test("TickProgress updates runProgress", () => {
+    const selected = dispatchAddOrg(initial, AddOrgAction.ToggleSelected())
     const running = dispatchAddOrg(
-      dispatchAddOrg(initial, AddOrgAction.Confirm()),
+      dispatchAddOrg(selected, AddOrgAction.Confirm()),
       AddOrgAction.StartRun()
     )
     const ticked = dispatchAddOrg(
@@ -110,6 +145,20 @@ describe("dispatchAddOrg", () => {
       AddOrgAction.TickProgress({ id: "gunta/alpha", status: "success" })
     )
     expect(ticked.runProgress.get("gunta/alpha")).toBe("success")
+  })
+
+  test("TickProgress ignores repositories outside the selected run", () => {
+    const selected = dispatchAddOrg(initial, AddOrgAction.ToggleSelected())
+    const running = dispatchAddOrg(
+      dispatchAddOrg(selected, AddOrgAction.Confirm()),
+      AddOrgAction.StartRun()
+    )
+    const ticked = dispatchAddOrg(
+      running,
+      AddOrgAction.TickProgress({ id: "gunta/beta", status: "success" })
+    )
+
+    expect(ticked).toBe(running)
   })
 })
 
@@ -135,11 +184,28 @@ describe("handleAddOrgKey", () => {
     expect(action?._tag).toBe("Confirm")
   })
 
+  test("only accepts run or cancel keys while confirming", () => {
+    const selected = dispatchAddOrg(browsing, AddOrgAction.ToggleSelected())
+    const confirming = dispatchAddOrg(selected, AddOrgAction.Confirm())
+
+    expect(handleAddOrgKey("j", confirming)).toBeNull()
+    expect(handleAddOrgKey("\r", confirming)?._tag).toBe("StartRun")
+    expect(handleAddOrgKey("q", confirming)?._tag).toBe("Cancel")
+  })
+
+  test("ignores keys in running mode", () => {
+    const selected = dispatchAddOrg(browsing, AddOrgAction.ToggleSelected())
+    const confirming = dispatchAddOrg(selected, AddOrgAction.Confirm())
+    const running = dispatchAddOrg(confirming, AddOrgAction.StartRun())
+
+    expect(handleAddOrgKey("j", running)).toBeNull()
+  })
+
   test("ignores keys in done mode", () => {
-    const done = dispatchAddOrg(
-      dispatchAddOrg(dispatchAddOrg(browsing, AddOrgAction.Confirm()), AddOrgAction.StartRun()),
-      AddOrgAction.FinishRun()
-    )
+    const selected = dispatchAddOrg(browsing, AddOrgAction.ToggleSelected())
+    const confirming = dispatchAddOrg(selected, AddOrgAction.Confirm())
+    const running = dispatchAddOrg(confirming, AddOrgAction.StartRun())
+    const done = dispatchAddOrg(running, AddOrgAction.FinishRun())
     expect(handleAddOrgKey("j", done)).toBeNull()
   })
 })
