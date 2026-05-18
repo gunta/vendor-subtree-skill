@@ -1,7 +1,11 @@
-import { execSync } from "node:child_process"
+import { execSync, spawnSync } from "node:child_process"
+import { mkdtempSync, rmSync } from "node:fs"
+import { tmpdir } from "node:os"
+import { join } from "node:path"
 
 import { afterEach, beforeEach, describe, expect, test } from "bun:test"
 
+import { NodeServices } from "@effect/platform-node"
 import { Effect, Layer, Option } from "effect"
 
 import { LiveLayer } from "../src/app/layers.ts"
@@ -13,6 +17,8 @@ import { listVendored } from "../src/domain/vendor-state.ts"
 import { ProjectFiles, type RefreshGeneratedFilesParams } from "../src/project/service.ts"
 import { GitHubCli } from "../src/services/gh.ts"
 import { GitMetadataLive } from "../src/services/git-metadata.ts"
+import { classifyRepo } from "../src/services/github-repo-meta.ts"
+import { LocalState, LocalStateLive } from "../src/services/local-state.ts"
 import {
   defaultAddParams,
   initBareUpstream,
@@ -225,5 +231,131 @@ describe("doctor fork-mode check", () => {
     )
 
     expect(report.status).toBe("skipped")
+  })
+})
+
+describe("doctor Type column classification", () => {
+  test("classifyRepo distinguishes own / fork / upstream / unknown / non-github", () => {
+    const user = {
+      schemaVersion: 1 as const,
+      fetchedAt: new Date().toISOString(),
+      login: "gunta",
+      orgs: ["g-productions-studio"]
+    }
+
+    // own (login match)
+    expect(
+      classifyRepo({
+        url: "https://github.com/gunta/ingraft.git",
+        user,
+        meta: Option.none()
+      })
+    ).toBe("own")
+
+    // own (org match)
+    expect(
+      classifyRepo({
+        url: "https://github.com/g-productions-studio/site.git",
+        user,
+        meta: Option.none()
+      })
+    ).toBe("own")
+
+    // fork
+    expect(
+      classifyRepo({
+        url: "https://github.com/facebook/effect.git",
+        user,
+        meta: Option.some({
+          fetchedAt: new Date().toISOString(),
+          isFork: true,
+          parent: "Effect-TS/effect",
+          owner: "facebook",
+          visibility: "public"
+        })
+      })
+    ).toBe("fork")
+
+    // upstream
+    expect(
+      classifyRepo({
+        url: "https://github.com/Effect-TS/effect.git",
+        user,
+        meta: Option.some({
+          fetchedAt: new Date().toISOString(),
+          isFork: false,
+          parent: null,
+          owner: "Effect-TS",
+          visibility: "public"
+        })
+      })
+    ).toBe("upstream")
+
+    // unknown (no meta, not own)
+    expect(
+      classifyRepo({
+        url: "https://github.com/Effect-TS/effect.git",
+        user,
+        meta: Option.none()
+      })
+    ).toBe("unknown")
+
+    // non-github
+    expect(
+      classifyRepo({
+        url: "https://gitlab.com/foo/bar.git",
+        user,
+        meta: Option.none()
+      })
+    ).toBe("non-github")
+  })
+
+  test("seeded LocalState yields the expected types when read by classifyRepo", async () => {
+    const dir = mkdtempSync(join(tmpdir(), "ingraft-doctor-type-"))
+    try {
+      spawnSync("git", ["init", "-q", "--initial-branch=main"], { cwd: dir })
+      spawnSync(
+        "git",
+        ["-c", "user.email=t@t", "-c", "user.name=T", "commit", "--allow-empty", "-q", "-m", "init"],
+        { cwd: dir }
+      )
+
+      const layer = Layer.mergeAll(LocalStateLive, NodeServices.layer)
+
+      const result = await Effect.runPromise(
+        Effect.gen(function* () {
+          const local = yield* LocalState
+          yield* local.writeUser({
+            cwd: dir,
+            identity: {
+              schemaVersion: 1,
+              fetchedAt: new Date().toISOString(),
+              login: "gunta",
+              orgs: ["g-productions-studio"]
+            }
+          })
+          yield* local.writeRepoMeta({
+            cwd: dir,
+            ownerName: "facebook/effect",
+            meta: {
+              fetchedAt: new Date().toISOString(),
+              isFork: true,
+              parent: "Effect-TS/effect",
+              owner: "facebook",
+              visibility: "public"
+            }
+          })
+
+          const userOption = yield* local.readUser({ cwd: dir })
+          const metaOption = yield* local.readRepoMeta({ cwd: dir, ownerName: "facebook/effect" })
+          return { userOption, metaOption }
+        }).pipe(Effect.provide(layer))
+      )
+
+      expect(Option.isSome(result.userOption)).toBe(true)
+      expect(Option.isSome(result.metaOption)).toBe(true)
+    } finally {
+      rmSync(dir, { recursive: true, force: true })
+    }
   })
 })
