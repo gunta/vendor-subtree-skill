@@ -3,9 +3,17 @@ import { Array as Arr, Effect, FileSystem, Option, Path } from "effect"
 export const GITIGNORE_CLONE_BEGIN = "# ingraft: clone-ignore begin"
 export const GITIGNORE_CLONE_END = "# ingraft: clone-ignore end"
 
+export type IgnoreTarget = "gitignore" | "info-exclude"
+
 export interface MergeGitignoreTextParams {
   readonly content: string
   readonly prefixes: ReadonlyArray<string>
+}
+
+export interface UpdateIgnoreParams {
+  readonly cwd: string
+  readonly prefixes: ReadonlyArray<string>
+  readonly target: IgnoreTarget
 }
 
 export interface UpdateGitignoreParams {
@@ -31,6 +39,9 @@ const renderSection = (prefixes: ReadonlyArray<string>): string =>
 
 const trimTrailingBlankLines = (content: string): string => content.replace(/\n+$/g, "")
 
+const targetRelativePath = (target: IgnoreTarget): ReadonlyArray<string> =>
+  target === "gitignore" ? [".gitignore"] : [".git", "info", "exclude"]
+
 export const mergeGitignoreText = ({ content, prefixes }: MergeGitignoreTextParams): string => {
   const normalized = trimTrailingBlankLines(content)
   if (prefixes.length === 0) {
@@ -46,20 +57,27 @@ export const mergeGitignoreText = ({ content, prefixes }: MergeGitignoreTextPara
   return `${trimTrailingBlankLines(next)}\n`
 }
 
-export const updateGitignore = ({ cwd, prefixes }: UpdateGitignoreParams) =>
+export const updateIgnoreFile = ({ cwd, prefixes, target }: UpdateIgnoreParams) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
-    const target = path.resolve(cwd, ".gitignore")
-    const content = (yield* fs.exists(target)) ? yield* fs.readFileString(target) : ""
+    const relativeSegments = targetRelativePath(target)
+    const absoluteTarget = path.resolve(cwd, ...relativeSegments)
+    const content = (yield* fs.exists(absoluteTarget))
+      ? yield* fs.readFileString(absoluteTarget)
+      : ""
     const next = mergeGitignoreText({ content, prefixes })
 
     if (next === content) return Option.none<string>()
     if (next === "") {
-      yield* fs.remove(target, { force: true })
-      return Option.some(target)
+      yield* fs.remove(absoluteTarget, { force: true })
+      return Option.some(absoluteTarget)
     }
 
-    yield* fs.writeFileString(target, next)
-    return Option.some(target)
+    yield* fs.makeDirectory(path.dirname(absoluteTarget), { recursive: true }).pipe(Effect.ignore)
+    yield* fs.writeFileString(absoluteTarget, next)
+    return Option.some(absoluteTarget)
   })
+
+export const updateGitignore = ({ cwd, prefixes }: UpdateGitignoreParams) =>
+  updateIgnoreFile({ cwd, prefixes, target: "gitignore" })
