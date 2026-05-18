@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test"
-import { Effect, Layer, Option } from "effect"
+import { Effect, Option } from "effect"
 import { FileSystem, Path } from "effect"
 import { NodeServices } from "@effect/platform-node"
 import { mkdtempSync, rmSync } from "node:fs"
@@ -87,6 +87,39 @@ describe("LocalState org cache", () => {
       if (Option.isSome(roundTripped)) {
         expect(roundTripped.value).toEqual(written)
       }
+    } finally {
+      cleanup()
+    }
+  })
+
+  test("clearOrg removes the cache so subsequent reads return None", async () => {
+    const { cwd, cleanup } = makeTempCwd()
+    try {
+      const written: OrgCache = {
+        schemaVersion: 1,
+        owner: "gunta",
+        fetchedAt: "2026-05-19T14:33:21Z",
+        repos: [],
+        preferences: {
+          language: [],
+          since: null,
+          excludeArchived: true,
+          excludeForks: true,
+          visibility: "all",
+          selectedNames: []
+        }
+      }
+
+      const result = await Effect.runPromise(
+        provide(Effect.gen(function* () {
+          const local = yield* LocalState
+          yield* local.writeOrgCache({ cwd, cache: written })
+          yield* local.clearOrg({ cwd, owner: "gunta" })
+          return yield* local.readOrgCache({ cwd, owner: "gunta" })
+        }))
+      )
+
+      expect(Option.isNone(result)).toBe(true)
     } finally {
       cleanup()
     }

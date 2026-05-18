@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from "effect"
+import { Context, Effect, FileSystem, Layer, Option, Path, type PlatformError, Schema } from "effect"
 
 const CURRENT_SCHEMA_VERSION = 1
 const STATE_DIR = ".ingraft/state"
@@ -118,8 +118,15 @@ const writeJson = (file: string, value: unknown) =>
   Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const path = yield* Path.Path
-    yield* fs.makeDirectory(path.dirname(file), { recursive: true }).pipe(Effect.ignore)
-    yield* fs.writeFileString(file, JSON.stringify(value, null, 2)).pipe(Effect.ignore)
+    yield* fs.makeDirectory(path.dirname(file), { recursive: true })
+    const tmp = `${file}.tmp.${process.pid}.${Date.now()}`
+    const body = JSON.stringify(value, null, 2)
+    yield* fs.writeFileString(tmp, body).pipe(
+      Effect.onError(() => fs.remove(tmp).pipe(Effect.ignore))
+    )
+    yield* fs.rename(tmp, file).pipe(
+      Effect.onError(() => fs.remove(tmp).pipe(Effect.ignore))
+    )
   })
 
 export interface LocalStateShape {
@@ -130,7 +137,7 @@ export interface LocalStateShape {
   readonly writeOrgCache: (params: {
     readonly cwd: string
     readonly cache: OrgCache
-  }) => Effect.Effect<void, never, FileSystem.FileSystem | Path.Path>
+  }) => Effect.Effect<void, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path>
   readonly clearOrg: (params: {
     readonly cwd: string
     readonly owner: string
@@ -144,14 +151,14 @@ export interface LocalStateShape {
     readonly headSha: string
     readonly builtAt: string
     readonly repos: ReadonlyArray<unknown>
-  }) => Effect.Effect<void, never, FileSystem.FileSystem | Path.Path>
+  }) => Effect.Effect<void, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path>
   readonly readUser: (params: {
     readonly cwd: string
   }) => Effect.Effect<Option.Option<UserIdentity>, never, FileSystem.FileSystem | Path.Path>
   readonly writeUser: (params: {
     readonly cwd: string
     readonly identity: UserIdentity
-  }) => Effect.Effect<void, never, FileSystem.FileSystem | Path.Path>
+  }) => Effect.Effect<void, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path>
   readonly readRepoMeta: (params: {
     readonly cwd: string
     readonly ownerName: string
@@ -160,7 +167,7 @@ export interface LocalStateShape {
     readonly cwd: string
     readonly ownerName: string
     readonly meta: RepoMeta
-  }) => Effect.Effect<void, never, FileSystem.FileSystem | Path.Path>
+  }) => Effect.Effect<void, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path>
 }
 
 export class LocalState extends Context.Service<LocalState, LocalStateShape>()(
@@ -234,6 +241,7 @@ export const LocalStateLive = Layer.sync(LocalState, () => ({
       return entry ? Option.some(entry) : Option.none<RepoMeta>()
     }),
 
+  // Best-effort under concurrent writers; full serialization would require a Semaphore or external file lock (out of scope for v1).
   writeRepoMeta: ({ cwd, ownerName, meta }) =>
     Effect.gen(function* () {
       const path = yield* Path.Path
