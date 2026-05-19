@@ -63,6 +63,7 @@ jobs:
     name: Install smoke (${{ matrix.os }})
     needs: check
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
     permissions:
       contents: read
     strategy:

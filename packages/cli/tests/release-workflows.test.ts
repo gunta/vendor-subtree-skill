@@ -28,6 +28,7 @@ type WorkflowJob = {
     readonly "fail-fast"?: boolean
     readonly matrix?: Record<string, unknown>
   }
+  readonly "timeout-minutes"?: number
   readonly "runs-on"?: string
 }
 
@@ -275,6 +276,7 @@ describe("release automation workflows", () => {
       needs: "check",
       permissions: { contents: "read" },
       "runs-on": "${{ matrix.os }}",
+      "timeout-minutes": 15,
       strategy: {
         "fail-fast": false,
         matrix: {
