@@ -17,40 +17,43 @@ These commands download and execute the published package for one run.
   <TabItem label="npm" icon="npm">
 
 ```sh
-npx ingraft@latest --help
-npx ingraft@latest deps
+npx @ingraft/cli@latest --help
+npx @ingraft/cli@latest deps
 ```
 
   </TabItem>
   <TabItem label="Bun" icon="bun">
 
 ```sh
-bunx ingraft@latest
-bunx ingraft@latest doctor
+bunx @ingraft/cli@latest
+bunx @ingraft/cli@latest doctor
 ```
 
   </TabItem>
   <TabItem label="pnpm" icon="pnpm">
 
 ```sh
-pnpm dlx ingraft@latest
-pnpm dlx ingraft@latest deps
+pnpm dlx @ingraft/cli@latest
+pnpm dlx @ingraft/cli@latest deps
 ```
 
   </TabItem>
   <TabItem label="Yarn" icon="seti:yarn">
 
 ```sh
-yarn dlx ingraft@latest
-yarn dlx ingraft@latest doctor
+yarn dlx @ingraft/cli@latest
+yarn dlx @ingraft/cli@latest doctor
 ```
 
   </TabItem>
 </Tabs>
 
-Use `bunx ingraft@latest` for the interactive dashboard. Non-interactive
+Use `bunx @ingraft/cli@latest` for the interactive dashboard. Non-interactive
 commands such as `deps`, `list`, `doctor`, and `context` also work through
 `npx`, `pnpm dlx`, and `yarn dlx`.
+
+The short `npx ingraft@latest` and `npm install -g ingraft` compatibility
+package is still available when you want the one-word package name.
 
 ## Install globally
 
@@ -58,7 +61,7 @@ commands such as `deps`, `list`, `doctor`, and `context` also work through
   <TabItem label="npm" icon="npm">
 
 ```sh
-npm install -g ingraft
+npm install -g @ingraft/cli
 ingraft deps
 ```
 
@@ -66,7 +69,7 @@ ingraft deps
   <TabItem label="Bun" icon="bun">
 
 ```sh
-bun add -g ingraft
+bun add -g @ingraft/cli
 ingraft deps
 ```
 
@@ -74,7 +77,7 @@ ingraft deps
   <TabItem label="pnpm" icon="pnpm">
 
 ```sh
-pnpm add -g ingraft
+pnpm add -g @ingraft/cli
 ingraft deps
 ```
 
@@ -82,7 +85,7 @@ ingraft deps
   <TabItem label="Yarn" icon="seti:yarn">
 
 ```sh
-yarn global add ingraft
+yarn global add @ingraft/cli
 ingraft deps
 ```
 
@@ -143,7 +146,7 @@ Use the overlay from another flake:
 npx skills add gunta/ingraft
 ```
 
-The agent skill delegates to the published CLI with `bunx ingraft@latest`; it
+The agent skill delegates to the published CLI with `bunx @ingraft/cli@latest`; it
 does not copy the TypeScript implementation into the skill package.
 
   </TabItem>

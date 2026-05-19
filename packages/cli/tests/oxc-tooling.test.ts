@@ -5,6 +5,7 @@ const workspaceRoot = process.cwd()
 const packagePaths = [
   "package.json",
   "packages/cli/package.json",
+  "packages/ingraft/package.json",
   "packages/skill/package.json",
   "packages/tui/package.json",
   "packages/website/package.json"

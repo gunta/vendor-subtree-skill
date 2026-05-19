@@ -61,7 +61,7 @@ describe("agent docs", () => {
 
     expect(result).not.toContain("old")
     expect(result).toContain("bun tools/vendor.ts list")
-    expect(renderVendorSection({ repos: [] })).toContain("bunx ingraft@latest list")
+    expect(renderVendorSection({ repos: [] })).toContain("bunx @ingraft/cli@latest list")
     expect(result).toContain("vendor/effect")
   })
 

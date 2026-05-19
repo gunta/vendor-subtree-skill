@@ -4,6 +4,22 @@ All notable changes to ingraft are recorded here.
 
 ## Unreleased
 
+## 0.3.1 - 2026-05-20
+
+### Changed
+
+- Release maintenance and packaging updates.
+
+### Added
+
+- Publish the canonical CLI as `@ingraft/cli` while keeping `ingraft` as a
+  compatibility package for the short `npx ingraft` entrypoint.
+
+### Fixed
+
+- Make the Nix package build and run from a locked flake with explicit runtime
+  peers for npm packages that normal installs auto-resolve.
+
 ## 0.3.0 - 2026-05-20
 
 ### Added

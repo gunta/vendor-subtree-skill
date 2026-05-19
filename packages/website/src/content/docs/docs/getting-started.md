@@ -12,14 +12,14 @@ Homebrew, Nix, shell, and `skills.sh` path.
 Run the CLI from the root of the project that should receive context:
 
 ```sh
-bunx ingraft@latest
+bunx @ingraft/cli@latest
 ```
 
 The zero-argument command opens the interactive dashboard. For a plain
 non-interactive dependency scan, run:
 
 ```sh
-npx ingraft@latest deps
+npx @ingraft/cli@latest deps
 ```
 
 You can also pass targets directly:

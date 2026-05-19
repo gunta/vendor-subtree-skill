@@ -7,20 +7,20 @@ const installMethods = [
     icon: "zap",
     title: "Run once",
     body: "Use the published package without adding a global command.",
-    code: `bunx ingraft@latest
-npx ingraft@latest --help
-pnpm dlx ingraft@latest deps
-yarn dlx ingraft@latest doctor`,
+    code: `bunx @ingraft/cli@latest
+npx @ingraft/cli@latest --help
+pnpm dlx @ingraft/cli@latest deps
+yarn dlx @ingraft/cli@latest doctor`,
     badge: "zero install"
   },
   {
     icon: "package",
     title: "Install globally",
     body: "Put the CLI on PATH with the package manager already in your toolchain.",
-    code: `npm install -g ingraft
-bun add -g ingraft
-pnpm add -g ingraft
-yarn global add ingraft`,
+    code: `npm install -g @ingraft/cli
+bun add -g @ingraft/cli
+pnpm add -g @ingraft/cli
+yarn global add @ingraft/cli`,
     badge: "npm"
   },
   {
@@ -61,7 +61,7 @@ nix profile install github:gunta/ingraft#ingraft`,
   <p class="section-kicker">Install</p>
   <h2>Run it from the store your project already trusts.</h2>
   <p class="section-intro">
-    Try <code>ingraft</code> without installing through <code>npx</code>, <code>bunx</code>,
+    Try <code>@ingraft/cli</code> without installing through <code>npx</code>, <code>bunx</code>,
     <code>pnpm dlx</code>, or <code>yarn dlx</code>. Put it on <code>PATH</code> through npm,
     Homebrew, Nix, or the shell bootstrap when you want a durable local command.
   </p>

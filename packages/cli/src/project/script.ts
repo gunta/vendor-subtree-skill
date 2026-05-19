@@ -25,5 +25,7 @@ export const commandInvocation = (params: ScriptInvocationParams): Effect.Effect
   Effect.sync(() => {
     const raw = params.argv[1]
     const root = params.cwd.endsWith("/") ? params.cwd : `${params.cwd}/`
-    return raw && raw.startsWith(root) ? `bun ${scriptRelToSync(params)}` : "bunx ingraft@latest"
+    return raw && raw.startsWith(root)
+      ? `bun ${scriptRelToSync(params)}`
+      : "bunx @ingraft/cli@latest"
   })

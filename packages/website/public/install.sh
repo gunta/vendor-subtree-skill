@@ -1,7 +1,7 @@
 #!/bin/sh
 set -eu
 
-package="${INGRAFT_PACKAGE:-ingraft@${INGRAFT_VERSION:-latest}}"
+package="${INGRAFT_PACKAGE:-@ingraft/cli@${INGRAFT_VERSION:-latest}}"
 method="${INGRAFT_INSTALL_METHOD:-}"
 
 has() {

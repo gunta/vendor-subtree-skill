@@ -1,7 +1,8 @@
 # Release Process
 
-ingraft publishes the CLI to npm, exposes the same package through Homebrew and
-Nix, and ships the companion agent skill as `@ingraft/skill`.
+ingraft publishes the canonical CLI to npm as `@ingraft/cli`, keeps the short
+`ingraft` package as a compatibility entrypoint, exposes the same CLI through
+Homebrew and Nix, and ships the companion agent skill as `@ingraft/skill`.
 
 ## Prepare a release
 
@@ -53,7 +54,8 @@ opens a release PR.
 After the release PR lands, create a GitHub release for tag `vX.Y.Z` and use the
 generated changelog notes as the release body. Publishing the GitHub release
 triggers **Release packages**, which runs `bun run release:check`, the full repo
-checks, builds the packages, and publishes `ingraft` and `@ingraft/skill` with
+checks, builds the packages, and publishes `@ingraft/cli`, the `ingraft`
+compatibility package, and `@ingraft/skill` with
 npm trusted publishing and provenance.
 
 ## Manual safety checklist

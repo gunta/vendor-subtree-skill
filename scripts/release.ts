@@ -7,6 +7,7 @@ import { basename, join, resolve } from "node:path"
 type JsonObject = Record<string, unknown>
 
 type PackageJson = JsonObject & {
+  dependencies?: Record<string, string>
   scripts?: Record<string, string>
   version?: string
 }
@@ -30,6 +31,8 @@ const root = resolve(import.meta.dir, "..")
 
 const paths = {
   changelog: join(root, "CHANGELOG.md"),
+  aliasPackage: join(root, "packages/ingraft/package.json"),
+  cliConstants: join(root, "packages/cli/src/domain/constants.ts"),
   cliPackage: join(root, "packages/cli/package.json"),
   cliPackageLock: join(root, "packages/cli/package-lock.json"),
   formula: join(root, "Formula/ingraft.rb"),
@@ -228,6 +231,26 @@ const updatePackageVersion = async (path: string, version: string): Promise<void
   await writeJson(path, packageJson)
 }
 
+const updateAliasPackageVersion = async (version: string): Promise<void> => {
+  const packageJson = await readJson<PackageJson>(paths.aliasPackage)
+  packageJson.version = version
+  packageJson.dependencies = {
+    ...packageJson.dependencies,
+    "@ingraft/cli": version
+  }
+  await writeJson(paths.aliasPackage, packageJson)
+}
+
+const updateCliVersionConstant = async (version: string): Promise<void> => {
+  const constants = await readText(paths.cliConstants)
+  const updated = constants.replace(
+    /export const VERSION = "[^"]+"/,
+    `export const VERSION = "${version}"`
+  )
+  assert(updated !== constants, "packages/cli/src/domain/constants.ts is missing VERSION")
+  await writeText(paths.cliConstants, updated)
+}
+
 const updatePackageLockVersion = async (version: string): Promise<void> => {
   const lock = await readJson<PackageLockJson>(paths.cliPackageLock)
   lock.version = version
@@ -267,8 +290,8 @@ const packCliTarball = async (): Promise<string> => {
 const updateFormula = async (version: string, sha256?: string): Promise<void> => {
   let formula = await readText(paths.formula)
   formula = formula.replace(
-    /url "https:\/\/registry\.npmjs\.org\/ingraft\/-\/ingraft-[^"]+\.tgz"/,
-    `url "https://registry.npmjs.org/ingraft/-/ingraft-${version}.tgz"`
+    /url "https:\/\/registry\.npmjs\.org\/@ingraft\/cli\/-\/cli-[^"]+\.tgz"/,
+    `url "https://registry.npmjs.org/@ingraft/cli/-/cli-${version}.tgz"`
   )
   if (sha256 !== undefined) {
     formula = formula.replace(/sha256 "[a-f0-9]{64}"/, `sha256 "${sha256}"`)
@@ -378,6 +401,7 @@ const extractReleaseNotes = async (version: string): Promise<string> => {
 
 const checkRelease = async (): Promise<void> => {
   const rootPackage = await readJson<PackageJson>(paths.rootPackage)
+  const aliasPackage = await readJson<PackageJson>(paths.aliasPackage)
   const cliPackage = await readJson<PackageJson>(paths.cliPackage)
   const skillPackage = await readJson<PackageJson>(paths.skillPackage)
   const lock = await readJson<PackageLockJson>(paths.cliPackageLock)
@@ -385,7 +409,26 @@ const checkRelease = async (): Promise<void> => {
 
   assert(typeof version === "string", "Root package.json is missing version")
   assertSemver(version)
+  assert(
+    cliPackage.name === "@ingraft/cli",
+    "packages/cli/package.json should publish @ingraft/cli"
+  )
+  assert(aliasPackage.name === "ingraft", "packages/ingraft/package.json should publish ingraft")
   assert(cliPackage.version === version, "packages/cli/package.json version does not match root")
+  const constants = await readText(paths.cliConstants)
+  assert(
+    constants.includes(`export const VERSION = "${version}"`),
+    "packages/cli/src/domain/constants.ts VERSION does not match root"
+  )
+  assert(
+    aliasPackage.version === version,
+    "packages/ingraft/package.json version does not match root"
+  )
+  assert(
+    (aliasPackage.dependencies as Record<string, unknown> | undefined)?.["@ingraft/cli"] ===
+      version,
+    "packages/ingraft/package.json must depend on the current @ingraft/cli version"
+  )
   assert(
     skillPackage.version === version,
     "packages/skill/package.json version does not match root"
@@ -418,7 +461,7 @@ const checkRelease = async (): Promise<void> => {
   )
 
   const formula = await readText(paths.formula)
-  assert(formula.includes(`ingraft-${version}.tgz`), "Formula/ingraft.rb tarball URL is stale")
+  assert(formula.includes(`cli-${version}.tgz`), "Formula/ingraft.rb tarball URL is stale")
   assert(/sha256 "[a-f0-9]{64}"/.test(formula), "Formula/ingraft.rb is missing a sha256")
 
   const changelog = await readText(paths.changelog)
@@ -433,6 +476,10 @@ const checkRelease = async (): Promise<void> => {
   assert(
     releaseWorkflow.includes("npm publish --access public --provenance"),
     "npm publish must include provenance"
+  )
+  assert(
+    releaseWorkflow.includes('npm view "@ingraft/cli@$version"'),
+    "release-packages.yml must skip already-published @ingraft/cli versions"
   )
   assert(
     releaseWorkflow.includes('npm view "ingraft@$version"'),
@@ -463,6 +510,8 @@ const prepareRelease = async (options: Options): Promise<void> => {
 
   await updatePackageVersion(paths.rootPackage, version)
   await updatePackageVersion(paths.cliPackage, version)
+  await updateCliVersionConstant(version)
+  await updateAliasPackageVersion(version)
   await updatePackageVersion(paths.skillPackage, version)
   await updatePackageLockVersion(version)
 

@@ -15,7 +15,7 @@ describe("script invocation", () => {
     expect(Effect.runSync(commandInvocation(params))).toBe("bun packages/cli/scripts/vendor.ts")
   })
 
-  test("uses bunx ingraft@latest when argv does not point into the repo", () => {
+  test("uses bunx @ingraft/cli@latest when argv does not point into the repo", () => {
     expect(
       Effect.runSync(
         commandInvocation({
@@ -23,6 +23,6 @@ describe("script invocation", () => {
           argv: ["ingraft", "/usr/local/bin/ingraft"]
         })
       )
-    ).toBe("bunx ingraft@latest")
+    ).toBe("bunx @ingraft/cli@latest")
   })
 })

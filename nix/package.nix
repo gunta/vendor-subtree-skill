@@ -11,7 +11,7 @@ let
   packageJson = lib.importJSON ../packages/cli/package.json;
 in
 buildNpmPackage {
-  pname = packageJson.name;
+  pname = "ingraft";
   version = packageJson.version;
 
   src = lib.fileset.toSource {
@@ -37,8 +37,9 @@ buildNpmPackage {
     npmRoot = ../packages/cli;
   };
   npmConfigHook = importNpmLock.npmConfigHook;
-  npmInstallFlags = [ "--legacy-peer-deps" ];
+  npmFlags = [ "--legacy-peer-deps" ];
   npmPackFlags = [ "--ignore-scripts" ];
+  npmPruneFlags = [ "--legacy-peer-deps" ];
 
   nodejs = nodejs_24;
 

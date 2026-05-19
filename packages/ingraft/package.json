@@ -1,16 +1,13 @@
 {
-  "name": "@ingraft/skill",
+  "name": "ingraft",
   "version": "0.3.1",
-  "description": "Agent skill wrapper for the ingraft repository-context CLI.",
+  "description": "Compatibility entrypoint for the @ingraft/cli package.",
   "keywords": [
-    "agent-skill",
-    "claude-code",
+    "cli",
     "coding-agents",
     "context-routing",
     "ingraft",
-    "repository-context",
-    "skill",
-    "vendor"
+    "repository-context"
   ],
   "homepage": "https://ingraft.dev",
   "bugs": {
@@ -21,10 +18,13 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/gunta/ingraft.git",
-    "directory": "packages/skill"
+    "directory": "packages/ingraft"
+  },
+  "bin": {
+    "ingraft": "bin/ingraft.js"
   },
   "files": [
-    "SKILL.md",
+    "bin",
     "README.md",
     "LICENSE"
   ],
@@ -36,7 +36,10 @@
     "check": "bun run lint && bun run format:check",
     "format": "oxfmt . --write",
     "format:check": "oxfmt . --check",
-    "lint": "oxlint . --no-error-on-unmatched-pattern",
-    "lint:fix": "oxlint . --fix --no-error-on-unmatched-pattern"
+    "lint": "oxlint .",
+    "lint:fix": "oxlint . --fix"
+  },
+  "dependencies": {
+    "@ingraft/cli": "0.3.1"
   }
 }

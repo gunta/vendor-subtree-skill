@@ -11,7 +11,7 @@ fetches, local search tools, and generated project instructions.
 
 ## Packages
 
-- `packages/cli` - standalone CLI and OpenTUI dashboard published as `ingraft`.
+- `packages/cli` - standalone CLI and OpenTUI dashboard published as `@ingraft/cli`.
 - `packages/skill` - skill wrapper that runs the published CLI with `bunx`.
 - `packages/tui` - internal development/test wrapper for the CLI dashboard.
 - `packages/website` - Astro/Starlight marketing site and documentation.
@@ -23,20 +23,23 @@ The implementation lives in the CLI package. The skill does not copy source file
 Run the CLI without installing it globally:
 
 ```sh
-bunx ingraft@latest
-npx ingraft@latest --help
-pnpm dlx ingraft@latest deps
-yarn dlx ingraft@latest doctor
+bunx @ingraft/cli@latest
+npx @ingraft/cli@latest --help
+pnpm dlx @ingraft/cli@latest deps
+yarn dlx @ingraft/cli@latest doctor
 ```
 
 Install through JavaScript package managers:
 
 ```sh
-npm install -g ingraft
-bun add -g ingraft
-pnpm add -g ingraft
-yarn global add ingraft
+npm install -g @ingraft/cli
+bun add -g @ingraft/cli
+pnpm add -g @ingraft/cli
+yarn global add @ingraft/cli
 ```
+
+The short `npx ingraft@latest` and `npm install -g ingraft` entrypoints remain
+available as compatibility aliases.
 
 Install through the hosted shell bootstrap:
 

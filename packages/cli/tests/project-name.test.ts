@@ -15,12 +15,14 @@ describe("project naming", () => {
   test("uses ingraft as the project name", async () => {
     const rootPackage = await readJson<PackageJson>("package.json")
     const cliPackage = await readJson<PackageJson>("packages/cli/package.json")
+    const aliasPackage = await readJson<PackageJson>("packages/ingraft/package.json")
     const skillPackage = await readJson<PackageJson>("packages/skill/package.json")
     const rootSkill = await Bun.file(join(workspaceRoot, "SKILL.md")).text()
     const packagedSkill = await Bun.file(join(workspaceRoot, "packages/skill/SKILL.md")).text()
 
     expect(rootPackage.name).toBe("ingraft-workspace")
-    expect(cliPackage.name).toBe("ingraft")
+    expect(cliPackage.name).toBe("@ingraft/cli")
+    expect(aliasPackage.name).toBe("ingraft")
     expect(skillPackage.name).toBe("@ingraft/skill")
     expect(cliPackage.bin).toEqual({
       ingraft: "dist/bin/ingraft.js"

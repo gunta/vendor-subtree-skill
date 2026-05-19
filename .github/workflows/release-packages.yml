@@ -60,6 +60,11 @@ jobs:
         id: npm_status
         run: |
           version="${{ steps.release.outputs.version }}"
+          if npm view "@ingraft/cli@$version" version >/dev/null 2>&1; then
+            echo "cli=published" >> "$GITHUB_OUTPUT"
+          else
+            echo "cli=missing" >> "$GITHUB_OUTPUT"
+          fi
           if npm view "ingraft@$version" version >/dev/null 2>&1; then
             echo "ingraft=published" >> "$GITHUB_OUTPUT"
           else
@@ -71,9 +76,14 @@ jobs:
             echo "skill=missing" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Publish ingraft
-        if: steps.npm_status.outputs.ingraft != 'published'
+      - name: Publish @ingraft/cli
+        if: steps.npm_status.outputs.cli != 'published'
         working-directory: packages/cli
+        run: npm publish --access public --provenance
+
+      - name: Publish ingraft compatibility package
+        if: steps.npm_status.outputs.ingraft != 'published'
+        working-directory: packages/ingraft
         run: npm publish --access public --provenance
 
       - name: Publish @ingraft/skill

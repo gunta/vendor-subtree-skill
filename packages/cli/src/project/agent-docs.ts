@@ -118,7 +118,7 @@ export const renderVendorSection = ({
   repos,
   scriptRel
 }: RenderVendorSectionParams): string => {
-  const invocation = command ?? (scriptRel ? `bun ${scriptRel}` : "bunx ingraft@latest")
+  const invocation = command ?? (scriptRel ? `bun ${scriptRel}` : "bunx @ingraft/cli@latest")
   return [
     SECTION_BEGIN,
     "## Durable Source Routes",

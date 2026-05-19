@@ -36,6 +36,7 @@ type PackageJson = {
   readonly bugs?: {
     readonly url?: string
   }
+  readonly dependencies?: Record<string, string>
   readonly devDependencies?: Record<string, string>
   readonly homepage?: string
   readonly private?: boolean
@@ -104,6 +105,8 @@ const createReleaseFixture = async (version: string): Promise<string> => {
     mkdir(join(fixture, ".github/workflows"), { recursive: true }),
     mkdir(join(fixture, "Formula"), { recursive: true }),
     mkdir(join(fixture, "packages/cli"), { recursive: true }),
+    mkdir(join(fixture, "packages/cli/src/domain"), { recursive: true }),
+    mkdir(join(fixture, "packages/ingraft"), { recursive: true }),
     mkdir(join(fixture, "packages/skill"), { recursive: true }),
     mkdir(join(fixture, "scripts"), { recursive: true })
   ])
@@ -120,6 +123,17 @@ const createReleaseFixture = async (version: string): Promise<string> => {
     version
   })
   await writeJson(join(fixture, "packages/cli/package.json"), {
+    name: "@ingraft/cli",
+    version
+  })
+  await Bun.write(
+    join(fixture, "packages/cli/src/domain/constants.ts"),
+    `export const VERSION = "${version}"\n`
+  )
+  await writeJson(join(fixture, "packages/ingraft/package.json"), {
+    dependencies: {
+      "@ingraft/cli": version
+    },
     name: "ingraft",
     version
   })
@@ -128,10 +142,10 @@ const createReleaseFixture = async (version: string): Promise<string> => {
     version
   })
   await writeJson(join(fixture, "packages/cli/package-lock.json"), {
-    name: "ingraft",
+    name: "@ingraft/cli",
     packages: {
       "": {
-        name: "ingraft",
+        name: "@ingraft/cli",
         version
       }
     },
@@ -139,12 +153,13 @@ const createReleaseFixture = async (version: string): Promise<string> => {
   })
   await Bun.write(
     join(fixture, "Formula/ingraft.rb"),
-    `class Ingraft < Formula\n  url "https://registry.npmjs.org/ingraft/-/ingraft-${version}.tgz"\n  sha256 "${"a".repeat(64)}"\nend\n`
+    `class Ingraft < Formula\n  url "https://registry.npmjs.org/@ingraft/cli/-/cli-${version}.tgz"\n  sha256 "${"a".repeat(64)}"\nend\n`
   )
   await Bun.write(
     join(fixture, ".github/workflows/release-packages.yml"),
     [
       "run: bun run release:check",
+      'run: npm view "@ingraft/cli@$version" version',
       'run: npm view "ingraft@$version" version',
       'run: npm view "@ingraft/skill@$version" version',
       "run: npm publish --access public --provenance",
@@ -174,9 +189,11 @@ const createReleaseFixture = async (version: string): Promise<string> => {
 describe("release automation workflows", () => {
   test("marks published packages for public npm release", async () => {
     const packages = await Promise.all(
-      ["packages/cli/package.json", "packages/skill/package.json"].map(
-        async (path) => [path, await readJson<PackageJson>(path)] as const
-      )
+      [
+        "packages/cli/package.json",
+        "packages/ingraft/package.json",
+        "packages/skill/package.json"
+      ].map(async (path) => [path, await readJson<PackageJson>(path)] as const)
     )
 
     for (const [path, packageJson] of packages) {
@@ -238,8 +255,13 @@ describe("release automation workflows", () => {
     expectStep(publish?.steps, { id: "npm_status", name: "Check published npm packages" })
 
     expectStep(publish?.steps, {
-      if: "steps.npm_status.outputs.ingraft != 'published'",
+      if: "steps.npm_status.outputs.cli != 'published'",
       "working-directory": "packages/cli",
+      run: "npm publish --access public --provenance"
+    })
+    expectStep(publish?.steps, {
+      if: "steps.npm_status.outputs.ingraft != 'published'",
+      "working-directory": "packages/ingraft",
       run: "npm publish --access public --provenance"
     })
     expectStep(publish?.steps, {
@@ -250,6 +272,7 @@ describe("release automation workflows", () => {
 
     expect(text).not.toContain("packages/tui")
     expect(text).not.toContain("ingraft-tui")
+    expect(text).toContain('npm view "@ingraft/cli@$version"')
     expect(text).toContain('npm view "ingraft@$version"')
     expect(text).toContain('npm view "@ingraft/skill@$version"')
 
@@ -304,16 +327,19 @@ describe("release automation workflows", () => {
     expect(releaseScript).toContain("CHANGELOG.md")
     expect(releaseScript).toContain("Formula/ingraft.rb")
     expect(releaseScript).toContain("packages/cli/package-lock.json")
+    expect(releaseScript).toContain("packages/ingraft/package.json")
   })
 
   test("keeps changelog and release metadata anchored to the current version", async () => {
     const rootPackage = await readJson<PackageJson>("package.json")
+    const aliasPackage = await readJson<PackageJson>("packages/ingraft/package.json")
     const cliPackage = await readJson<PackageJson>("packages/cli/package.json")
     const skillPackage = await readJson<PackageJson>("packages/skill/package.json")
     const changelog = await workflowText("CHANGELOG.md")
     const releaseDocs = await workflowText("RELEASE.md")
 
     expect(cliPackage.version).toBe(rootPackage.version)
+    expect(aliasPackage.version).toBe(rootPackage.version)
     expect(skillPackage.version).toBe(rootPackage.version)
     expect(changelog).toContain("# Changelog")
     expect(changelog).toContain("## Unreleased")
@@ -341,17 +367,24 @@ describe("release automation workflows", () => {
       const cliPackage = JSON.parse(
         await Bun.file(join(fixture, "packages/cli/package.json")).text()
       )
+      const aliasPackage = JSON.parse(
+        await Bun.file(join(fixture, "packages/ingraft/package.json")).text()
+      )
       const lock = JSON.parse(
         await Bun.file(join(fixture, "packages/cli/package-lock.json")).text()
       )
       const formula = await Bun.file(join(fixture, "Formula/ingraft.rb")).text()
       const changelog = await Bun.file(join(fixture, "CHANGELOG.md")).text()
+      const constants = await Bun.file(join(fixture, "packages/cli/src/domain/constants.ts")).text()
 
       expect(rootPackage.version).toBe("1.2.4")
       expect(cliPackage.version).toBe("1.2.4")
+      expect(constants).toContain('export const VERSION = "1.2.4"')
+      expect(aliasPackage.version).toBe("1.2.4")
+      expect(aliasPackage.dependencies["@ingraft/cli"]).toBe("1.2.4")
       expect(lock.version).toBe("1.2.4")
       expect(lock.packages[""].version).toBe("1.2.4")
-      expect(formula).toContain("ingraft-1.2.4.tgz")
+      expect(formula).toContain("cli-1.2.4.tgz")
       expect(changelog).toContain("## 1.2.4 - 2026-05-20")
       expect(result.stdout).toContain("Prepared ingraft 1.2.4")
     } finally {
@@ -382,8 +415,10 @@ describe("release automation workflows", () => {
 
       const rootPackage = JSON.parse(await Bun.file(join(fixture, "package.json")).text())
       const formula = await Bun.file(join(fixture, "Formula/ingraft.rb")).text()
+      const constants = await Bun.file(join(fixture, "packages/cli/src/domain/constants.ts")).text()
       expect(rootPackage.version).toBe("2.0.0")
-      expect(formula).toContain("ingraft-2.0.0.tgz")
+      expect(constants).toContain('export const VERSION = "2.0.0"')
+      expect(formula).toContain("cli-2.0.0.tgz")
     } finally {
       await rm(fixture, { force: true, recursive: true })
     }
@@ -410,6 +445,7 @@ describe("release automation workflows", () => {
 
   test("keeps package metadata usable outside npm", async () => {
     const cliPackage = await readJson<PackageJson>("packages/cli/package.json")
+    const aliasPackage = await readJson<PackageJson>("packages/ingraft/package.json")
     const skillPackage = await readJson<PackageJson>("packages/skill/package.json")
     const lock = await readJson<PackageLockJson>("packages/cli/package-lock.json")
     const lockText = await workflowText("packages/cli/package-lock.json")
@@ -424,25 +460,29 @@ describe("release automation workflows", () => {
       }
     })
     expect(skillPackage.repository?.directory).toBe("packages/skill")
+    expect(aliasPackage.repository?.directory).toBe("packages/ingraft")
     expect(cliPackage.devDependencies).toMatchObject({
       "@types/node": expect.any(String),
       typescript: expect.any(String)
     })
-    expect(lock.name).toBe("ingraft")
+    expect(lock.name).toBe("@ingraft/cli")
     expect(lock.version).toBe(cliPackage.version!)
-    expect(lock.packages[""]).toMatchObject({ name: "ingraft", version: cliPackage.version })
+    expect(lock.packages[""]).toMatchObject({ name: "@ingraft/cli", version: cliPackage.version })
     expect(lockText).not.toContain(".bun")
     expect(lockText).not.toContain("private/var")
     expect(lockText).not.toContain("workspace:")
   })
 
   test("ships Homebrew and Nix package definitions", async () => {
+    const rootPackage = await readJson<PackageJson>("package.json")
     const formula = await workflowText("Formula/ingraft.rb")
     const flake = await workflowText("flake.nix")
     const nixPackage = await workflowText("nix/package.nix")
 
     expect(formula).toContain("class Ingraft < Formula")
-    expect(formula).toContain('url "https://registry.npmjs.org/ingraft/-/ingraft-0.3.0.tgz"')
+    expect(formula).toContain(
+      `url "https://registry.npmjs.org/@ingraft/cli/-/cli-${rootPackage.version}.tgz"`
+    )
     expect(formula).toMatch(/sha256 "[a-f0-9]{64}"/)
     expect(formula).toContain("preserve_rpath")
     expect(formula).toContain('depends_on "oven-sh/bun/bun"')
@@ -487,20 +527,25 @@ describe("release automation workflows", () => {
     const installer = await workflowText("packages/website/public/install.sh")
 
     for (const text of [rootReadme, cliReadme, installDocs, landing]) {
-      expect(text).toContain("npx ingraft@latest")
-      expect(text).toContain("bunx ingraft@latest")
-      expect(text).toContain("npm install -g ingraft")
+      expect(text).toContain("bunx @ingraft/cli@latest")
+      expect(text).toContain("npm install -g @ingraft/cli")
       expect(text).toContain("brew tap oven-sh/bun")
       expect(text).toContain("brew install ingraft")
       expect(text).toContain("nix run github:gunta/ingraft")
       expect(text).toContain("npx skills add gunta/ingraft")
     }
 
-    expect(installDocs).toContain("pnpm dlx ingraft@latest")
-    expect(installDocs).toContain("yarn dlx ingraft@latest")
+    for (const text of [rootReadme, cliReadme, installDocs]) {
+      expect(text).toContain("npx ingraft@latest")
+      expect(text).toContain("npm install -g ingraft")
+    }
+
+    expect(installDocs).toContain("pnpm dlx @ingraft/cli@latest")
+    expect(installDocs).toContain("yarn dlx @ingraft/cli@latest")
     expect(installDocs).toContain("curl -fsSL https://ingraft.dev/install.sh | sh")
     expect(installer).toContain("INGRAFT_INSTALL_METHOD")
     expect(installer).toContain("INGRAFT_VERSION")
+    expect(installer).toContain("@ingraft/cli@")
     expect(installer).toContain("bun add -g")
     expect(installer).toContain("npm install -g")
     expect(installer).toContain("pnpm add -g")

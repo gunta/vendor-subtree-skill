@@ -18,7 +18,7 @@ npx skills add gunta/ingraft
 Prefer the package-managed CLI:
 
 ```sh
-bunx ingraft@latest --help
+bunx @ingraft/cli@latest --help
 ```
 
 If the command is already installed in the project or globally, use:
@@ -31,56 +31,56 @@ Do not run `scripts/vendor.ts` from the repository. The skill intentionally dele
 
 ## Intent Routing
 
-| User intent                                  | Command                                                   |
-| -------------------------------------------- | --------------------------------------------------------- |
-| "open dashboard", "TUI"                      | `bunx ingraft@latest` or `bunx ingraft@latest tui`        |
-| "scan dependencies for context"              | `bunx ingraft@latest deps`                                |
-| "set up repository context"                  | `bunx ingraft@latest init`                                |
-| "add durable source context"                 | `bunx ingraft@latest add <repo>`                          |
-| "add these packages/repos as context"        | `bunx ingraft@latest <package-or-repo> <package-or-repo>` |
-| "show context routes"                        | `bunx ingraft@latest list`                                |
-| "refresh agent docs/tool ignores"            | `bunx ingraft@latest refresh`                             |
-| "check context health"                       | `bunx ingraft@latest doctor`                              |
-| "repair context hygiene drift"               | `bunx ingraft@latest doctor --fix`                        |
-| "detect optional context tools"              | `bunx ingraft@latest context`                             |
-| "pack repository or vendor context for chat" | `bunx ingraft@latest context pack`                        |
-| "fetch dependency source path"               | `bunx ingraft@latest context source <package>`            |
-| "remove durable source context"              | `bunx ingraft@latest remove <name>`                       |
-| "purge vendored source from git history"     | See "Destructive history rewrite" below                   |
+| User intent                                  | Command                                                        |
+| -------------------------------------------- | -------------------------------------------------------------- |
+| "open dashboard", "TUI"                      | `bunx @ingraft/cli@latest` or `bunx @ingraft/cli@latest tui`   |
+| "scan dependencies for context"              | `bunx @ingraft/cli@latest deps`                                |
+| "set up repository context"                  | `bunx @ingraft/cli@latest init`                                |
+| "add durable source context"                 | `bunx @ingraft/cli@latest add <repo>`                          |
+| "add these packages/repos as context"        | `bunx @ingraft/cli@latest <package-or-repo> <package-or-repo>` |
+| "show context routes"                        | `bunx @ingraft/cli@latest list`                                |
+| "refresh agent docs/tool ignores"            | `bunx @ingraft/cli@latest refresh`                             |
+| "check context health"                       | `bunx @ingraft/cli@latest doctor`                              |
+| "repair context hygiene drift"               | `bunx @ingraft/cli@latest doctor --fix`                        |
+| "detect optional context tools"              | `bunx @ingraft/cli@latest context`                             |
+| "pack repository or vendor context for chat" | `bunx @ingraft/cli@latest context pack`                        |
+| "fetch dependency source path"               | `bunx @ingraft/cli@latest context source <package>`            |
+| "remove durable source context"              | `bunx @ingraft/cli@latest remove <name>`                       |
+| "purge vendored source from git history"     | See "Destructive history rewrite" below                        |
 
 ## Common Commands
 
 ```sh
-bunx ingraft@latest
-bunx ingraft@latest tui
-bunx ingraft@latest deps
-bunx ingraft@latest deps --json
-bunx ingraft@latest deps --yes
-bunx ingraft@latest init
-bunx ingraft@latest zod Effect-TS/effect
-bunx ingraft@latest add Effect-TS/effect
-bunx ingraft@latest add zod @types/node Effect-TS/effect
-bunx ingraft@latest add Effect-TS/effect --ref main
-bunx ingraft@latest add Effect-TS/effect --tag v3.21.2
-bunx ingraft@latest add Effect-TS/effect --release latest
-bunx ingraft@latest add Effect-TS/effect --sync-package effect
-bunx ingraft@latest add Effect-TS/effect --exclude-ext png --max-file-size 1MB
-bunx ingraft@latest add Effect-TS/effect --exclude-dir docs --exclude '*.snap'
-bunx ingraft@latest add Effect-TS/effect --strategy subtree
-bunx ingraft@latest add Effect-TS/effect --strategy submodule
-bunx ingraft@latest add Effect-TS/effect --strategy clone-ignore
-bunx ingraft@latest add Effect-TS/effect --strategy cache-link
-bunx ingraft@latest update effect
-bunx ingraft@latest update --all
-bunx ingraft@latest list
-bunx ingraft@latest doctor
-bunx ingraft@latest doctor --fix
-bunx ingraft@latest context
-bunx ingraft@latest context --json
-bunx ingraft@latest context pack vendor/effect --compress
-bunx ingraft@latest context source zod
-bunx ingraft@latest remove effect
-bunx ingraft@latest refresh
+bunx @ingraft/cli@latest
+bunx @ingraft/cli@latest tui
+bunx @ingraft/cli@latest deps
+bunx @ingraft/cli@latest deps --json
+bunx @ingraft/cli@latest deps --yes
+bunx @ingraft/cli@latest init
+bunx @ingraft/cli@latest zod Effect-TS/effect
+bunx @ingraft/cli@latest add Effect-TS/effect
+bunx @ingraft/cli@latest add zod @types/node Effect-TS/effect
+bunx @ingraft/cli@latest add Effect-TS/effect --ref main
+bunx @ingraft/cli@latest add Effect-TS/effect --tag v3.21.2
+bunx @ingraft/cli@latest add Effect-TS/effect --release latest
+bunx @ingraft/cli@latest add Effect-TS/effect --sync-package effect
+bunx @ingraft/cli@latest add Effect-TS/effect --exclude-ext png --max-file-size 1MB
+bunx @ingraft/cli@latest add Effect-TS/effect --exclude-dir docs --exclude '*.snap'
+bunx @ingraft/cli@latest add Effect-TS/effect --strategy subtree
+bunx @ingraft/cli@latest add Effect-TS/effect --strategy submodule
+bunx @ingraft/cli@latest add Effect-TS/effect --strategy clone-ignore
+bunx @ingraft/cli@latest add Effect-TS/effect --strategy cache-link
+bunx @ingraft/cli@latest update effect
+bunx @ingraft/cli@latest update --all
+bunx @ingraft/cli@latest list
+bunx @ingraft/cli@latest doctor
+bunx @ingraft/cli@latest doctor --fix
+bunx @ingraft/cli@latest context
+bunx @ingraft/cli@latest context --json
+bunx @ingraft/cli@latest context pack vendor/effect --compress
+bunx @ingraft/cli@latest context source zod
+bunx @ingraft/cli@latest remove effect
+bunx @ingraft/cli@latest refresh
 ```
 
 ## Behavior Notes
@@ -118,7 +118,7 @@ Work through this checklist before invoking it:
 Run only after every box is checked:
 
 ```sh
-bunx ingraft@latest remove <name> --dangerously-rewrite-history
+bunx @ingraft/cli@latest remove <name> --dangerously-rewrite-history
 ```
 
 If any box is unchecked, stop and clarify with the user before proceeding.
