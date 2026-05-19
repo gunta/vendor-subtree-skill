@@ -4,6 +4,13 @@ All notable changes to ingraft are recorded here.
 
 ## Unreleased
 
+## 0.3.2 - 2026-05-20
+
+### Changed
+
+- Remove an unused CLI runtime dependency so npm/npx installs resolve faster and avoid
+  unrelated peer-dependency warnings.
+
 ## 0.3.1 - 2026-05-20
 
 ### Changed

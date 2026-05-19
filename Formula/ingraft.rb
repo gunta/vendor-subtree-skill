@@ -1,8 +1,8 @@
 class Ingraft < Formula
   desc "Route repository context into coding-agent workflows"
   homepage "https://ingraft.dev"
-  url "https://registry.npmjs.org/@ingraft/cli/-/cli-0.3.1.tgz"
-  sha256 "8261d42fc32d5ea534ec1718fd34732a0a4c437bafa6b7d1c42e9cc535f85f9c"
+  url "https://registry.npmjs.org/@ingraft/cli/-/cli-0.3.2.tgz"
+  sha256 "82f12c0c608ef257b600d44a92a2e419d497d2b4499b2d4fa148f5f676fa23fe"
   license "MIT"
   preserve_rpath
 

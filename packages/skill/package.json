@@ -1,6 +1,6 @@
 {
   "name": "@ingraft/skill",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Agent skill wrapper for the ingraft repository-context CLI.",
   "keywords": [
     "agent-skill",

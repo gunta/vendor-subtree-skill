@@ -34,5 +34,5 @@ export const AGENT_DOC_RULE_DIRECTORIES = [
   { name: "Kilo Code rules", path: ".kilocode/rules", suffixes: [".md"] }
 ] as const
 export const AGENT_DOCS = AGENT_DOC_FILES.map((spec) => spec.path)
-export const VERSION = "0.3.1"
+export const VERSION = "0.3.2"
 export const FALLBACK_SCRIPT_REL = "packages/cli/scripts/vendor.ts"

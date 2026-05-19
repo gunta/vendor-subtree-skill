@@ -1,6 +1,6 @@
 {
   "name": "@ingraft/cli",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "Route repository context into coding-agent workflows.",
   "keywords": [
     "cli",
@@ -44,7 +44,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "tsc -p tsconfig.build.json && mkdir -p dist/src/aliases && cp src/aliases/repository-aliases.json dist/src/aliases/repository-aliases.json && chmod +x dist/bin/ingraft.js",
+    "build": "rm -rf dist ../../.tsbuildinfo/packages-cli-build.tsbuildinfo && tsc -p tsconfig.build.json && mkdir -p dist/src/aliases && cp src/aliases/repository-aliases.json dist/src/aliases/repository-aliases.json && chmod +x dist/bin/ingraft.js",
     "check": "bun run lint && bun run format:check && bun run typecheck && bun run check:idioms && bun run test",
     "check:idioms": "bun scripts/check-v4-idioms.ts",
     "dev": "bun scripts/vendor.ts",
@@ -64,7 +64,6 @@
     "@iarna/toml": "2.2.5",
     "@opentui/core": "^0.2.8",
     "@xmldom/xmldom": "0.9.10",
-    "alchemy": "2.0.0-beta.37",
     "effect": ">=4.0.0-beta.60 || >=4.0.0",
     "ink": "^7.0.2",
     "ioredis": "^5.10.1",

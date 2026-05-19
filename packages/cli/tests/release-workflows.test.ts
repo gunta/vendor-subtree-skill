@@ -436,8 +436,8 @@ describe("release automation workflows", () => {
     try {
       expect(result.exitCode).toBe(0)
       const notes = await Bun.file(outputPath).text()
-      expect(notes).toContain("### Added")
-      expect(notes).toContain("### Changed")
+      expect(notes).toContain("### ")
+      expect(notes).not.toContain("## Unreleased")
     } finally {
       await rm(outputPath, { force: true })
     }
