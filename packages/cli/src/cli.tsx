@@ -14,6 +14,7 @@ import { addCmd, addManyImpl } from "./commands/add.tsx"
 import { contextCmd } from "./commands/context.tsx"
 import { depsCmd } from "./commands/deps.tsx"
 import { doctorCmd } from "./commands/doctor.tsx"
+import { forkCmd } from "./commands/fork.tsx"
 import { initCmd } from "./commands/init.tsx"
 import { listCmd } from "./commands/list.tsx"
 import { refreshCmd } from "./commands/refresh.tsx"
@@ -73,6 +74,7 @@ export const vendorCommand = Command.make("ingraft", { targets: rootTargetsArg }
     depsCmd,
     addCmd,
     addOrgCmd,
+    forkCmd,
     updateCmd,
     removeCmd,
     listCmd,
@@ -117,7 +119,6 @@ const app = Effect.gen(function* () {
     SubtreeAddFailed: handleVendorError,
     UnsupportedVendorFilter: handleVendorError,
     UpdateFailed: handleVendorError,
-    UpdateTargetMissing: handleVendorError,
     VendorPathAlreadyExists: handleVendorError,
     VendorStrategyCommandFailed: handleVendorError,
     VendoredRepoAlreadyExists: handleVendorError,
@@ -144,7 +145,8 @@ const app = Effect.gen(function* () {
     GitHubCliMissing: handleVendorError,
     GitHubCliUnauthenticated: handleVendorError,
     GitHubOrgNotFound: handleVendorError,
-    OrgFilterParseFailed: handleVendorError
+    OrgFilterParseFailed: handleVendorError,
+    ForkWorkspaceFailed: handleVendorError
   })
 )
 

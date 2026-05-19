@@ -1,5 +1,8 @@
 import { Effect, Option, Stream, SubscriptionRef } from "effect"
 
+import { LiveLayer } from "../app/layers.ts"
+import { GitMetadataLive } from "../services/git-metadata.ts"
+import { GitHubSearch } from "../services/github-search.ts"
 import { emptySnapshot, readSnapshotStream, runCommandPlanEffect } from "./cli-adapter.ts"
 import {
   commandPlanForSelection,
@@ -54,6 +57,68 @@ const refreshSnapshot = (stateRef: SubscriptionRef.SubscriptionRef<DashboardStat
       Effect.forkChild
     )
   })
+
+const shouldRefreshSuggestions = (action: DashboardAction): boolean =>
+  action._tag === "SetAddInput" || action._tag === "SetSearch"
+
+const refreshSuggestions = (
+  stateRef: SubscriptionRef.SubscriptionRef<DashboardState>,
+  query: string
+) =>
+  Effect.gen(function* () {
+    const trimmed = query.trim()
+    if (trimmed.length < 2) {
+      yield* SubscriptionRef.update(stateRef, (state) =>
+        dispatchDashboard(
+          state,
+          DashboardAction.SetSuggestions({
+            message: "Type two or more characters for GitHub autocomplete.",
+            query,
+            suggestions: []
+          })
+        )
+      )
+      return
+    }
+    yield* SubscriptionRef.update(stateRef, (state) =>
+      dispatchDashboard(state, DashboardAction.SetSuggestionsLoading({ query }))
+    )
+    const result = yield* Effect.gen(function* () {
+      const search = yield* GitHubSearch
+      return yield* search.suggestions({ limit: 5, query: trimmed })
+    }).pipe(
+      Effect.provide(LiveLayer),
+      Effect.provide(GitMetadataLive),
+      Effect.match({
+        onFailure: () => ({ _tag: "failure" as const }),
+        onSuccess: (suggestions) => ({ _tag: "success" as const, suggestions })
+      })
+    )
+    yield* SubscriptionRef.update(stateRef, (state) => {
+      if (state.addInput !== query) return state
+      if (result._tag === "failure") {
+        return dispatchDashboard(
+          state,
+          DashboardAction.SetSuggestions({
+            message: "GitHub autocomplete unavailable; check gh auth or connectivity.",
+            query,
+            suggestions: []
+          })
+        )
+      }
+      return dispatchDashboard(
+        state,
+        DashboardAction.SetSuggestions({
+          message:
+            result.suggestions.length === 0
+              ? "No GitHub autocomplete suggestions."
+              : `${result.suggestions.length} GitHub suggestion(s).`,
+          query,
+          suggestions: result.suggestions
+        })
+      )
+    })
+  }).pipe(Effect.forkChild)
 
 const runSelected = (stateRef: SubscriptionRef.SubscriptionRef<DashboardState>) =>
   Effect.gen(function* () {
@@ -115,6 +180,10 @@ export const runTuiApp = Effect.gen(function* () {
             return false
           case "Dispatch":
             yield* SubscriptionRef.update(stateRef, (s) => dispatchDashboard(s, keyAction.action))
+            if (shouldRefreshSuggestions(keyAction.action)) {
+              const updated = yield* SubscriptionRef.get(stateRef)
+              yield* refreshSuggestions(stateRef, updated.addInput)
+            }
             return false
         }
       })

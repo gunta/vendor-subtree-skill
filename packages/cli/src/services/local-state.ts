@@ -24,6 +24,7 @@ const OrgRepositorySchema = Schema.Struct({
   isFork: Schema.Boolean,
   visibility: Schema.String,
   description: Schema.NullOr(Schema.String),
+  stars: Schema.Number,
   url: NonEmptyString
 })
 

@@ -1,6 +1,7 @@
 import { Effect, Option } from "effect"
 
 import { addImpl, type AddCommandParams } from "../../commands/add.tsx"
+import { sortOrgRepos } from "../../domain/org-sort.ts"
 import type { OrgRepository } from "../../services/local-state.ts"
 import { AddOrgAction, type AddOrgState } from "./state.ts"
 
@@ -50,7 +51,9 @@ export const addOrgRepoParams = ({
 
 export const runSelected = ({ state, dispatch, options }: RunSelectedParams) =>
   Effect.gen(function* () {
-    const selected = state.repos.filter((repo) => state.selected.has(idOf(repo)))
+    const selected = sortOrgRepos(state.repos, state.sort).filter((repo) =>
+      state.selected.has(idOf(repo))
+    )
     dispatch(AddOrgAction.StartRun())
     yield* Effect.forEach(
       selected,

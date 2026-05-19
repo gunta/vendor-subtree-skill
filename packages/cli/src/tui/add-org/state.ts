@@ -1,6 +1,7 @@
 import { Data } from "effect"
 
 import { filterOrgRepos, type OrgFilter } from "../../domain/org-filter.ts"
+import { sortOrgRepos, type OrgRepoSort } from "../../domain/org-sort.ts"
 import type { VendoredRepo } from "../../domain/vendor-state.ts"
 import type { VendorStrategy } from "../../domain/vendor-strategy.ts"
 import type { OrgRepository } from "../../services/local-state.ts"
@@ -19,6 +20,8 @@ export interface AddOrgState {
   readonly vendored: ReadonlySet<string>
   readonly strategy: VendorStrategy
   readonly concurrency: number
+  readonly sort: OrgRepoSort
+  readonly searchActive: boolean
   readonly runProgress: ReadonlyMap<string, RunStatus>
   readonly logLines: ReadonlyArray<string>
 }
@@ -37,6 +40,8 @@ export type AddOrgAction = Data.TaggedEnum<{
   ToggleArchived: {}
   ToggleForks: {}
   SetSearch: { readonly value: string }
+  SetSearchActive: { readonly active: boolean }
+  SetSort: { readonly value: OrgRepoSort }
   SetStrategy: { readonly value: VendorStrategy }
   SetConcurrency: { readonly value: number }
   Confirm: {}
@@ -82,6 +87,7 @@ export const createAddOrgState = (input: {
   readonly filters?: OrgFilter
   readonly strategy?: VendorStrategy
   readonly concurrency?: number
+  readonly sort?: OrgRepoSort
 }): AddOrgState => ({
   owner: input.owner,
   mode: "browsing",
@@ -92,12 +98,14 @@ export const createAddOrgState = (input: {
   vendored: input.vendored,
   strategy: input.strategy ?? "clone-ignore",
   concurrency: input.concurrency ?? 8,
+  sort: input.sort ?? "stars",
+  searchActive: false,
   runProgress: new Map(),
   logLines: []
 })
 
 export const filteredRepos = (state: AddOrgState): ReadonlyArray<OrgRepository> =>
-  filterOrgRepos(state.repos, state.filters)
+  sortOrgRepos(filterOrgRepos(state.repos, state.filters), state.sort)
 
 const hasSelection = (state: AddOrgState): boolean => state.selected.size > 0
 
@@ -130,6 +138,8 @@ const canDispatchAddOrg = (state: AddOrgState, action: AddOrgAction): boolean =>
         case "ToggleArchived":
         case "ToggleForks":
         case "SetSearch":
+        case "SetSearchActive":
+        case "SetSort":
         case "SetStrategy":
         case "SetConcurrency":
         case "Cancel":
@@ -218,6 +228,10 @@ export const dispatchAddOrg = (state: AddOrgState, action: AddOrgAction): AddOrg
       })
     case "SetSearch":
       return withFilters(state, { ...state.filters, search: action.value })
+    case "SetSearchActive":
+      return { ...state, searchActive: action.active }
+    case "SetSort":
+      return { ...state, sort: action.value, focusedIndex: 0 }
     case "SetStrategy":
       return { ...state, strategy: action.value }
     case "SetConcurrency":

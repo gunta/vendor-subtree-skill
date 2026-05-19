@@ -15,6 +15,7 @@ const repo = (overrides: Partial<OrgRepository>): OrgRepository => ({
   isFork: false,
   visibility: "public",
   description: null,
+  stars: 0,
   url: "https://github.com/gunta/demo.git",
   ...overrides
 })

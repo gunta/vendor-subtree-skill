@@ -17,6 +17,21 @@ describe("add target parsing", () => {
     })
   })
 
+  test("keeps branch selectors from repository inputs", () => {
+    expect(classifyAddTarget("https://github.com/gunta/confect/tree/effect4")).toEqual({
+      _tag: "RepositoryTarget",
+      input: "https://github.com/gunta/confect/tree/effect4",
+      ref: "effect4",
+      url: "https://github.com/gunta/confect.git"
+    })
+    expect(classifyAddTarget("gunta/confect@effect4")).toEqual({
+      _tag: "RepositoryTarget",
+      input: "gunta/confect@effect4",
+      ref: "effect4",
+      url: "https://github.com/gunta/confect.git"
+    })
+  })
+
   test("treats npm package names as package targets", () => {
     expect(classifyAddTarget("zod")).toEqual({
       _tag: "PackageTarget",
@@ -89,6 +104,12 @@ describe("default vendor prefix shape", () => {
   test("https github URL resolves to vendor/<owner>/<name>", () => {
     const repo = hostedRepoFromInput("https://github.com/Effect-TS/effect.git")
     expect(repo?.nameWithOwner).toBe("Effect-TS/effect")
+  })
+
+  test("github branch URLs resolve to the repository name, not the branch name", () => {
+    const repo = hostedRepoFromInput("https://github.com/gunta/confect/tree/effect4")
+    expect(repo?.nameWithOwner).toBe("gunta/confect")
+    expect(repo?.name).toBe("confect")
   })
 
   test("ssh github URL resolves to vendor/<owner>/<name>", () => {

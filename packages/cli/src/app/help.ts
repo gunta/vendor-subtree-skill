@@ -19,6 +19,16 @@ const commands: readonly SubcommandEntry[] = [
     description: "Add durable source context from repositories, aliases, or packages."
   },
   {
+    name: "add-org",
+    args: "<owner>",
+    description: "Discover and vendor repositories from a GitHub organization or user."
+  },
+  {
+    name: "fork",
+    args: "<upstream>",
+    description: "Create an editable fork checkout plus read-only vendor projection."
+  },
+  {
     name: "update",
     args: "[<name>]",
     description: "Pull upstream changes for one or all durable source routes."

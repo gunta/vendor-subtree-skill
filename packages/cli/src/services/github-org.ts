@@ -1,8 +1,11 @@
 import { Context, Effect, Layer } from "effect"
 
 import { GitHubCliMissing, GitHubCliUnauthenticated, GitHubOrgNotFound } from "../domain/errors.ts"
+import { sortOrgReposByStars } from "../domain/org-sort.ts"
 import { GitHubCli } from "./gh.ts"
 import type { OrgRepository } from "./local-state.ts"
+
+export { sortOrgReposByStars } from "../domain/org-sort.ts"
 
 interface RawRepo {
   readonly name: string
@@ -14,6 +17,7 @@ interface RawRepo {
   readonly isFork: boolean
   readonly visibility: string
   readonly description: string | null
+  readonly stargazerCount: number
   readonly url: string
 }
 
@@ -27,6 +31,7 @@ const FIELDS = [
   "isFork",
   "visibility",
   "description",
+  "stargazerCount",
   "url"
 ].join(",")
 
@@ -51,6 +56,7 @@ const parseRawRepo = (raw: RawRepo): OrgRepository => ({
   isFork: raw.isFork,
   visibility: raw.visibility.toLowerCase(),
   description: raw.description,
+  stars: raw.stargazerCount,
   url: normalizeUrl(raw.url)
 })
 
@@ -73,7 +79,7 @@ export const listOrgRepos = ({ owner }: { readonly owner: string }) =>
     if (parsed.length === 0) {
       return yield* Effect.fail(new GitHubOrgNotFound({ owner }))
     }
-    return parsed.map(parseRawRepo)
+    return sortOrgReposByStars(parsed.map(parseRawRepo))
   })
 
 export interface GitHubOrgShape {

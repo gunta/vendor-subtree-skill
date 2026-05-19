@@ -7,16 +7,18 @@ import { join } from "node:path"
 import { Effect, Option } from "effect"
 
 import { LiveLayer } from "../src/app/layers.ts"
-import { addOrgImpl } from "../src/commands/add-org.tsx"
+import { addOrgImpl, createInitialAddOrgTuiState } from "../src/commands/add-org.tsx"
 import { listVendored } from "../src/domain/vendor-state.ts"
 import { GitHubCli } from "../src/services/gh.ts"
 import { GitMetadataLive } from "../src/services/git-metadata.ts"
+import { AddOrgAction, dispatchAddOrg, filteredRepos } from "../src/tui/add-org/state.ts"
 
 const buildOrgRepo = (overrides: {
   readonly name?: string
   readonly url?: string
   readonly isArchived?: boolean
   readonly isFork?: boolean
+  readonly stargazerCount?: number
 }) => ({
   name: overrides.name ?? "alpha",
   owner: { login: "gunta" },
@@ -27,6 +29,7 @@ const buildOrgRepo = (overrides: {
   isFork: overrides.isFork ?? false,
   visibility: "PUBLIC",
   description: null,
+  stargazerCount: overrides.stargazerCount ?? 0,
   url: overrides.url ?? "https://github.com/gunta/alpha"
 })
 
@@ -58,6 +61,46 @@ const initProject = (): string => {
 const originalCwd = process.cwd()
 
 describe("add-org non-interactive", () => {
+  test("keeps the full repo list in the TUI so filters can be relaxed", () => {
+    const repos = [
+      buildOrgRepo({ name: "active" }),
+      buildOrgRepo({ name: "forked", isFork: true })
+    ].map((repo) => ({
+      name: repo.name,
+      owner: repo.owner.login,
+      defaultBranch: repo.defaultBranchRef.name,
+      pushedAt: repo.pushedAt,
+      primaryLanguage: repo.primaryLanguage.name,
+      isArchived: repo.isArchived,
+      isFork: repo.isFork,
+      visibility: repo.visibility.toLowerCase(),
+      description: repo.description,
+      stars: repo.stargazerCount,
+      url: repo.url
+    }))
+
+    const state = createInitialAddOrgTuiState({
+      owner: "gunta",
+      repos,
+      vendored: new Set(),
+      filters: {
+        language: [],
+        since: null,
+        excludeArchived: true,
+        excludeForks: true,
+        visibility: "all",
+        search: ""
+      },
+      strategy: "clone-ignore",
+      concurrency: 8
+    })
+
+    expect(filteredRepos(state).map((repo) => repo.name)).toEqual(["active"])
+
+    const relaxed = dispatchAddOrg(state, AddOrgAction.ToggleForks())
+    expect(filteredRepos(relaxed).map((repo) => repo.name)).toEqual(["active", "forked"])
+  })
+
   test("clones every filtered repo and registers them in vendor-state", async () => {
     const upstream = initUpstreamRepo()
     const project = initProject()

@@ -5,6 +5,7 @@ import {
   commandPreviewLines,
   dashboardTabs,
   vendorStrategies,
+  visibleSuggestionRows,
   visibleCandidateRows,
   visibleRepositoryRows,
   visibleTaskRows,
@@ -60,6 +61,7 @@ const compactSummary = (snapshot: VendorTuiSnapshot): string => {
 }
 
 const selectedLabel = (state: DashboardState): string => {
+  if (state.addInput.trim().length > 0) return "add input"
   const selected = state.selectedTaskIndexes.length
   if (selected > 0) return `${selected} selected`
   return state.snapshot.tasks.length === 0 ? "no tasks" : "focused task"
@@ -85,17 +87,23 @@ const activePaneLines = (state: DashboardState): ReadonlyArray<string> => {
     case "activity":
       return state.logLines.length === 0 ? ["No activity yet."] : state.logLines
     case "dependencies":
-      return visibleCandidateRows(state.snapshot)
+      return visibleCandidateRows(state.snapshot, state.searchQuery)
     case "repositories":
-      return visibleRepositoryRows(state.snapshot)
+      return visibleRepositoryRows(state.snapshot, state.searchQuery)
     case "help":
       return [
         "j/down, k/up       move task focus",
         "space              toggle focused task",
         "a                  select all tasks",
         "c                  clear selection",
-        "enter              confirm selected/focused run",
+        "type               search tasks; if no task matches, add that target",
+        "+, i, /            focus the input from shortcut mode",
+        "enter              confirm focused match or add input target",
+        "tab                accept highlighted GitHub autocomplete",
+        "up/down            choose autocomplete while typing",
         "y / n              confirm or cancel run",
+        "backspace, ctrl-u  edit input while typing",
+        "esc                leave input for shortcut mode",
         "r                  refresh dependency scan",
         "tab, h, l          switch tabs",
         "1, 2, 3, 4         add strategy: subtree, submodule, clone-ignore, cache-link",
@@ -137,6 +145,14 @@ const commandPaneLines = (state: DashboardState): ReadonlyArray<string> => {
     : [`${selectedLabel(state)} will run:`, ...preview, "", "Press enter to confirm."]
 }
 
+const suggestionPaneLines = (state: DashboardState): ReadonlyArray<string> => {
+  if (state.inputMode !== "add" && state.inputMode !== "search") return []
+  if (state.addInput.trim().length < 2) return []
+  const rows = visibleSuggestionRows(state)
+  if (rows.length === 0) return [`GitHub autocomplete: ${state.suggestionsStatus}`]
+  return ["GitHub autocomplete:", ...rows, "", "Tab accepts; up/down changes highlight."]
+}
+
 const truncateLine = (line: string, width: number): string =>
   line.length <= width ? line : `${line.slice(0, Math.max(0, width - 1))}~`
 
@@ -160,6 +176,14 @@ const renderDashboardSync = (state: DashboardState, viewport: Viewport): Rendera
   const leftTextWidth = Math.max(20, leftWidth - 4)
   const rightTextWidth = Math.max(20, rightWidth - 4)
   const bodyTextHeight = Math.max(1, bodyHeight - 4)
+  const inputActive = state.inputMode === "add" || state.inputMode === "search"
+  const inputValue =
+    state.addInput.length > 0
+      ? state.addInput
+      : inputActive
+        ? "type to search/add"
+        : "press /, +, or i"
+  const inputBox = `input ${inputActive ? ">" : "="} ${inputValue}${inputActive ? "_" : ""}`
 
   return Box(
     {
@@ -237,7 +261,13 @@ const renderDashboardSync = (state: DashboardState, viewport: Viewport): Rendera
         },
         Text({
           content: textBlock(
-            [...focusedTaskDetails(state), "", ...commandPaneLines(state)],
+            [
+              ...focusedTaskDetails(state),
+              "",
+              ...suggestionPaneLines(state),
+              "",
+              ...commandPaneLines(state)
+            ],
             bodyTextHeight,
             rightTextWidth
           ),
@@ -257,7 +287,7 @@ const renderDashboardSync = (state: DashboardState, viewport: Viewport): Rendera
       },
       Text({
         content: truncateLine(
-          `${state.statusMessage}  |  q quit  r refresh  ? help`,
+          `${inputBox}  |  ${state.statusMessage}  |  q quit  r refresh  ? help`,
           contentWidth - 4
         ),
         fg: state.mode === "running" ? colors.warning : colors.muted,

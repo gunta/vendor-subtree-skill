@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test"
 import { execSync } from "node:child_process"
-import { existsSync, readFileSync } from "node:fs"
+import { existsSync, readFileSync, writeFileSync } from "node:fs"
 import { join } from "node:path"
 
 import { Effect, Option } from "effect"
@@ -18,6 +18,37 @@ import {
 const originalCwd = process.cwd()
 
 describe("add --local-only (clone-ignore)", () => {
+  test("uses an embedded repository ref selector when adding a target", async () => {
+    const cwd = initLocalRepo()
+    const upstream = initBareUpstream()
+    const upstreamPath = upstream.slice("file://".length)
+    execSync("git checkout -b effect4 -q", { cwd: upstreamPath })
+    writeFileSync(join(upstreamPath, "README.md"), "effect branch\n")
+    execSync("git add README.md && git commit -m effect-branch -q", { cwd: upstreamPath })
+    execSync("git checkout main -q", { cwd: upstreamPath })
+
+    process.chdir(cwd)
+    try {
+      await Effect.runPromise(
+        addImpl(
+          defaultAddParams({
+            repo: `${upstream}@effect4`,
+            name: Option.some("upstream"),
+            strategy: "clone-ignore",
+            localOnly: true,
+            prefix: Option.some("vendor/upstream")
+          })
+        ).pipe(Effect.provide(LiveLayer), Effect.provide(GitMetadataLive))
+      )
+    } finally {
+      process.chdir(originalCwd)
+    }
+
+    expect(readFileSync(join(cwd, "vendor", "upstream", "README.md"), "utf-8")).toBe(
+      "effect branch\n"
+    )
+  })
+
   test("writes .git/info/exclude, state.json, and produces zero new commits", async () => {
     const cwd = initLocalRepo()
     const upstream = initBareUpstream()

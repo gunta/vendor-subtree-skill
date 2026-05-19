@@ -51,6 +51,8 @@ ingraft add react:react expo:expo react-native:react-native
 ingraft add swift:apple/swift-argument-parser
 ingraft add android:com.squareup.okhttp3:okhttp
 ingraft add Effect-TS/effect --ref main
+ingraft add https://github.com/gunta/confect/tree/effect4
+ingraft add gunta/confect@effect4
 ingraft add Effect-TS/effect --tag v3.21.2
 ingraft add Effect-TS/effect --release latest
 ingraft add Effect-TS/effect --sync-package effect
@@ -70,11 +72,16 @@ ingraft add-org gunta
 ingraft add-org gunta --yes
 ingraft add-org gunta --language typescript,svelte --since 90d
 ingraft add-org gunta --include-archived --include-forks
+ingraft add-org gunta --sort name
 ingraft add-org gunta --strategy clone-ignore --concurrency 8
 ingraft add-org gunta --dry-run
 ingraft add-org gunta --refresh
+ingraft fork Effect-TS/effect
+ingraft fork Effect-TS/effect --owner your-org
+ingraft fork Effect-TS/effect --checkout-root ../forked
+ingraft fork status
+ingraft update
 ingraft update effect
-ingraft update --all
 ingraft list
 ingraft list --json
 ingraft doctor
@@ -130,10 +137,13 @@ or `swift:<url>` for Swift Package sources, and
 `ingraft add-org <owner>` discovers every repository under a GitHub
 organization or user account, lets you filter and select them interactively
 in a TUI, and clones the selected repos in parallel under
-`vendor/<owner>/<repo>`.
+`vendor/<owner>/<repo>`. Repositories are ordered by GitHub stars descending
+by default, so the largest projects are easiest to review first. Use
+`--sort name` for alphabetical order or `--sort pushed` for recently updated
+repositories first.
 
 Filters can be applied as CLI flags (`--language`, `--since`, `--visibility`,
-`--include-archived`, `--include-forks`) or interactively in the TUI. The
+`--include-archived`, `--include-forks`, `--sort`) or interactively in the TUI. The
 default strategy for org-wide adds is `clone-ignore` so a hundred-repo org
 doesn't bloat the host repository's history. Pass `--yes` (or run from a
 non-TTY environment) to skip the TUI.
@@ -141,6 +151,49 @@ non-TTY environment) to skip the TUI.
 `add-org` uses the same `gh` CLI dependency as `add`. The first call for
 each owner caches the repository list for one hour under `.ingraft/state/`;
 pass `--refresh` to bypass the cache.
+
+## Fork Workspaces
+
+`ingraft fork <upstream>` is the editable-source workflow. It keeps the normal
+`vendor/` contract intact: vendored paths remain read-only reference material
+for agents and language tooling, while actual edits happen in a sibling
+checkout that belongs to your GitHub fork.
+
+```sh
+ingraft fork Effect-TS/effect
+```
+
+By default, the command:
+
+1. Reads the authenticated GitHub user from `gh`.
+2. Creates or reuses `github.com/<you>/effect`.
+3. Clones or reuses an editable checkout at `../forked/Effect-TS/effect`
+   (`<GitHub workspace>/forked/Effect-TS/effect` when the host project lives
+   under a `GitHub/` directory).
+4. Sets `origin` to your fork and `upstream` to the source repository.
+5. Registers `vendor/Effect-TS/effect` as a read-only `cache-link --local-only`
+   projection of the fork remote.
+6. Records the relationship in `.git/ingraft/forks.json` for
+   `ingraft fork status`.
+
+Use `--owner <user-or-org>` when the fork should live under a specific GitHub
+organization. Use `--checkout-root <path>` when your local fork workspace is
+somewhere other than the default sibling `forked/` directory. Use `--name` or
+`--prefix` only when the default route name or vendor path would collide.
+
+The practical workflow is:
+
+```sh
+ingraft fork Effect-TS/effect
+cd ../forked/Effect-TS/effect
+# edit, commit, push, and open upstream PRs from the fork checkout
+cd -
+ingraft update effect
+```
+
+`ingraft update` refreshes the read-only vendor projection from the fork remote
+after your fork branch has been pushed. Local unpushed edits stay in the sibling
+checkout and are intentionally not reflected under `vendor/`.
 
 ## Local Configuration
 
@@ -190,15 +243,17 @@ When a collocated `jj` repository is detected, `add` falls back to `clone-ignore
 
 ### Editable source routes
 
-If you expect to modify upstream source, use a fork-backed submodule. Fork the upstream repository, create a branch for your patches, and add the fork with `--strategy submodule --ref <branch>`:
+Prefer `ingraft fork <upstream>` when you expect to modify upstream source. It
+keeps edits in a normal sibling fork checkout and keeps `vendor/` as read-only
+agent context. A fork-backed `submodule` is still useful when the parent
+repository must commit an editable gitlink, but it is no longer the default
+recommendation for agent-facing context.
 
-```sh
-ingraft add your-org/effect --strategy submodule --ref vendor-patches
-```
-
-Make changes inside `vendor/<name>/`, commit and push them inside the submodule, then commit the updated submodule pointer in the parent repository. This keeps source patch history in the fork, makes upstream pull requests straightforward, and avoids mixing ongoing upstream development into the host repository history.
-
-Use `subtree` for editable source only when the patch is intentionally private to the host project and every clone must include the patched files without submodule initialization. Use `clone-ignore` only for local experiments that do not need team-visible commits, and `cache-link` for shared read-only local references.
+Use `subtree` for editable source only when the patch is intentionally private
+to the host project and every clone must include the patched files without an
+external checkout. Use `clone-ignore` only for local experiments that do not
+need team-visible commits, and `cache-link` for shared read-only local
+references.
 
 ## Dangerous History Rewrites
 
@@ -216,11 +271,16 @@ By default, the CLI resolves the host's default branch. You can pin a branch/ref
 
 ```sh
 ingraft add org/repo --ref main
+ingraft add https://github.com/org/repo/tree/feature-branch
+ingraft add org/repo@feature-branch
 ingraft add org/repo --tag v1.2.3
 ingraft add org/repo --release latest
 ingraft add org/repo --release v1.2.3
 ingraft add org/repo --sync-package package-name
 ```
+
+Pasted hosted branch URLs and `owner/repo@branch` shorthand are treated like
+`--ref` when no explicit version selector flag is passed.
 
 Package sync reads project package manifests, detects the exact package version in the same order as source-reference tools such as opensrc (`node_modules/<package>/package.json`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, `bun.lock`, then the manifest range), and maps that installed version to npm `gitHead` metadata or common upstream tag formats. React, Expo, and React Native dependencies stay npm-backed while preserving ecosystem-specific sync selectors. For Elixir projects, `mix.exs` dependencies and `mix.lock` versions resolve through Hex metadata and common upstream tag formats. Swift packages read direct `Package.swift` source URLs. Android dependencies read Gradle coordinates and version catalogs, then use Maven POM SCM metadata to find upstream repositories and tags.
 

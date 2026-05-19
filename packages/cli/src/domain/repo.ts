@@ -27,16 +27,13 @@ export interface HostedRepository {
   readonly nameWithOwner?: string
 }
 
+export interface RepositoryTargetInput {
+  readonly ref: Option.Option<string>
+  readonly url: string
+}
+
 const GITHUB_REPO_PART = "[A-Za-z0-9_.-]+"
 const GITHUB_SHORTHAND = new RegExp(`^(${GITHUB_REPO_PART})\\/(${GITHUB_REPO_PART})$`)
-
-export const normalizeRepoUrl = (input: string): string => {
-  const trimmed = input.trim()
-  if (GITHUB_SHORTHAND.test(trimmed)) {
-    return `https://github.com/${trimmed}.git`
-  }
-  return trimmed
-}
 
 const githubRepo = (owner: string, name: string): GitHubRepository => ({
   owner,
@@ -61,6 +58,52 @@ const hostKind = (host: string): RepositoryHostKind => {
   if (normalized.includes("forgejo")) return "forgejo"
   if (normalized === "gitea.com" || normalized.includes("gitea")) return "gitea"
   return "generic"
+}
+
+const decodePathRef = (value: string): string => {
+  try {
+    return decodeURIComponent(value)
+  } catch {
+    return value
+  }
+}
+
+interface HostedPathRoute {
+  readonly path: string
+  readonly ref?: string
+}
+
+const splitHostedPathRoute = (host: string, path: string): HostedPathRoute => {
+  const normalizedPath = path.replace(/^\/+|\/+$/g, "").replace(/\.git$/, "")
+  const parts = normalizedPath.split("/").filter((part) => part.length > 0)
+  const kind = hostKind(host)
+
+  if (kind === "github" && parts.length >= 4 && parts[2] === "tree") {
+    return {
+      path: parts.slice(0, 2).join("/"),
+      ref: decodePathRef(parts.slice(3).join("/"))
+    }
+  }
+
+  if (kind === "gitlab") {
+    const marker = parts.findIndex((part, index) => index >= 2 && part === "-")
+    if (marker !== -1 && parts[marker + 1] === "tree" && parts.length > marker + 2) {
+      return {
+        path: parts.slice(0, marker).join("/"),
+        ref: decodePathRef(parts.slice(marker + 2).join("/"))
+      }
+    }
+  }
+
+  return { path: normalizedPath }
+}
+
+const cloneUrlFromHostedRoute = (input: string, path: string): string => {
+  const cloneUrl = new URL(input)
+  cloneUrl.pathname = `/${path.replace(/\.git$/, "")}.git`
+  cloneUrl.search = ""
+  cloneUrl.hash = ""
+  return cloneUrl.toString()
 }
 
 const hostedRepo = ({
@@ -89,38 +132,107 @@ const hostedRepo = ({
   return parts[0] && parts[1] ? { ...base, nameWithOwner: `${parts[0]}/${parts[1]}` } : base
 }
 
-export const hostedRepoFromInput = (input: string): HostedRepository | null => {
-  const trimmed = input.trim()
+interface ParsedHostedRepoInput {
+  readonly cloneUrl: string
+  readonly ref: Option.Option<string>
+  readonly repo: HostedRepository
+}
+
+const parsedHostedRepoInput = (trimmed: string): ParsedHostedRepoInput | null => {
   const shorthand = trimmed.match(GITHUB_SHORTHAND)
   if (shorthand?.[1] && shorthand[2]) {
-    return hostedRepo({
+    const repo = hostedRepo({
       cloneSpec: `${shorthand[1]}/${repoNameWithoutGit(shorthand[2])}`,
       host: "github.com",
       path: `${shorthand[1]}/${repoNameWithoutGit(shorthand[2])}`
     })
+    return repo === null
+      ? null
+      : {
+          cloneUrl: `https://github.com/${repo.path}.git`,
+          ref: Option.none(),
+          repo
+        }
   }
 
   const scpLike = trimmed.match(/^git@([^:]+):(.+)$/)
   if (scpLike?.[1] && scpLike[2]) {
-    return hostedRepo({
+    const repo = hostedRepo({
       cloneSpec: trimmed,
       host: scpLike[1],
       path: scpLike[2]
     })
+    return repo === null
+      ? null
+      : {
+          cloneUrl: trimmed,
+          ref: Option.none(),
+          repo
+        }
   }
 
   return Option.liftThrowable((value: string) => new URL(value))(trimmed).pipe(
-    Option.flatMap((url) =>
-      Option.fromNullishOr(
+    Option.flatMap((url) => {
+      const route = splitHostedPathRoute(url.hostname, url.pathname)
+      const cloneSpec =
+        route.ref === undefined ? trimmed : cloneUrlFromHostedRoute(trimmed, route.path)
+      return Option.fromNullishOr(
         hostedRepo({
-          cloneSpec: trimmed,
+          cloneSpec,
           host: url.hostname,
-          path: url.pathname
+          path: route.path
         })
+      ).pipe(
+        Option.map((repo) => ({
+          cloneUrl: cloneSpec,
+          ref: Option.fromNullishOr(route.ref),
+          repo
+        }))
       )
-    ),
+    }),
     Option.getOrNull
   )
+}
+
+const splitExplicitRefSuffix = (
+  input: string
+): { readonly input: string; readonly ref: Option.Option<string> } => {
+  const at = input.lastIndexOf("@")
+  if (at <= 0 || at === input.length - 1) {
+    return { input, ref: Option.none() }
+  }
+
+  const candidateInput = input.slice(0, at)
+  const candidateRef = input.slice(at + 1).trim()
+  if (candidateRef.length === 0 || parsedHostedRepoInput(candidateInput) === null) {
+    return { input, ref: Option.none() }
+  }
+
+  return {
+    input: candidateInput,
+    ref: Option.some(candidateRef)
+  }
+}
+
+export const repositoryTargetFromInput = (input: string): RepositoryTargetInput | null => {
+  const trimmed = input.trim()
+  const explicit = splitExplicitRefSuffix(trimmed)
+  const parsed = parsedHostedRepoInput(explicit.input)
+  if (parsed === null) return null
+
+  return {
+    ref: Option.isSome(explicit.ref) ? explicit.ref : parsed.ref,
+    url: parsed.cloneUrl
+  }
+}
+
+export const normalizeRepoUrl = (input: string): string =>
+  repositoryTargetFromInput(input)?.url ?? input.trim()
+
+export const hostedRepoFromInput = (input: string): HostedRepository | null => {
+  const trimmed = input.trim()
+  const explicit = splitExplicitRefSuffix(trimmed)
+  return parsedHostedRepoInput(explicit.input)?.repo ?? null
 }
 
 export const githubRepoFromInput = (input: string): GitHubRepository | null => {
@@ -150,7 +262,12 @@ const nameFromPath = (path: string): Option.Option<string> =>
   )
 
 export const inferRepoName = (url: string) =>
-  Option.match(nameFromPath(pathFromRepoUrl(withoutGitSuffix(url))), {
-    onNone: () => Effect.fail(new RepoNameInferenceFailed({ url })),
-    onSome: Effect.succeed
-  })
+  Option.match(
+    Option.fromNullishOr(hostedRepoFromInput(url)?.name).pipe(
+      Option.orElse(() => nameFromPath(pathFromRepoUrl(withoutGitSuffix(url))))
+    ),
+    {
+      onNone: () => Effect.fail(new RepoNameInferenceFailed({ url })),
+      onSome: Effect.succeed
+    }
+  )

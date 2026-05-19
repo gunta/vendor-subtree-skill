@@ -25,6 +25,7 @@ const repo = (overrides: Partial<OrgRepository>): OrgRepository => ({
   isFork: false,
   visibility: "public",
   description: null,
+  stars: 0,
   url: "https://github.com/gunta/demo.git",
   ...overrides
 })
@@ -77,6 +78,24 @@ describe("dispatchAddOrg", () => {
   test("SetSearch matches name OR description", () => {
     const state = dispatchAddOrg(initial, AddOrgAction.SetSearch({ value: "alpha" }))
     expect(filteredRepos(state).map((r) => r.name)).toEqual(["alpha"])
+  })
+
+  test("SetSort changes the visible repository order", () => {
+    const state = createAddOrgState({
+      owner: "gunta",
+      repos: [
+        repo({ name: "zeta", stars: 100 }),
+        repo({ name: "alpha", stars: 1 }),
+        repo({ name: "beta", stars: 25 })
+      ],
+      vendored: new Set()
+    })
+
+    expect(filteredRepos(state).map((r) => r.name)).toEqual(["zeta", "beta", "alpha"])
+
+    const alphabetical = dispatchAddOrg(state, AddOrgAction.SetSort({ value: "name" }))
+    expect(alphabetical.focusedIndex).toBe(0)
+    expect(filteredRepos(alphabetical).map((r) => r.name)).toEqual(["alpha", "beta", "zeta"])
   })
 
   test("ToggleArchived hides archived rows", () => {
@@ -193,15 +212,90 @@ describe("handleAddOrgKey", () => {
   test.each([
     ["j", "MoveDown"],
     ["k", "MoveUp"],
+    ["\u001b[B", "MoveDown"],
+    ["\u001b[A", "MoveUp"],
+    ["\u001b[6~", "PageDown"],
+    ["\u001b[5~", "PageUp"],
     [" ", "ToggleSelected"],
     ["a", "SelectAllFiltered"],
     ["c", "ClearSelection"],
     ["A", "ToggleArchived"],
     ["F", "ToggleForks"],
+    ["l", "SetLanguage"],
+    ["s", "SetSince"],
+    ["v", "SetVisibility"],
+    ["o", "SetSort"],
+    ["/", "SetSearchActive"],
     ["q", "Cancel"]
   ] as const)("maps %s to %s", (key, tag) => {
     const action = handleAddOrgKey(key, browsing)
     expect(action?._tag).toBe(tag)
+  })
+
+  test("language key cycles through repository languages and then clears the filter", () => {
+    let state = browsing
+
+    let action = handleAddOrgKey("l", state)
+    expect(action).toEqual(AddOrgAction.SetLanguage({ values: ["TypeScript"] }))
+    state = dispatchAddOrg(state, action!)
+    expect(filteredRepos(state).map((r) => r.name)).toEqual(["alpha", "beta"])
+
+    action = handleAddOrgKey("l", state)
+    expect(action).toEqual(AddOrgAction.SetLanguage({ values: ["Python"] }))
+    state = dispatchAddOrg(state, action!)
+    expect(filteredRepos(state).map((r) => r.name)).toEqual(["gamma"])
+
+    action = handleAddOrgKey("l", state)
+    expect(action).toEqual(AddOrgAction.SetLanguage({ values: [] }))
+  })
+
+  test("since and visibility keys cycle through common filters", () => {
+    let state = browsing
+
+    let action = handleAddOrgKey("s", state)
+    expect(action).toEqual(AddOrgAction.SetSince({ value: "30d" }))
+    state = dispatchAddOrg(state, action!)
+    expect(handleAddOrgKey("s", state)).toEqual(AddOrgAction.SetSince({ value: "90d" }))
+
+    action = handleAddOrgKey("v", browsing)
+    expect(action).toEqual(AddOrgAction.SetVisibility({ value: "public" }))
+    state = dispatchAddOrg(browsing, action!)
+    expect(handleAddOrgKey("v", state)).toEqual(AddOrgAction.SetVisibility({ value: "private" }))
+  })
+
+  test("order key cycles through repository sort modes", () => {
+    let state = browsing
+
+    let action = handleAddOrgKey("o", state)
+    expect(action).toEqual(AddOrgAction.SetSort({ value: "name" }))
+    state = dispatchAddOrg(state, action!)
+
+    action = handleAddOrgKey("o", state)
+    expect(action).toEqual(AddOrgAction.SetSort({ value: "pushed" }))
+    state = dispatchAddOrg(state, action!)
+
+    action = handleAddOrgKey("o", state)
+    expect(action).toEqual(AddOrgAction.SetSort({ value: "stars" }))
+  })
+
+  test("search mode types and filters repositories in realtime", () => {
+    let state = dispatchAddOrg(browsing, AddOrgAction.SetSearchActive({ active: true }))
+
+    let action = handleAddOrgKey("g", state)
+    expect(action).toEqual(AddOrgAction.SetSearch({ value: "g" }))
+    state = dispatchAddOrg(state, action!)
+
+    action = handleAddOrgKey("a", state)
+    expect(action).toEqual(AddOrgAction.SetSearch({ value: "ga" }))
+    state = dispatchAddOrg(state, action!)
+    expect(filteredRepos(state).map((r) => r.name)).toEqual(["gamma"])
+
+    action = handleAddOrgKey("\u007f", state)
+    expect(action).toEqual(AddOrgAction.SetSearch({ value: "g" }))
+    state = dispatchAddOrg(state, action!)
+
+    action = handleAddOrgKey("\r", state)
+    expect(action).toEqual(AddOrgAction.SetSearchActive({ active: false }))
   })
 
   test("Enter confirms when in browsing mode", () => {

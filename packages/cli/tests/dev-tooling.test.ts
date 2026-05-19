@@ -53,6 +53,7 @@ describe("workspace dev tooling", () => {
       "//#check:root": {}
     })
     expect(gitignore).toContain(".turbo/")
+    expect(gitignore).toContain(".ingraft/")
   })
 
   test("runs the website dev server through Portless with an Astro fallback", async () => {

@@ -17,6 +17,7 @@ import { GitMetadataLive } from "../services/git-metadata.ts"
 import { GitLive } from "../services/git.ts"
 import { GitHubOrgLive } from "../services/github-org.ts"
 import { GitHubRepoMetaLive } from "../services/github-repo-meta.ts"
+import { GitHubSearchLive } from "../services/github-search.ts"
 import { GitLabCliLive } from "../services/glab.ts"
 import { JujutsuLive } from "../services/jujutsu.ts"
 import { LocalStateLive } from "../services/local-state.ts"
@@ -91,6 +92,7 @@ const SurfacesLive = ProjectSurfacesLive.pipe(Layer.provide(PlatformLive))
 const HostsLive = RepositoryHostsLive.pipe(Layer.provide(Layer.mergeAll(GhLive, GlabLive)))
 const GitHubOrgLayerLive = GitHubOrgLive.pipe(Layer.provide(GhLive))
 const GitHubRepoMetaLayerLive = GitHubRepoMetaLive.pipe(Layer.provide(GhLive))
+const GitHubSearchLayerLive = GitHubSearchLive.pipe(Layer.provide(GhLive))
 const PkgSyncLive = PackageVersionSyncLive.pipe(
   Layer.provide(Layer.mergeAll(PlatformLive, GitLayerLive, FetchHttpClient.layer))
 )
@@ -103,6 +105,7 @@ export const LiveLayer = Layer.mergeAll(
   ArtifactsLive,
   GitLayerLive,
   MetadataLive,
+  GhLive,
   JjLive,
   EditorsLive,
   FilesLive,
@@ -114,5 +117,6 @@ export const LiveLayer = Layer.mergeAll(
   PrmptsLive,
   LocalStateLive,
   GitHubOrgLayerLive,
-  GitHubRepoMetaLayerLive
+  GitHubRepoMetaLayerLive,
+  GitHubSearchLayerLive
 )

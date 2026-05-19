@@ -162,6 +162,7 @@ bunx ingraft@latest add effect --strategy submodule       # alt strategy
 bunx ingraft@latest add effect --strategy clone-ignore    # alt strategy
 bunx ingraft@latest add effect --strategy cache-link      # shared local cache
 bunx ingraft@latest add effect --exclude-dir docs --max-file-size 1MB
+bunx ingraft@latest fork Effect-TS/effect                 # editable fork + read-only vendor
 bunx ingraft@latest update --all
 bunx ingraft@latest doctor                   # diagnose hygiene
 bunx ingraft@latest doctor --fix             # repair generated hygiene files
@@ -207,7 +208,7 @@ flowchart TB
 | Optional context-tool routing for Repomix / OpenSrc / Repobase                                             |                                      |
 | Destructive history rewrite option for full removal                                                        |                                      |
 
-**Best for**: Teams that want the repository to become the context contract for agents. Use the vendoring routes for deep, version-matched source context; use the context wrappers for lighter packs, lazy source lookup, and search.
+**Best for**: Teams that want the repository to become the context contract for agents. Use the vendoring routes for deep, version-matched source context; use `fork` when upstream source needs an editable sibling checkout plus a read-only vendor projection; use the context wrappers for lighter packs, lazy source lookup, and search.
 
 ---
 
@@ -261,7 +262,7 @@ git submodule update --init --recursive
 |                                       | Detached-HEAD failures common                                 |
 |                                       | CI needs `--recurse-submodules`                               |
 
-**Best for**: Fork-backed editable vendors, where the team needs to patch the external repo and possibly send those commits upstream. **Not recommended as the default read-only agent context path** because initialization failures are a reliability risk. Use subtree for read-only source; use a fork-backed submodule when ownership of vendor patches matters more than zero-step checkout.
+**Best for**: Fork-backed editable vendors, where the parent repository must commit a gitlink to a patch branch. **Not recommended as the default read-only agent context path** because initialization failures are a reliability risk. Use subtree or cache-linked projections for read-only source; use `ingraft fork` when edits can live in a sibling checkout beside the host repo.
 
 ---
 
@@ -806,9 +807,10 @@ flowchart LR
 | Metadata         | Requires `.gitmodules`           | No extra metadata                   |
 | Agent visibility | Extra steps for agent            | Indistinguishable from project code |
 
-Submodules become the better choice when the vendor itself is meant to be edited.
-In that case, point the submodule at a fork branch so the vendor patch history
-lives in the fork and the parent repository only records the gitlink pointer.
+Submodules become the better choice when the parent repository must commit an
+editable gitlink. Otherwise, keep `vendor/` read-only and use `ingraft fork` to
+place the editable fork checkout beside the host repo while agents read the
+vendor projection.
 
 ### Effect's key arguments
 
@@ -837,7 +839,7 @@ lives in the fork and the parent repository only records the gitlink pointer.
 
 4. **Static snapshots are good for chat, weaker for agents.** Repomix and BTCA shine for one-shot context — but for ongoing agentic development, a navigable workspace beats a flattened artifact.
 
-5. **Submodules are not the default, but they have one strong job.** For read-only agent context, the initialization step is a reliability killer, so use subtree. For durable vendor patches, use a fork-backed submodule so changes live in the fork and can be upstreamed cleanly.
+5. **Submodules are not the default, but they have one strong job.** For read-only agent context, the initialization step is a reliability killer, so use subtree or cache-linked projections. For editable upstream work, prefer `ingraft fork` unless the parent repo specifically needs to commit a submodule pointer.
 
 6. **Retrieval-based tools trade depth for convenience.** Watch for failure modes: Context7's hallucination rate on bleeding-edge features (~63%) and ContextCrush incident; Repobase's early-stage maturity; mgrep's cloud-upload privacy posture; BTCA's AI-mediation latency.
 

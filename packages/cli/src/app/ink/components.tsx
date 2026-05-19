@@ -56,7 +56,9 @@ export const KeyValues = ({ entries }: KeyValuesProps) => {
 }
 
 export interface TableColumn<Row> {
+  readonly color?: (row: Row, index: number) => string | undefined
   readonly header: string
+  readonly maxWidth?: number
   readonly minWidth?: number
   readonly value: (row: Row, index: number) => string
 }
@@ -77,7 +79,8 @@ export const Table = <Row,>({ columns, empty, rows }: TableProps<Row>) => {
       (max, row, rowIndex) => Math.max(max, column.value(row, rowIndex).length),
       column.header.length
     )
-    return Math.max(dataWidth, column.minWidth ?? 0)
+    const width = Math.max(dataWidth, column.minWidth ?? 0)
+    return column.maxWidth === undefined ? width : Math.min(width, column.maxWidth)
   })
 
   return (
@@ -90,6 +93,7 @@ export const Table = <Row,>({ columns, empty, rows }: TableProps<Row>) => {
               key={column.header}
               width={isLast ? undefined : widths[index]}
               flexGrow={isLast ? 1 : 0}
+              flexShrink={isLast ? 1 : 0}
             >
               <Text bold wrap="truncate-end" color={palette.muted}>
                 {column.header}
@@ -107,8 +111,9 @@ export const Table = <Row,>({ columns, empty, rows }: TableProps<Row>) => {
                 key={column.header}
                 width={isLast ? undefined : widths[columnIndex]}
                 flexGrow={isLast ? 1 : 0}
+                flexShrink={isLast ? 1 : 0}
               >
-                <Text wrap="truncate-end" color={palette.text}>
+                <Text wrap="truncate-end" color={column.color?.(row, rowIndex) ?? palette.text}>
                   {column.value(row, rowIndex)}
                 </Text>
               </Box>

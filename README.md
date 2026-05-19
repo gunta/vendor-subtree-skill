@@ -72,11 +72,14 @@ ingraft tui
 ingraft zod hex:jason swift:apple/swift-argument-parser Effect-TS/effect
 ingraft add react:react expo:expo react-native:react-native
 ingraft add android:com.squareup.okhttp3:okhttp
+ingraft add https://github.com/gunta/confect/tree/effect4
+ingraft add gunta/confect@effect4
 ingraft deps --json
 ingraft deps --yes
 ingraft context
 ingraft context pack vendor/effect --compress
 ingraft context source zod
+ingraft fork Effect-TS/effect
 ingraft add Effect-TS/effect --local-only --include-dir packages/effect/src
 git config ingraft.forkMode personal
 ingraft init
@@ -118,6 +121,16 @@ See [packages/cli/README.md](packages/cli/README.md) for CLI usage and [packages
 The flag is valid only with the `clone-ignore` and `cache-link` strategies. The `subtree` and `submodule` strategies commit upstream source by definition and are incompatible.
 
 When the repo is a fork and you set `git config ingraft.forkMode personal`, `--local-only` becomes the implicit default for `add`. Use `ingraft init` to set fork mode interactively; `ingraft doctor` flags when a fork in personal mode has tracked vendor commits that would push upstream.
+
+## Fork workspaces
+
+Use `ingraft fork <upstream>` when you want to patch or study an upstream repository without turning `vendor/` into the editing surface:
+
+```sh
+ingraft fork Effect-TS/effect
+```
+
+The command creates or reuses your GitHub fork, clones or reuses an editable checkout in a parallel workspace such as `../forked/Effect-TS/effect`, and registers a read-only local vendor projection at `vendor/Effect-TS/effect` using `cache-link --local-only`. Agents can keep reading source under `vendor/`; edits, commits, pushes, and upstream pull requests happen in the sibling fork checkout.
 
 ## Include filters
 

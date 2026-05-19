@@ -4,11 +4,14 @@ import { Effect, Option } from "effect"
 
 import {
   commandPlanForSelection,
+  commandPreviewLines,
   createDashboardState,
   DashboardAction,
   dashboardTabs,
   dispatchDashboard,
+  visibleSuggestionRows,
   visibleRepositoryRows,
+  visibleTaskIndexes,
   visibleTaskRows,
   type DashboardState
 } from "../src/tui/dashboard.ts"
@@ -76,11 +79,34 @@ const snapshot = {
 } satisfies VendorTuiSnapshot
 
 describe("tui dashboard", () => {
+  const key = (name: string, sequence = name) =>
+    ({ name, sequence }) as Parameters<typeof handleDashboardKey>[0]
+
+  const applyKey = (state: DashboardState, name: string, sequence?: string): DashboardState => {
+    const result = Effect.runSync(handleDashboardKey(key(name, sequence ?? name), state))
+    return Option.match(result, {
+      onNone: () => state,
+      onSome: (keyAction) =>
+        keyAction._tag === "Dispatch" ? dispatchDashboard(state, keyAction.action) : state
+    })
+  }
+
+  const typeText = (state: DashboardState, value: string): DashboardState =>
+    [...value].reduce((next, character) => applyKey(next, character, character), state)
+
   test("includes a repositories tab", () => {
     expect(dashboardTabs).toContain("repositories")
     expect(visibleRepositoryRows(snapshot)).toEqual([
       "effect                       subtree      effect                       effect@3.21.2 (bun-lock)         effect@3.21.2 (vendored source)  effect@3.21.3 (npm latest)       remote-drift"
     ])
+  })
+
+  test("starts with the unified search/add input focused", () => {
+    const state = createDashboardState(snapshot)
+
+    expect(state.inputMode).toBe("add")
+    expect(state.addInput).toBe("")
+    expect(state.searchQuery).toBe("")
   })
 
   test("tracks focus and selected task rows independently", () => {
@@ -101,6 +127,41 @@ describe("tui dashboard", () => {
     const state = dispatchDashboard(createDashboardState(snapshot), DashboardAction.MoveUp())
 
     expect(state.focusedTaskIndex).toBe(1)
+  })
+
+  test("filters tasks and repository rows by typed search query", () => {
+    const state = dispatchDashboard(
+      createDashboardState(snapshot),
+      DashboardAction.SetSearch({ value: "convex" })
+    )
+
+    expect(state.focusedTaskIndex).toBe(1)
+    expect(visibleTaskIndexes(state)).toEqual([1])
+    expect(visibleTaskRows(state)).toEqual(["> [ ] UPDATE convex -> convex [remote-drift]"])
+    expect(visibleRepositoryRows(snapshot, "effect")).toEqual([
+      "effect                       subtree      effect                       effect@3.21.2 (bun-lock)         effect@3.21.2 (vendored source)  effect@3.21.3 (npm latest)       remote-drift"
+    ])
+    expect(visibleRepositoryRows(snapshot, "convex")).toEqual([
+      "No durable source routes detected."
+    ])
+  })
+
+  test("plain typing in the focused input searches existing tasks first", () => {
+    const state = typeText(createDashboardState(snapshot), "convex")
+
+    expect(state.addInput).toBe("convex")
+    expect(state.searchQuery).toBe("convex")
+    expect(visibleTaskIndexes(state)).toEqual([1])
+    expect(commandPreviewLines(state)).toEqual(["ingraft update convex"])
+  })
+
+  test("plain typing in the focused input can add a new target when no task matches", () => {
+    const state = typeText(createDashboardState(snapshot), "zod")
+
+    expect(state.addInput).toBe("zod")
+    expect(state.searchQuery).toBe("zod")
+    expect(visibleTaskIndexes(state)).toEqual([])
+    expect(commandPreviewLines(state)).toEqual(["ingraft add zod --strategy subtree"])
   })
 
   test("builds safe command plans for selected add and update tasks", () => {
@@ -128,6 +189,110 @@ describe("tui dashboard", () => {
         label: "update convex"
       }
     ])
+  })
+
+  test("builds command plans from the dashboard add input", () => {
+    const repo = dispatchDashboard(
+      createDashboardState(snapshot),
+      DashboardAction.SetAddInput({ value: "gunta/confect@effect4" })
+    )
+
+    expect(commandPlanForSelection(repo)).toEqual([
+      {
+        action: "add",
+        args: ["add", "gunta/confect@effect4", "--strategy", "subtree"],
+        label: "add gunta/confect@effect4"
+      }
+    ])
+    expect(commandPreviewLines(repo)).toEqual([
+      "ingraft add gunta/confect@effect4 --strategy subtree"
+    ])
+
+    const org = dispatchDashboard(
+      createDashboardState(snapshot),
+      DashboardAction.SetAddInput({ value: "org:get-convex" })
+    )
+
+    expect(commandPlanForSelection(org)).toEqual([
+      {
+        action: "add-org",
+        args: ["add-org", "get-convex", "--strategy", "subtree"],
+        label: "add org get-convex"
+      }
+    ])
+  })
+
+  test("accepts GitHub autocomplete suggestions into the same add input", () => {
+    let state = dispatchDashboard(
+      createDashboardState(snapshot),
+      DashboardAction.SetAddInput({ value: "conv" })
+    )
+    state = dispatchDashboard(
+      state,
+      DashboardAction.SetSuggestions({
+        query: "conv",
+        suggestions: [
+          {
+            detail: "12,300 stars public - reactive backend",
+            kind: "repo",
+            label: "get-convex/convex-js",
+            value: "get-convex/convex-js"
+          },
+          {
+            detail: "organization",
+            kind: "org",
+            label: "get-convex",
+            value: "org:get-convex"
+          }
+        ]
+      })
+    )
+
+    expect(visibleSuggestionRows(state)).toEqual([
+      "> repo get-convex/convex-js  12,300 stars public - reactive backend",
+      "  org  get-convex            organization"
+    ])
+
+    state = dispatchDashboard(state, DashboardAction.MoveSuggestionDown())
+    state = dispatchDashboard(state, DashboardAction.AcceptSuggestion())
+
+    expect(state.addInput).toBe("org:get-convex")
+    expect(state.searchQuery).toBe("org:get-convex")
+    expect(commandPreviewLines(state)).toEqual(["ingraft add-org get-convex --strategy subtree"])
+  })
+
+  test("keyboard arrows choose autocomplete suggestions and tab accepts one", () => {
+    let state = dispatchDashboard(
+      createDashboardState(snapshot),
+      DashboardAction.SetAddInput({ value: "conf" })
+    )
+    state = dispatchDashboard(
+      state,
+      DashboardAction.SetSuggestions({
+        query: "conf",
+        suggestions: [
+          {
+            detail: "9 stars public",
+            kind: "repo",
+            label: "gunta/confect",
+            value: "gunta/confect"
+          },
+          {
+            detail: "organization",
+            kind: "org",
+            label: "get-convex",
+            value: "org:get-convex"
+          }
+        ]
+      })
+    )
+
+    state = applyKey(state, "down")
+    expect(state.selectedSuggestionIndex).toBe(1)
+
+    state = applyKey(state, "tab", "\t")
+    expect(state.addInput).toBe("org:get-convex")
+    expect(commandPreviewLines(state)).toEqual(["ingraft add-org get-convex --strategy subtree"])
   })
 
   test("opens a confirmation state before running selected tasks", () => {
@@ -180,6 +345,7 @@ describe("tui dashboard", () => {
     }
 
     let state = createDashboardState(snapshot)
+    state = applyKey(state, "escape", "\u001b")
     state = applyKey(state, "j")
     state = applyKey(state, "4")
     state = applyKey(state, "return", "\r")
@@ -191,5 +357,66 @@ describe("tui dashboard", () => {
     expect(Option.getOrUndefined(yResult)?._tag).toBe("Run")
     expect(state.focusedTaskIndex).toBe(1)
     expect(state.strategy).toBe("cache-link")
+  })
+
+  test("keyboard search mode edits the live filter", () => {
+    const key = (name: string, sequence = name) =>
+      ({ name, sequence }) as Parameters<typeof handleDashboardKey>[0]
+
+    const applyKey = (state: DashboardState, name: string, sequence?: string): DashboardState => {
+      const result = Effect.runSync(handleDashboardKey(key(name, sequence ?? name), state))
+      return Option.match(result, {
+        onNone: () => state,
+        onSome: (keyAction) =>
+          keyAction._tag === "Dispatch" ? dispatchDashboard(state, keyAction.action) : state
+      })
+    }
+
+    let state = createDashboardState(snapshot)
+    state = applyKey(state, "escape", "\u001b")
+    state = applyKey(state, "/", "/")
+    expect(state.inputMode).toBe("search")
+
+    for (const character of "conv") state = applyKey(state, character, character)
+    expect(state.addInput).toBe("conv")
+    expect(state.searchQuery).toBe("conv")
+    expect(visibleTaskIndexes(state)).toEqual([1])
+
+    state = applyKey(state, "backspace", "\u007f")
+    expect(state.addInput).toBe("con")
+    expect(state.searchQuery).toBe("con")
+
+    state = applyKey(state, "escape", "\u001b")
+    expect(state.inputMode).toBe("normal")
+  })
+
+  test("keyboard add mode edits the manual add input and confirms it", () => {
+    const key = (name: string, sequence = name) =>
+      ({ name, sequence }) as Parameters<typeof handleDashboardKey>[0]
+
+    const applyKey = (state: DashboardState, name: string, sequence?: string): DashboardState => {
+      const result = Effect.runSync(handleDashboardKey(key(name, sequence ?? name), state))
+      return Option.match(result, {
+        onNone: () => state,
+        onSome: (keyAction) =>
+          keyAction._tag === "Dispatch" ? dispatchDashboard(state, keyAction.action) : state
+      })
+    }
+
+    let state = createDashboardState(snapshot)
+    state = applyKey(state, "escape", "\u001b")
+    state = applyKey(state, "+", "+")
+    expect(state.inputMode).toBe("add")
+
+    for (const character of "zod") state = applyKey(state, character, character)
+    expect(state.addInput).toBe("zod")
+    expect(commandPreviewLines(state)).toEqual(["ingraft add zod --strategy subtree"])
+
+    state = applyKey(state, "backspace", "\u007f")
+    expect(state.addInput).toBe("zo")
+
+    state = applyKey(state, "return", "\r")
+    expect(state.mode).toBe("confirming-run")
+    expect(state.inputMode).toBe("normal")
   })
 })

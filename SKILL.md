@@ -46,6 +46,7 @@ Do not run `scripts/vendor.ts` from the repository. The skill intentionally dele
 | "pack repository or vendor context for chat"    | `bunx ingraft@latest context pack`                        |
 | "fetch dependency source path"                  | `bunx ingraft@latest context source <package>`            |
 | "vendor without committing", "fork-safe vendor" | `bunx ingraft@latest add <repo> --local-only`             |
+| "fork and edit upstream source"                 | `bunx ingraft@latest fork <repo>`                         |
 | "vendor only these dirs"                        | `bunx ingraft@latest add <repo> --include-dir <path>`     |
 | "configure fork mode"                           | `bunx ingraft@latest init`                                |
 | "remove durable source context"                 | `bunx ingraft@latest remove <name>`                       |
@@ -78,6 +79,9 @@ bunx ingraft@latest add Effect-TS/effect --no-commit
 bunx ingraft@latest add Effect-TS/effect --include-dir packages/effect/src
 bunx ingraft@latest add Effect-TS/effect --include 'src/**/*.ts'
 bunx ingraft@latest add Effect-TS/effect --local-only --include-dir packages/effect
+bunx ingraft@latest fork Effect-TS/effect
+bunx ingraft@latest fork Effect-TS/effect --owner your-org
+bunx ingraft@latest fork status
 bunx ingraft@latest update effect
 bunx ingraft@latest update --all
 bunx ingraft@latest list
@@ -97,6 +101,7 @@ bunx ingraft@latest refresh
 - Use `submodule` when the upstream repository should stay separate from the host commit history.
 - Use `clone-ignore` for very large repositories, local-only references, or jj-collocated repositories.
 - Use `cache-link` when repeated local projects should share one read-only resolved-commit checkout through an ignored `vendor/` symlink.
+- Use `fork <repo>` when upstream source should be editable: it creates or reuses a GitHub fork, clones an editable checkout beside the host repo (for example `../forked/<upstream-owner>/<repo>`), and registers a read-only `cache-link --local-only` vendor projection under `vendor/`.
 - Use filters to omit directories, file extensions, globs, or files over a size limit.
 - Use `--sync-package <name>` when durable source should follow the version used by the host package manifest; use `hex:<name>`, `swift:<owner/repo>`, or `android:<group>:<artifact>` for non-npm ecosystems.
 - Npm, React, Expo, and React Native package targets use exact installed/locked versions when available: `node_modules`, `package-lock.json`, `pnpm-lock.yaml`, `yarn.lock`, then `bun.lock`.

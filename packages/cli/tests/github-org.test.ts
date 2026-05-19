@@ -16,18 +16,6 @@ const runtime = RuntimeConfig.of({
 
 const repoListJson = JSON.stringify([
   {
-    name: "ingraft",
-    owner: { login: "gunta" },
-    defaultBranchRef: { name: "main" },
-    pushedAt: "2026-05-18T00:00:00Z",
-    primaryLanguage: { name: "TypeScript" },
-    isArchived: false,
-    isFork: false,
-    visibility: "PUBLIC",
-    description: "context router",
-    url: "https://github.com/gunta/ingraft"
-  },
-  {
     name: "scratch",
     owner: { login: "gunta" },
     defaultBranchRef: null,
@@ -37,7 +25,21 @@ const repoListJson = JSON.stringify([
     isFork: true,
     visibility: "PRIVATE",
     description: null,
+    stargazerCount: 3,
     url: "https://github.com/gunta/scratch"
+  },
+  {
+    name: "ingraft",
+    owner: { login: "gunta" },
+    defaultBranchRef: { name: "main" },
+    pushedAt: "2026-05-18T00:00:00Z",
+    primaryLanguage: { name: "TypeScript" },
+    isArchived: false,
+    isFork: false,
+    visibility: "PUBLIC",
+    description: "context router",
+    stargazerCount: 4242,
+    url: "https://github.com/gunta/ingraft"
   }
 ])
 
@@ -60,7 +62,7 @@ describe("listOrgRepos", () => {
             "list",
             "gunta",
             "--json",
-            "name,owner,defaultBranchRef,pushedAt,primaryLanguage,isArchived,isFork,visibility,description,url",
+            "name,owner,defaultBranchRef,pushedAt,primaryLanguage,isArchived,isFork,visibility,description,stargazerCount,url",
             "--limit",
             "1000"
           ])
@@ -80,6 +82,7 @@ describe("listOrgRepos", () => {
       isFork: false,
       visibility: "public",
       description: "context router",
+      stars: 4242,
       url: "https://github.com/gunta/ingraft.git"
     })
     expect(out[1]).toEqual({
@@ -92,6 +95,7 @@ describe("listOrgRepos", () => {
       isFork: true,
       visibility: "private",
       description: null,
+      stars: 3,
       url: "https://github.com/gunta/scratch.git"
     })
   })

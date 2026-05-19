@@ -31,38 +31,23 @@ const repo = {
 } satisfies VendoredRepo
 
 describe("update target selection", () => {
-  test("selects every repo for --all", async () => {
+  test("selects every repo when no target is provided", async () => {
     const targets = await Effect.runPromise(
-      selectUpdateTargets({ all: true, name: Option.none(), repos: [repo] })
+      selectUpdateTargets({ name: Option.none(), repos: [repo] })
     )
 
     expect(Option.getOrUndefined(targets)).toEqual([repo])
   })
 
-  test("returns none when --all has no repos", async () => {
-    const targets = await Effect.runPromise(
-      selectUpdateTargets({ all: true, name: Option.none(), repos: [] })
-    )
+  test("returns none when no target is provided and no repos exist", async () => {
+    const targets = await Effect.runPromise(selectUpdateTargets({ name: Option.none(), repos: [] }))
 
     expect(Option.isNone(targets)).toBe(true)
-  })
-
-  test("fails with a tagged error when no target is provided", async () => {
-    const failure = await Effect.runPromise(
-      selectUpdateTargets({
-        all: false,
-        name: Option.none(),
-        repos: [repo]
-      }).pipe(Effect.flip)
-    )
-
-    expect(failure._tag).toBe("UpdateTargetMissing")
   })
 
   test("fails with a tagged error when the repo is not found", async () => {
     const failure = await Effect.runPromise(
       selectUpdateTargets({
-        all: false,
         name: Option.some("missing"),
         repos: [repo]
       }).pipe(Effect.flip)
@@ -102,7 +87,7 @@ test("updating a local-only entry does not create a commit and advances resolved
     advanceUpstream(upstream, "README.md", "hello updated\n")
 
     await Effect.runPromise(
-      updateImpl({ name: Option.some("upstream"), all: false }).pipe(
+      updateImpl({ name: Option.some("upstream") }).pipe(
         Effect.provide(LiveLayer),
         Effect.provide(GitMetadataLive)
       )

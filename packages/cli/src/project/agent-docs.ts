@@ -135,7 +135,7 @@ export const renderVendorSection = ({
     "- Strategies: `subtree` is committed source, `submodule` is a gitlink, `clone-ignore` is a local ignored clone, and `cache-link` is an ignored symlink to a shared cache checkout.",
     "- Some repos may be filtered to omit media, generated directories, archives, fixtures, or oversized files.",
     `- Use \`${invocation} list\` to see durable source routes.`,
-    `- To add or update durable source routes, run \`${invocation} add <repo>\` or \`update <name>\`.`,
+    `- To add or update durable source routes, run \`${invocation} add <repo>\`, \`update\`, or \`update <name>\`.`,
     "",
     ...vendorRepoLines(invocation, repos),
     "",

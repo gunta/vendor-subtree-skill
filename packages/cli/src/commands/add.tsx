@@ -29,7 +29,7 @@ import {
 } from "../domain/errors.ts"
 import { readForkMode } from "../domain/fork-mode.ts"
 import { upsertLocalVendorEntry } from "../domain/local-state.ts"
-import { hostedRepoFromInput, inferRepoName, normalizeRepoUrl } from "../domain/repo.ts"
+import { hostedRepoFromInput, inferRepoName, repositoryTargetFromInput } from "../domain/repo.ts"
 import {
   formatVendorFilterTrailer,
   hasVendorFilter,
@@ -105,6 +105,7 @@ export type AddTarget =
   | {
       readonly _tag: "RepositoryTarget"
       readonly input: string
+      readonly ref?: string
       readonly url: string
     }
   | {
@@ -344,6 +345,7 @@ const syncPackageLabel = (packageName: string) => `--sync-package ${packageName}
 export const classifyAddTarget = (input: string): AddTarget => {
   const trimmed = input.trim()
   const identity = packageIdentityFromInput(trimmed)
+  const repositoryTarget = repositoryTargetFromInput(trimmed)
   if (identity.ecosystem !== "npm") {
     return {
       _tag: "PackageTarget",
@@ -352,7 +354,7 @@ export const classifyAddTarget = (input: string): AddTarget => {
       packageName: identity.name
     }
   }
-  return hostedRepoFromInput(trimmed) === null
+  return repositoryTarget === null
     ? {
         _tag: "PackageTarget",
         ecosystem: identity.ecosystem,
@@ -362,7 +364,8 @@ export const classifyAddTarget = (input: string): AddTarget => {
     : {
         _tag: "RepositoryTarget",
         input,
-        url: normalizeRepoUrl(trimmed)
+        ...(Option.isSome(repositoryTarget.ref) ? { ref: repositoryTarget.ref.value } : {}),
+        url: repositoryTarget.url
       }
 }
 
@@ -1076,12 +1079,18 @@ export const addImpl = ({
     }
 
     const target = classifyAddTarget(repo)
-    const selector = yield* versionSelectorFromOptions({
+    const requestedSelector = yield* versionSelectorFromOptions({
       ref,
       tag,
       release,
       syncPackage
     })
+    const selector =
+      requestedSelector._tag === "Default" &&
+      target._tag === "RepositoryTarget" &&
+      target.ref !== undefined
+        ? ({ _tag: "Ref", value: target.ref } satisfies VersionSelector)
+        : requestedSelector
     const packageResolution =
       target._tag === "PackageTarget"
         ? Option.some(

@@ -4,8 +4,10 @@ import { Effect, Option } from "effect"
 import { Argument, Command, Flag } from "effect/unstable/cli"
 
 import { info, ok, warn, withCommandTelemetry } from "../app/log.tsx"
+import { RuntimeConfig, type RuntimeConfigShape } from "../app/runtime.ts"
 import { OrgFilterParseFailed } from "../domain/errors.ts"
 import { filterOrgRepos, parseSince, type OrgFilter } from "../domain/org-filter.ts"
+import { sortOrgRepos, type OrgRepoSort } from "../domain/org-sort.ts"
 import { listVendored } from "../domain/vendor-state.ts"
 import { type VendorStrategy } from "../domain/vendor-strategy.ts"
 import { repoRoot } from "../services/git.ts"
@@ -33,6 +35,7 @@ export interface AddOrgCommandParams {
   readonly yes: boolean
   readonly dryRun: boolean
   readonly refresh: boolean
+  readonly sort?: OrgRepoSort
   readonly concurrency: number
   readonly strategy: VendorStrategy
   readonly ref: Option.Option<string>
@@ -49,14 +52,28 @@ const clampConcurrency = (value: number) =>
 const isFreshCache = (fetchedAt: string): boolean =>
   Date.now() - new Date(fetchedAt).getTime() < ORG_CACHE_TTL_MS
 
-const discoverRepos = ({ owner, refresh }: { readonly owner: string; readonly refresh: boolean }) =>
+const shouldUseIcons = (runtime: RuntimeConfigShape): boolean => {
+  if (!runtime.colors) return false
+  const locale = runtime.env.LC_ALL ?? runtime.env.LC_CTYPE ?? runtime.env.LANG ?? ""
+  return locale.toUpperCase() !== "C"
+}
+
+const discoverRepos = ({
+  owner,
+  refresh,
+  sort
+}: {
+  readonly owner: string
+  readonly refresh: boolean
+  readonly sort: OrgRepoSort
+}) =>
   Effect.gen(function* () {
     const cwd = yield* repoRoot
     const local = yield* LocalState
     const cached = yield* local.readOrgCache({ cwd, owner })
     if (!refresh && Option.isSome(cached) && isFreshCache(cached.value.fetchedAt)) {
       yield* info(`Using cached ${cached.value.repos.length} repos for ${owner}.`)
-      return cached.value.repos as ReadonlyArray<OrgRepository>
+      return sortOrgRepos(cached.value.repos as ReadonlyArray<OrgRepository>, sort)
     }
     const gh = yield* GitHubOrg
     yield* info(`Fetching repository list for ${owner} from GitHub...`)
@@ -80,7 +97,7 @@ const discoverRepos = ({ owner, refresh }: { readonly owner: string; readonly re
         }
       })
       .pipe(Effect.ignore)
-    return repos as ReadonlyArray<OrgRepository>
+    return sortOrgRepos(repos as ReadonlyArray<OrgRepository>, sort)
   })
 
 const ensureFilter = (params: AddOrgCommandParams): OrgFilter => ({
@@ -106,15 +123,20 @@ export const addOrgImpl = (params: AddOrgCommandParams) =>
         )
       }
     }
-    const repos = yield* discoverRepos({ owner: params.owner, refresh: params.refresh })
+    const sort = params.sort ?? "stars"
+    const repos = yield* discoverRepos({
+      owner: params.owner,
+      refresh: params.refresh,
+      sort
+    })
     const filter = ensureFilter(params)
     const selected = filterOrgRepos(repos, filter)
-    if (selected.length === 0) {
-      yield* warn(`No repositories matched the filter under ${params.owner}.`)
-      return
-    }
-    yield* info(`Adding ${selected.length} repositories from ${params.owner}...`)
     if (params.dryRun) {
+      if (selected.length === 0) {
+        yield* warn(`No repositories matched the filter under ${params.owner}.`)
+        return
+      }
+      yield* info(`Adding ${selected.length} repositories from ${params.owner}...`)
       for (const repo of selected) yield* info(`would add ${repo.owner}/${repo.name}`)
       return
     }
@@ -122,20 +144,32 @@ export const addOrgImpl = (params: AddOrgCommandParams) =>
     const concurrency = clampConcurrency(params.concurrency)
 
     if (!params.yes && stdin.isTTY && stdout.isTTY) {
+      if (repos.length === 0) {
+        yield* warn(`No repositories found under ${params.owner}.`)
+        return
+      }
       const cwd = yield* repoRoot
       const vendored = yield* listVendored(cwd)
       yield* launchAddOrgTui({
         owner: params.owner,
-        repos: selected,
-        vendored: vendoredOrgRepoIds({ repos: selected, vendored }),
+        repos,
+        vendored: vendoredOrgRepoIds({ repos, vendored }),
+        filters: filter,
         strategy: params.strategy,
         concurrency,
+        sort,
         ref: params.ref,
         tag: params.tag,
         release: params.release
       })
       return
     }
+
+    if (selected.length === 0) {
+      yield* warn(`No repositories matched the filter under ${params.owner}.`)
+      return
+    }
+    yield* info(`Adding ${selected.length} repositories from ${params.owner}...`)
 
     yield* Effect.forEach(
       selected,
@@ -219,6 +253,19 @@ const refreshFlag = Flag.boolean("refresh").pipe(
   Flag.withDescription("Bypass the org repo-list cache.")
 )
 
+const sortFlag = Flag.choiceWithValue("sort", [
+  ["stars", "stars"],
+  ["name", "name"],
+  ["alpha", "name"],
+  ["alphabetical", "name"],
+  ["pushed", "pushed"],
+  ["recent", "pushed"],
+  ["updated", "pushed"]
+] as const).pipe(
+  Flag.withDescription("Repository order. Choices: stars, name, pushed. Default: stars."),
+  Flag.optional
+)
+
 const concurrencyFlag = Flag.string("concurrency").pipe(
   Flag.withDescription("Parallel clones. Default 8. Clamped to [1, 32]."),
   Flag.optional
@@ -282,6 +329,7 @@ export const addOrgCmd = Command.make(
     yes: yesFlag,
     dryRun: dryRunFlag,
     refresh: refreshFlag,
+    sort: sortFlag,
     concurrency: concurrencyFlag,
     strategy: strategyFlag,
     ref: refFlag,
@@ -299,6 +347,7 @@ export const addOrgCmd = Command.make(
       yes: params.yes,
       dryRun: params.dryRun,
       refresh: params.refresh,
+      sort: Option.getOrElse(params.sort, () => "stars" as const),
       concurrency: parseConcurrency(params.concurrency),
       strategy: Option.getOrElse(params.strategy, () => "clone-ignore" as const),
       ref: params.ref,
@@ -315,23 +364,51 @@ interface AddOrgTuiParams {
   readonly owner: string
   readonly repos: ReadonlyArray<OrgRepository>
   readonly vendored: ReadonlySet<string>
+  readonly filters: OrgFilter
   readonly strategy: VendorStrategy
   readonly concurrency: number
+  readonly sort?: OrgRepoSort
   readonly ref: Option.Option<string>
   readonly tag: Option.Option<string>
   readonly release: Option.Option<string>
 }
 
-const writeFrame = (state: AddOrgState): void => {
+export const createInitialAddOrgTuiState = (input: {
+  readonly owner: string
+  readonly repos: ReadonlyArray<OrgRepository>
+  readonly vendored: ReadonlySet<string>
+  readonly filters: OrgFilter
+  readonly strategy: VendorStrategy
+  readonly concurrency: number
+  readonly sort?: OrgRepoSort
+}): AddOrgState =>
+  createAddOrgState({
+    owner: input.owner,
+    repos: input.repos,
+    vendored: input.vendored,
+    filters: input.filters,
+    strategy: input.strategy,
+    concurrency: input.concurrency,
+    sort: input.sort ?? "stars"
+  })
+
+const writeFrame = (state: AddOrgState, runtime: RuntimeConfigShape): void => {
   // Clear screen + move cursor to home (ANSI escape sequences).
   stdout.write("[2J[H")
-  for (const line of renderAddOrg(state)) stdout.write(`${line}\n`)
+  for (const line of renderAddOrg(state, {
+    colors: runtime.colors,
+    height: stdout.rows ?? 24,
+    icons: shouldUseIcons(runtime),
+    width: stdout.columns ?? 100
+  })) {
+    stdout.write(`${line}\n`)
+  }
 }
 
 // Stage 1: blocking raw-stdin keyboard loop. Resolves with the final state
 // once the user either confirms (Enter -> mode === "running") or cancels
 // (q -> mode === "browsing" or "done"). The Effect has no dependencies.
-const runTuiKeyboardLoop = (initial: AddOrgState) =>
+const runTuiKeyboardLoop = (initial: AddOrgState, runtime: RuntimeConfigShape) =>
   Effect.callback<AddOrgState>((resume) => {
     let state = initial
 
@@ -352,7 +429,7 @@ const runTuiKeyboardLoop = (initial: AddOrgState) =>
       const action = handleAddOrgKey(key, state)
       if (action) {
         state = dispatchAddOrg(state, action)
-        writeFrame(state)
+        writeFrame(state, runtime)
       }
       // Confirming sequence: first Enter sets mode "confirming-run", second
       // sets "running". When we reach "running", the user has approved the
@@ -371,7 +448,7 @@ const runTuiKeyboardLoop = (initial: AddOrgState) =>
     if (stdin.setRawMode) stdin.setRawMode(true)
     stdin.resume()
     stdin.on("data", onData)
-    writeFrame(state)
+    writeFrame(state, runtime)
 
     // Interruption cleanup.
     return Effect.sync(() => cleanup())
@@ -381,28 +458,33 @@ const launchAddOrgTui = ({
   owner,
   repos,
   vendored,
+  filters,
   strategy,
   concurrency,
+  sort,
   ref,
   tag,
   release
 }: AddOrgTuiParams) =>
   Effect.gen(function* () {
-    const initial = createAddOrgState({
+    const runtime = yield* RuntimeConfig
+    const initial = createInitialAddOrgTuiState({
       owner,
       repos,
       vendored,
+      filters,
       strategy,
-      concurrency
+      concurrency,
+      sort: sort ?? "stars"
     })
 
-    let state = yield* runTuiKeyboardLoop(initial)
+    let state = yield* runTuiKeyboardLoop(initial, runtime)
     if (state.mode !== "running") return
 
     // Stage 2: run selected repos. Dispatch updates state + re-renders.
     const dispatch = (action: AddOrgAction) => {
       state = dispatchAddOrg(state, action)
-      writeFrame(state)
+      writeFrame(state, runtime)
     }
     yield* runSelected({ state, dispatch, options: { ref, tag, release } })
     yield* ok(`Processed ${state.selected.size} repos from ${owner}.`)

@@ -71,7 +71,7 @@ describe("Oxc workspace tooling", () => {
     }
   })
 
-  test("commits shared Oxc configs that ignore generated and vendored code", async () => {
+  test("commits shared Oxc configs that ignore generated, vendored, and local state code", async () => {
     const [oxlintConfig, oxfmtConfig] = await Promise.all([
       readJson<Record<string, unknown>>(".oxlintrc.json"),
       readJson<Record<string, unknown>>(".oxfmtrc.json")
@@ -82,7 +82,13 @@ describe("Oxc workspace tooling", () => {
 
     for (const config of [oxlintConfig, oxfmtConfig]) {
       expect(config.ignorePatterns).toEqual(
-        expect.arrayContaining(["vendor/**", "node_modules/**", "dist/**", "packages/*/dist/**"])
+        expect.arrayContaining([
+          "vendor/**",
+          "node_modules/**",
+          "dist/**",
+          "packages/*/dist/**",
+          ".ingraft/**"
+        ])
       )
     }
   })

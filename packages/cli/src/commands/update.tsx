@@ -1,5 +1,5 @@
 import { Array as Arr, Effect, FileSystem, Option, Path } from "effect"
-import { Argument, Command, Flag } from "effect/unstable/cli"
+import { Argument, Command } from "effect/unstable/cli"
 
 import { error, info, ok, warn, withCommandTelemetry } from "../app/log.tsx"
 import {
@@ -14,7 +14,6 @@ import {
 } from "../domain/constants.ts"
 import {
   UpdateFailed,
-  UpdateTargetMissing,
   VendorStrategyCommandFailed,
   VendoredRepoNotFound
 } from "../domain/errors.ts"
@@ -52,14 +51,12 @@ const localEntryFromVendoredRepo = (
 })
 
 export interface SelectUpdateTargetsParams {
-  readonly all: boolean
   readonly name: Option.Option<string>
   readonly repos: ReadonlyArray<VendoredRepo>
 }
 
 export interface UpdateCommandParams {
   readonly name: Option.Option<string>
-  readonly all: boolean
 }
 
 interface GitOutputParams {
@@ -79,34 +76,27 @@ interface StrategyGitFailureParams {
 }
 
 const updateNameArg = Argument.string("name").pipe(
-  Argument.withDescription("Name (or prefix path) of the durable source route to update."),
+  Argument.withDescription(
+    "Optional name (or prefix path) of one durable source route to update. Omit to update all."
+  ),
   Argument.optional
 )
 
-const updateAllOption = Flag.boolean("all").pipe(
-  Flag.withAlias("a"),
-  Flag.withDescription("Update every durable source route.")
-)
-
-type UpdateTargetSelectionError = UpdateTargetMissing | VendoredRepoNotFound
+type UpdateTargetSelectionError = VendoredRepoNotFound
 
 export const selectUpdateTargets = ({
-  all,
   name,
   repos
 }: SelectUpdateTargetsParams): Effect.Effect<
   Option.Option<ReadonlyArray<VendoredRepo>>,
   UpdateTargetSelectionError
 > => {
-  if (all) {
+  if (Option.isNone(name)) {
     return Effect.succeed(repos.length === 0 ? Option.none() : Option.some(repos))
   }
 
   return Effect.gen(function* () {
-    const value = yield* Option.match(name, {
-      onNone: () => Effect.fail(new UpdateTargetMissing()),
-      onSome: Effect.succeed
-    })
+    const value = name.value
     const repo = yield* Option.match(
       Option.fromNullishOr(repos.find((repo) => repo.name === value || repo.prefix === value)),
       {
@@ -412,13 +402,13 @@ const refreshAfterUpdate = (cwd: string) =>
     })
   })
 
-export const updateImpl = ({ all, name }: UpdateCommandParams) =>
+export const updateImpl = ({ name }: UpdateCommandParams) =>
   Effect.gen(function* () {
     const cwd = yield* repoRoot
     yield* assertCleanTree(cwd)
 
     const targets = yield* listVendored(cwd).pipe(
-      Effect.flatMap((repos) => selectUpdateTargets({ all, name, repos }))
+      Effect.flatMap((repos) => selectUpdateTargets({ name, repos }))
     )
 
     yield* Option.match(targets, {
@@ -436,8 +426,6 @@ export const updateImpl = ({ all, name }: UpdateCommandParams) =>
     })
   }).pipe(withCommandTelemetry("update"))
 
-export const updateCmd = Command.make(
-  "update",
-  { name: updateNameArg, all: updateAllOption },
-  updateImpl
-).pipe(Command.withDescription("Pull upstream changes for one or all durable source routes."))
+export const updateCmd = Command.make("update", { name: updateNameArg }, updateImpl).pipe(
+  Command.withDescription("Pull upstream changes for one or all durable source routes.")
+)

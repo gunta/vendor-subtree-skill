@@ -62,6 +62,7 @@ describe("LocalState org cache", () => {
             isFork: false,
             visibility: "public",
             description: "context router",
+            stars: 4242,
             url: "https://github.com/gunta/ingraft.git"
           }
         ],

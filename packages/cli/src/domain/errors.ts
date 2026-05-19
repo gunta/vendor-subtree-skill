@@ -199,6 +199,11 @@ export interface OrgFilterParseFailedParams {
   readonly reason: string
 }
 
+export interface ForkWorkspaceFailedParams {
+  readonly action: string
+  readonly detail: string
+}
+
 export interface GitMetadataFailedParams {
   readonly operation: string
   readonly cwd?: string
@@ -258,8 +263,6 @@ export class VendoredRepoNotFound extends Data.TaggedError(
 )<VendoredRepoNotFoundParams> {}
 
 export class GitRemoveFailed extends Data.TaggedError("GitRemoveFailed")<GitRemoveFailedParams> {}
-
-export class UpdateTargetMissing extends Data.TaggedError("UpdateTargetMissing")<{}> {}
 
 export class UpdateFailed extends Data.TaggedError("UpdateFailed")<UpdateFailedParams> {}
 
@@ -393,6 +396,10 @@ export class OrgFilterParseFailed extends Data.TaggedError(
   "OrgFilterParseFailed"
 )<OrgFilterParseFailedParams> {}
 
+export class ForkWorkspaceFailed extends Data.TaggedError(
+  "ForkWorkspaceFailed"
+)<ForkWorkspaceFailedParams> {}
+
 export type VendorError =
   | GitCommandFailed
   | NotGitRepository
@@ -403,7 +410,6 @@ export type VendorError =
   | SubtreeAddFailed
   | VendoredRepoNotFound
   | GitRemoveFailed
-  | UpdateTargetMissing
   | UpdateFailed
   | VendorStrategyCommandFailed
   | VersionSelectorConflict
@@ -440,6 +446,7 @@ export type VendorError =
   | GitHubCliUnauthenticated
   | GitHubOrgNotFound
   | OrgFilterParseFailed
+  | ForkWorkspaceFailed
 
 const gitCommand = (args: ReadonlyArray<string>) => `git ${args.join(" ")}`
 
@@ -539,13 +546,6 @@ export const errorPresentation = (error: VendorError): ErrorPresentation => {
         detail: error.output,
         hint: "Check the working tree and remove the path manually if needed.",
         code: 3
-      }
-    case "UpdateTargetMissing":
-      return {
-        title: "No update target specified",
-        detail: "The update command needs one durable source route name or --all.",
-        hint: "Usage: ingraft update <name> or ingraft update --all",
-        code: 2
       }
     case "UpdateFailed":
       return {
@@ -754,7 +754,7 @@ export const errorPresentation = (error: VendorError): ErrorPresentation => {
     case "GitHubCliMissing":
       return {
         title: "GitHub CLI not found",
-        detail: "ingraft add-org requires the `gh` command to discover repositories.",
+        detail: "This ingraft command requires the `gh` command for GitHub operations.",
         hint: "Install GitHub CLI: `brew install gh`, then `gh auth login`.",
         code: 127
       }
@@ -778,6 +778,13 @@ export const errorPresentation = (error: VendorError): ErrorPresentation => {
         detail: `${error.value}: ${error.reason}`,
         hint: "Use ISO date (2026-01-01) or relative (90d, 12w, 6m).",
         code: 2
+      }
+    case "ForkWorkspaceFailed":
+      return {
+        title: `Fork workspace ${error.action} failed`,
+        detail: error.detail,
+        hint: "Check the GitHub fork, local checkout path, and git remotes, then retry.",
+        code: 3
       }
   }
 }

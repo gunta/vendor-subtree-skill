@@ -129,7 +129,6 @@ const taskToJson = (task: DependencyVendorTask) => ({
 const runTask = (strategy: Option.Option<VendorStrategy>, task: DependencyVendorTask) => {
   if (task.action === "update") {
     return updateImpl({
-      all: false,
       name: task.existingName
     }).pipe(
       Effect.asVoid,

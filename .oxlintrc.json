@@ -25,6 +25,7 @@
     "packages/*/.astro/**",
     "coverage/**",
     "evals/results/**",
+    ".ingraft/**",
     "*.tsbuildinfo"
   ],
   "rules": {
