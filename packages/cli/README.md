@@ -11,16 +11,28 @@ The CLI is built with Effect, `@effect/cli`, `@effect/platform`, and the Node pl
 
 ## Install
 
+Run without installing:
+
 ```sh
-npm install -g ingraft
-ingraft
+bunx ingraft@latest
+npx ingraft@latest --help
+pnpm dlx ingraft@latest deps
+yarn dlx ingraft@latest doctor
 ```
 
-Or run without installing:
+Install globally:
 
 ```sh
-npx ingraft --help
-bunx ingraft
+npm install -g ingraft
+bun add -g ingraft
+pnpm add -g ingraft
+yarn global add ingraft
+```
+
+Install through the shell bootstrap:
+
+```sh
+curl -fsSL https://ingraft.dev/install.sh | sh
 ```
 
 Homebrew and Nix package entrypoints are also maintained in this repository:
@@ -32,6 +44,15 @@ brew install ingraft
 nix run github:gunta/ingraft
 nix profile install github:gunta/ingraft#ingraft
 ```
+
+Install the agent skill through `skills.sh`:
+
+```sh
+npx skills add gunta/ingraft
+```
+
+The zero-argument dashboard uses Bun through OpenTUI. Non-interactive commands
+such as `deps`, `list`, `doctor`, and `context` stay Node-compatible.
 
 ## Commands
 

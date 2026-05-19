@@ -7,27 +7,27 @@ const commands = [
     icon: "package",
     title: "Add durable source",
     body: "Resolve the package, pick the storage route, write source under <code>vendor/</code> when that is the right contract.",
-    code: `bunx ingraft add effect-ts/effect
-bunx ingraft add zod --strategy subtree
-bunx ingraft add convex --strategy cache-link`,
+    code: `bunx ingraft@latest add effect-ts/effect
+bunx ingraft@latest add zod --strategy subtree
+bunx ingraft@latest add convex --strategy cache-link`,
     lang: "bash"
   },
   {
     icon: "layers",
     title: "Use lighter routes",
     body: "Detect optional context tools, pack a narrow snapshot, or fetch source without committing it.",
-    code: `bunx ingraft context
-bunx ingraft context pack vendor/effect --compress
-bunx ingraft context source zod`,
+    code: `bunx ingraft@latest context
+bunx ingraft@latest context pack vendor/effect --compress
+bunx ingraft@latest context source zod`,
     lang: "bash"
   },
   {
     icon: "stethoscope",
     title: "Doctor the project",
     body: "See the tool surfaces ingraft detected and what it changed.",
-    code: `bunx ingraft doctor
-bunx ingraft doctor --fix
-bunx ingraft list --json`,
+    code: `bunx ingraft@latest doctor
+bunx ingraft@latest doctor --fix
+bunx ingraft@latest list --json`,
     lang: "bash"
   }
 ] as const

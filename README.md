@@ -25,9 +25,26 @@ Run the CLI without installing it globally:
 ```sh
 bunx ingraft@latest
 npx ingraft@latest --help
+pnpm dlx ingraft@latest deps
+yarn dlx ingraft@latest doctor
 ```
 
-Install through package managers:
+Install through JavaScript package managers:
+
+```sh
+npm install -g ingraft
+bun add -g ingraft
+pnpm add -g ingraft
+yarn global add ingraft
+```
+
+Install through the hosted shell bootstrap:
+
+```sh
+curl -fsSL https://ingraft.dev/install.sh | sh
+```
+
+Install through Homebrew or Nix:
 
 ```sh
 brew tap gunta/ingraft https://github.com/gunta/ingraft
@@ -42,6 +59,8 @@ Install the agent skill through `skills.sh`:
 ```sh
 npx skills add gunta/ingraft
 ```
+
+See the website [Installation](https://ingraft.dev/docs/installation/) guide for runtime notes and package-manager-specific details.
 
 ## Development
 

@@ -94,6 +94,8 @@ describe("tui dashboard", () => {
   const typeText = (state: DashboardState, value: string): DashboardState =>
     [...value].reduce((next, character) => applyKey(next, character, character), state)
 
+  const startAddInput = (state: DashboardState): DashboardState => applyKey(state, "+", "+")
+
   test("includes a repositories tab", () => {
     expect(dashboardTabs).toContain("repositories")
     expect(visibleRepositoryRows(snapshot)).toEqual([
@@ -101,12 +103,15 @@ describe("tui dashboard", () => {
     ])
   })
 
-  test("starts with the unified search/add input focused", () => {
+  test("starts in shortcut mode so global keys work immediately", () => {
     const state = createDashboardState(snapshot)
 
-    expect(state.inputMode).toBe("add")
+    expect(state.inputMode).toBe("normal")
     expect(state.addInput).toBe("")
     expect(state.searchQuery).toBe("")
+
+    const result = Effect.runSync(handleDashboardKey(key("q"), state))
+    expect(Option.getOrUndefined(result)?._tag).toBe("Quit")
   })
 
   test("tracks focus and selected task rows independently", () => {
@@ -147,7 +152,7 @@ describe("tui dashboard", () => {
   })
 
   test("plain typing in the focused input searches existing tasks first", () => {
-    const state = typeText(createDashboardState(snapshot), "convex")
+    const state = typeText(startAddInput(createDashboardState(snapshot)), "convex")
 
     expect(state.addInput).toBe("convex")
     expect(state.searchQuery).toBe("convex")
@@ -156,7 +161,7 @@ describe("tui dashboard", () => {
   })
 
   test("plain typing in the focused input can add a new target when no task matches", () => {
-    const state = typeText(createDashboardState(snapshot), "zod")
+    const state = typeText(startAddInput(createDashboardState(snapshot)), "zod")
 
     expect(state.addInput).toBe("zod")
     expect(state.searchQuery).toBe("zod")
@@ -263,7 +268,7 @@ describe("tui dashboard", () => {
 
   test("keyboard arrows choose autocomplete suggestions and tab accepts one", () => {
     let state = dispatchDashboard(
-      createDashboardState(snapshot),
+      startAddInput(createDashboardState(snapshot)),
       DashboardAction.SetAddInput({ value: "conf" })
     )
     state = dispatchDashboard(
@@ -329,6 +334,7 @@ describe("tui dashboard", () => {
 
     const finished = dispatchDashboard(running, DashboardAction.FinishRun({ message: "done" }))
     expect(finished.mode).toBe("browsing")
+    expect(finished.inputMode).toBe("normal")
   })
 
   test("maps keyboard input onto dashboard actions", () => {
@@ -345,7 +351,6 @@ describe("tui dashboard", () => {
     }
 
     let state = createDashboardState(snapshot)
-    state = applyKey(state, "escape", "\u001b")
     state = applyKey(state, "j")
     state = applyKey(state, "4")
     state = applyKey(state, "return", "\r")

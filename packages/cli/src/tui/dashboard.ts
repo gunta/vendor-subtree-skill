@@ -166,10 +166,9 @@ export const createDashboardState = (
   selectedTaskIndexes: [],
   selectedSuggestionIndex: 0,
   snapshot,
-  inputMode: "add",
+  inputMode: "normal",
   statusMessage:
-    options.statusMessage ??
-    "Type to search or add a repo/package/org; enter to run, esc for shortcuts.",
+    options.statusMessage ?? "Shortcut mode: q quit, r refresh, / + i focus input, ? help.",
   strategy: "subtree",
   suggestions: [],
   suggestionsQuery: "",
@@ -466,12 +465,12 @@ export const dispatchDashboard = (
         focusedTaskIndex: !visibleTaskIndexes(next).includes(state.focusedTaskIndex)
           ? firstVisibleTaskIndex(next)
           : state.focusedTaskIndex,
-        inputMode: "add",
         logLines: [...state.logLines, action.message].slice(-12),
         mode: "browsing",
         selectedTaskIndexes: normalizeSelectedIndexes(state.selectedTaskIndexes, snapshot),
         snapshot,
-        statusMessage: action.message
+        statusMessage: action.message,
+        inputMode: "normal"
       }
     }
     case "MoveDown":

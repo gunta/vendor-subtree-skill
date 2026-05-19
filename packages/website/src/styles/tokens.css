@@ -88,6 +88,7 @@
 :root[data-theme="light"] {
   color-scheme: light;
   --sl-color-bg: #f8f7f4;
+  --sl-color-bg-inline-code: #ebe7dd;
   --sl-color-bg-nav: #f8f7f4;
   --sl-color-bg-sidebar: #efece5;
   --sl-color-text: var(--kn-void);

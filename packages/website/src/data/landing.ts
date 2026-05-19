@@ -22,15 +22,15 @@ export interface LandingSection {
 }
 
 export const landingNav = [
-  { href: "/docs/getting-started/", label: "Install" },
+  { href: "/docs/installation/", label: "Install" },
   { href: "/docs/strategies/", label: "Strategies" },
   { href: "/docs/doctor/", label: "Doctor" },
   { href: "/docs/", label: "Docs", variant: "secondary" }
 ] as const satisfies ReadonlyArray<LandingLink>
 
 export const heroActions = [
-  { href: "/docs/getting-started/", label: "Add context", variant: "primary" },
-  { href: "/docs/strategies/", label: "Compare strategies", variant: "secondary" }
+  { href: "/docs/installation/", label: "Install ingraft", variant: "primary" },
+  { href: "/docs/getting-started/", label: "Get started", variant: "secondary" }
 ] as const satisfies ReadonlyArray<LandingLink>
 
 export const capabilitySignals = [

@@ -488,6 +488,55 @@
   content: "adjacent";
 }
 
+/* ============================================ Install section */
+
+.install-section {
+  padding-bottom: 96px;
+}
+
+.install-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  margin-top: 44px;
+}
+
+.install-card {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: 18px;
+  padding: 24px;
+}
+
+.install-card-head {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 14px;
+  align-items: start;
+}
+
+.install-card-icon {
+  display: inline-grid;
+  width: 36px;
+  height: 36px;
+  place-items: center;
+  border: 1px solid var(--kn-line-strong);
+  border-radius: 10px;
+  background:
+    radial-gradient(80% 80% at 30% 20%, rgba(255, 60, 121, 0.14), transparent 60%),
+    rgba(236, 232, 216, 0.03);
+  color: var(--kn-magenta);
+}
+
+.install-card h3 {
+  margin: 0 0 6px;
+  font-size: 17px;
+}
+
+.install-card p {
+  font-size: 14px;
+}
+
 /* ============================================ Terminal */
 
 .terminal {
@@ -657,6 +706,7 @@
   }
   .problem-grid,
   .strategy-grid,
+  .install-grid,
   .workflow-grid {
     grid-template-columns: 1fr;
   }

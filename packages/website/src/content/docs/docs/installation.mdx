@@ -1,0 +1,156 @@
+---
+title: Installation
+description: Run ingraft with npx, bunx, pnpm dlx, Yarn, npm, Homebrew, Nix, shell, or skills.sh.
+---
+
+import { TabItem, Tabs } from "@astrojs/starlight/components"
+
+Use `ingraft` from the root of the project that should receive repository
+context. You can run it on demand without a global install, or put the CLI on
+`PATH` through your usual package manager.
+
+## Run without installing
+
+These commands download and execute the published package for one run.
+
+<Tabs syncKey="package-runner">
+  <TabItem label="npm" icon="npm">
+
+```sh
+npx ingraft@latest --help
+npx ingraft@latest deps
+```
+
+  </TabItem>
+  <TabItem label="Bun" icon="bun">
+
+```sh
+bunx ingraft@latest
+bunx ingraft@latest doctor
+```
+
+  </TabItem>
+  <TabItem label="pnpm" icon="pnpm">
+
+```sh
+pnpm dlx ingraft@latest
+pnpm dlx ingraft@latest deps
+```
+
+  </TabItem>
+  <TabItem label="Yarn" icon="seti:yarn">
+
+```sh
+yarn dlx ingraft@latest
+yarn dlx ingraft@latest doctor
+```
+
+  </TabItem>
+</Tabs>
+
+Use `bunx ingraft@latest` for the interactive dashboard. Non-interactive
+commands such as `deps`, `list`, `doctor`, and `context` also work through
+`npx`, `pnpm dlx`, and `yarn dlx`.
+
+## Install globally
+
+<Tabs syncKey="package-manager">
+  <TabItem label="npm" icon="npm">
+
+```sh
+npm install -g ingraft
+ingraft deps
+```
+
+  </TabItem>
+  <TabItem label="Bun" icon="bun">
+
+```sh
+bun add -g ingraft
+ingraft deps
+```
+
+  </TabItem>
+  <TabItem label="pnpm" icon="pnpm">
+
+```sh
+pnpm add -g ingraft
+ingraft deps
+```
+
+  </TabItem>
+  <TabItem label="Yarn" icon="seti:yarn">
+
+```sh
+yarn global add ingraft
+ingraft deps
+```
+
+  </TabItem>
+</Tabs>
+
+After installation, run `ingraft doctor` to refresh project-specific editor,
+ignore, and agent surfaces.
+
+## System installers
+
+<Tabs syncKey="system-installer">
+  <TabItem label="Shell" icon="download">
+
+```sh
+curl -fsSL https://ingraft.dev/install.sh | sh
+```
+
+Pin the installer to a package manager or version when needed:
+
+```sh
+curl -fsSL https://ingraft.dev/install.sh | INGRAFT_INSTALL_METHOD=npm sh
+curl -fsSL https://ingraft.dev/install.sh | INGRAFT_VERSION=0.3.0 sh
+```
+
+  </TabItem>
+  <TabItem label="Homebrew" icon="homebrew">
+
+```sh
+brew tap gunta/ingraft https://github.com/gunta/ingraft
+brew install ingraft
+```
+
+Homebrew installs the npm package tarball and makes sure `node`, `bun`, and
+`git` are present.
+
+  </TabItem>
+  <TabItem label="Nix" icon="nix">
+
+```sh
+nix run github:gunta/ingraft
+nix profile install github:gunta/ingraft#ingraft
+```
+
+Use the overlay from another flake:
+
+```nix
+{
+  inputs.ingraft.url = "github:gunta/ingraft";
+}
+```
+
+  </TabItem>
+  <TabItem label="skills.sh" icon="puzzle">
+
+```sh
+npx skills add gunta/ingraft
+```
+
+The agent skill delegates to the published CLI with `bunx ingraft@latest`; it
+does not copy the TypeScript implementation into the skill package.
+
+  </TabItem>
+</Tabs>
+
+## Runtime notes
+
+`ingraft` targets Node.js 20.11 or newer for non-interactive commands. The
+zero-argument dashboard uses OpenTUI and needs Bun. `git` is required for
+repository add, update, fork, and doctor workflows. GitHub organization and fork
+flows also use the GitHub CLI when authenticated repository access is needed.

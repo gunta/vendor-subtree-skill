@@ -10,6 +10,7 @@ The repository also ships package-manager definitions for downstream distributio
 
 - `Formula/ingraft.rb` installs the published npm tarball through Homebrew.
 - `flake.nix` and `nix/package.nix` expose `github:gunta/ingraft#ingraft` for Nix users.
+- `packages/website/public/install.sh` installs the published npm package through Bun, npm, pnpm, or Yarn for shell users.
 
 ## npm setup
 
@@ -39,6 +40,13 @@ shasum -a 256 packages/cli/ingraft-<version>.tgz
 ```
 
 Then update `Formula/ingraft.rb` and remove the generated `.tgz`.
+
+## Shell installer setup
+
+The website serves `packages/website/public/install.sh` at
+`https://ingraft.dev/install.sh`. The script installs `ingraft@latest` by
+default, so publish the npm package before advertising the shell command on a
+live release page.
 
 ## Nix setup
 

@@ -1,3 +1,413 @@
 @import "./tokens.css";
 @import "./landing.css";
 @import "./tooling.css";
+
+/* ============================================ Starlight docs */
+:root {
+  --sl-content-width: 47rem;
+  --sl-sidebar-width: 18.5rem;
+  --sl-main-pad: 0 0 5rem;
+  --sl-content-gap-y: 1.125rem;
+  --sl-color-black: var(--kn-void-deep);
+  --sl-color-bg: #05050b;
+  --sl-color-bg-nav: rgba(6, 6, 12, 0.86);
+  --sl-color-bg-sidebar: rgba(8, 8, 15, 0.92);
+  --sl-color-bg-inline-code: rgba(236, 232, 216, 0.085);
+  --sl-color-hairline: rgba(236, 232, 216, 0.08);
+  --sl-color-hairline-light: rgba(236, 232, 216, 0.11);
+  --sl-color-hairline-shade: rgba(236, 232, 216, 0.1);
+  --sl-color-text-invert: var(--kn-chrome-hi);
+  --docs-panel: rgba(12, 12, 20, 0.76);
+  --docs-panel-strong: rgba(16, 16, 26, 0.94);
+  --docs-line: rgba(236, 232, 216, 0.12);
+  --docs-line-soft: rgba(236, 232, 216, 0.07);
+  --docs-accent-soft: rgba(255, 60, 121, 0.14);
+  --docs-cyan: #7ad9f0;
+  --docs-amber: #fcd07f;
+}
+
+:root[data-theme="light"] {
+  --sl-content-width: 47rem;
+  --sl-color-black: #fffdf7;
+  --sl-color-bg: #f7f5ef;
+  --sl-color-bg-nav: rgba(248, 247, 244, 0.9);
+  --sl-color-bg-sidebar: rgba(239, 236, 229, 0.94);
+  --sl-color-bg-inline-code: rgba(74, 18, 48, 0.08);
+  --sl-color-hairline: rgba(6, 6, 12, 0.08);
+  --sl-color-hairline-light: rgba(6, 6, 12, 0.1);
+  --sl-color-hairline-shade: rgba(6, 6, 12, 0.12);
+  --sl-color-text-invert: #f8f7f4;
+  --docs-panel: rgba(255, 253, 247, 0.78);
+  --docs-panel-strong: rgba(255, 253, 247, 0.96);
+  --docs-line: rgba(6, 6, 12, 0.12);
+  --docs-line-soft: rgba(6, 6, 12, 0.08);
+  --docs-accent-soft: rgba(255, 60, 121, 0.11);
+  --docs-code-bg: #fbfaf6;
+  --docs-code-title: #ebe7dd;
+}
+
+html[data-has-sidebar] body {
+  background:
+    linear-gradient(90deg, rgba(236, 232, 216, 0.025) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(236, 232, 216, 0.018) 1px, transparent 1px), var(--sl-color-bg);
+  background-size:
+    72px 72px,
+    72px 72px,
+    auto;
+}
+
+html[data-theme="light"][data-has-sidebar] body {
+  background:
+    linear-gradient(90deg, rgba(6, 6, 12, 0.025) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(6, 6, 12, 0.018) 1px, transparent 1px), var(--sl-color-bg);
+}
+
+.header {
+  border-bottom-color: var(--docs-line);
+  background: var(--sl-color-bg-nav);
+  backdrop-filter: blur(18px) saturate(1.2);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.02),
+    0 18px 48px rgba(0, 0, 0, 0.18);
+}
+
+:root[data-theme="light"] .header {
+  box-shadow: 0 12px 34px rgba(6, 6, 12, 0.08);
+}
+
+.site-title img {
+  max-height: 2rem;
+  filter: drop-shadow(0 0 18px rgba(255, 60, 121, 0.12));
+}
+
+.sidebar-pane {
+  border-inline-end-color: var(--docs-line);
+  background: var(--sl-color-bg-sidebar);
+  backdrop-filter: blur(12px);
+}
+
+.sidebar-content {
+  padding-block-start: 1.15rem;
+}
+
+.sidebar-pane .large {
+  color: var(--sl-color-white);
+  font-size: 0.82rem;
+  font-weight: 650;
+  letter-spacing: 0;
+}
+
+.sidebar-pane summary {
+  border-radius: 6px;
+}
+
+.sidebar-pane summary:hover {
+  background: rgba(236, 232, 216, 0.045);
+}
+
+.sidebar-pane a {
+  border-radius: 6px;
+  color: var(--sl-color-gray-2);
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    box-shadow 140ms ease;
+}
+
+.sidebar-pane a:hover,
+.sidebar-pane a:focus {
+  background: rgba(236, 232, 216, 0.055);
+}
+
+.sidebar-pane [aria-current="page"],
+.sidebar-pane [aria-current="page"]:hover,
+.sidebar-pane [aria-current="page"]:focus {
+  color: var(--sl-color-white);
+  background: var(--docs-accent-soft);
+  box-shadow:
+    inset 2px 0 0 var(--kn-magenta),
+    inset 0 0 0 1px rgba(255, 60, 121, 0.16);
+}
+
+.main-frame {
+  min-height: 100vh;
+}
+
+.main-pane,
+main,
+.content-panel > .sl-container,
+.sl-markdown-content,
+starlight-tabs,
+starlight-tabs [role="tabpanel"],
+.expressive-code,
+.expressive-code figure.frame {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.main-pane {
+  background: linear-gradient(180deg, rgba(255, 60, 121, 0.035), transparent 18rem), transparent;
+}
+
+.content-panel {
+  padding-block: clamp(1.65rem, 1.25rem + 1vw, 2.5rem);
+}
+
+.content-panel + .content-panel {
+  border-top: 0;
+}
+
+.content-panel > .sl-container {
+  position: relative;
+}
+
+.content-panel:first-of-type > .sl-container {
+  padding-block-end: 1.15rem;
+  border-bottom: 1px solid var(--docs-line-soft);
+}
+
+main h1 {
+  max-width: 12ch;
+  font-weight: 720;
+  letter-spacing: 0;
+}
+
+.sl-markdown-content {
+  color: var(--sl-color-text);
+}
+
+.sl-markdown-content > p:first-child {
+  color: var(--sl-color-gray-1);
+  font-size: 1.04rem;
+}
+
+.sl-markdown-content :is(h2, h3):not(:where(.not-content *)) {
+  letter-spacing: 0;
+}
+
+.sl-markdown-content h2:not(:where(.not-content *)) {
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--docs-line-soft);
+}
+
+.sl-markdown-content a:not(:where(.not-content *)) {
+  text-decoration-color: rgba(255, 60, 121, 0.4);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+}
+
+.sl-markdown-content code:not(:where(.not-content *)) {
+  border: 1px solid rgba(236, 232, 216, 0.09);
+  border-radius: 5px;
+  overflow-wrap: anywhere;
+}
+
+.sl-markdown-content pre:not(:where(.not-content *)),
+.expressive-code figure.frame {
+  border-color: var(--docs-line);
+  border-radius: 8px;
+  background: #08080f;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+  overflow: hidden;
+}
+
+.sl-markdown-content pre:not(:where(.not-content *)),
+.expressive-code,
+.expressive-code pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+
+:root[data-theme="light"] .sl-markdown-content pre:not(:where(.not-content *)),
+:root[data-theme="light"] .expressive-code figure.frame {
+  background: var(--docs-code-bg);
+  box-shadow: 0 14px 36px rgba(6, 6, 12, 0.08);
+}
+
+.expressive-code figure.frame figcaption.header {
+  border-bottom: 1px solid var(--docs-line);
+  background: rgba(236, 232, 216, 0.08);
+  box-shadow: none;
+}
+
+:root[data-theme="light"] .expressive-code figure.frame figcaption.header {
+  background: var(--docs-code-title);
+}
+
+.sl-markdown-content blockquote:not(:where(.not-content *)) {
+  border-inline-start-color: var(--kn-magenta);
+  background: var(--docs-accent-soft);
+  border-radius: 0 8px 8px 0;
+  padding-block: 0.7rem;
+}
+
+.starlight-aside {
+  border: 1px solid var(--docs-line);
+  border-inline-start: 3px solid var(--sl-color-asides-border);
+  border-radius: 8px;
+  background: var(--docs-panel);
+}
+
+starlight-tabs {
+  margin-block: 1.25rem;
+}
+
+starlight-tabs .tablist-wrapper {
+  padding: 0.3rem;
+  border: 1px solid var(--docs-line);
+  border-radius: 8px;
+  background: rgba(236, 232, 216, 0.035);
+}
+
+starlight-tabs [role="tablist"] {
+  min-width: max-content;
+  gap: 0.25rem;
+  border-bottom: 0;
+}
+
+starlight-tabs .tab > [role="tab"] {
+  min-height: 2.3rem;
+  padding: 0.48rem 0.78rem;
+  border-radius: 6px;
+  color: var(--sl-color-gray-2);
+  box-shadow: none;
+  font-size: var(--sl-text-sm);
+  transition:
+    background-color 140ms ease,
+    color 140ms ease,
+    transform 140ms ease;
+}
+
+starlight-tabs .tab > [role="tab"]:hover,
+starlight-tabs .tab > [role="tab"]:focus {
+  color: var(--sl-color-white);
+  background: rgba(236, 232, 216, 0.055);
+}
+
+starlight-tabs .tab [role="tab"][aria-selected="true"] {
+  color: var(--sl-color-white);
+  background: rgba(255, 60, 121, 0.16);
+  box-shadow: inset 0 0 0 1px rgba(255, 60, 121, 0.26);
+}
+
+starlight-tabs .tab [role="tab"] svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+starlight-tabs [role="tabpanel"] {
+  padding: 1rem;
+  border: 1px solid var(--docs-line);
+  border-radius: 8px;
+  background: var(--docs-panel);
+  overflow-x: auto;
+}
+
+starlight-tabs [role="tabpanel"] > :first-child {
+  margin-top: 0;
+}
+
+starlight-tabs [role="tabpanel"] > :last-child {
+  margin-bottom: 0;
+}
+
+starlight-tabs [role="tabpanel"] pre:not(:where(.not-content *)) {
+  margin: 0;
+}
+
+.right-sidebar {
+  border-inline-start-color: var(--docs-line);
+  background: rgba(6, 6, 12, 0.54);
+}
+
+:root[data-theme="light"] .right-sidebar {
+  background: rgba(248, 247, 244, 0.74);
+}
+
+.right-sidebar-panel {
+  padding-block-start: 1.35rem;
+}
+
+.right-sidebar-panel h2 {
+  color: var(--sl-color-gray-1);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+
+.right-sidebar-panel a {
+  border-radius: 6px;
+  padding: 0.3rem 0.45rem;
+}
+
+.right-sidebar-panel a:hover {
+  background: rgba(236, 232, 216, 0.05);
+}
+
+mobile-starlight-toc nav {
+  border-top-color: var(--docs-line);
+  background: var(--sl-color-bg-nav);
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.18);
+  backdrop-filter: blur(16px) saturate(1.1);
+}
+
+mobile-starlight-toc summary {
+  border-bottom-color: var(--docs-line);
+}
+
+mobile-starlight-toc .toggle {
+  border-color: var(--docs-line);
+  background: var(--docs-panel-strong);
+  color: var(--sl-color-gray-1);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+}
+
+mobile-starlight-toc details[open] .toggle,
+mobile-starlight-toc details .toggle:hover {
+  border-color: rgba(255, 60, 121, 0.38);
+  color: var(--sl-color-white);
+  background: rgba(255, 60, 121, 0.16);
+}
+
+mobile-starlight-toc .display-current {
+  color: var(--sl-color-gray-1);
+}
+
+mobile-starlight-toc .dropdown {
+  border-color: var(--docs-line);
+  background: var(--docs-panel-strong);
+  box-shadow: 0 22px 52px rgba(0, 0, 0, 0.22);
+}
+
+:root[data-theme="light"] mobile-starlight-toc nav {
+  box-shadow: 0 14px 32px rgba(6, 6, 12, 0.08);
+}
+
+:root[data-theme="light"] mobile-starlight-toc .toggle {
+  color: var(--kn-void);
+}
+
+:root[data-theme="light"] mobile-starlight-toc details[open] .toggle,
+:root[data-theme="light"] mobile-starlight-toc details .toggle:hover {
+  color: var(--kn-void);
+}
+
+@media (min-width: 72rem) {
+  :root {
+    --sl-content-pad-x: 2rem;
+  }
+}
+
+@media (max-width: 49.99rem) {
+  main h1 {
+    max-width: none;
+    font-size: clamp(2rem, 13vw, 2.65rem);
+  }
+
+  .sl-markdown-content > p:first-child {
+    font-size: 1rem;
+  }
+
+  starlight-tabs [role="tabpanel"] {
+    padding: 0.8rem;
+  }
+}

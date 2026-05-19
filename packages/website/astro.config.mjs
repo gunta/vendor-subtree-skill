@@ -125,6 +125,7 @@ export default defineConfig({
           label: "Start Here",
           items: [
             { label: "Overview", slug: "docs" },
+            { label: "Installation", slug: "docs/installation" },
             { label: "Getting Started", slug: "docs/getting-started" },
             { label: "Strategies", slug: "docs/strategies" }
           ]

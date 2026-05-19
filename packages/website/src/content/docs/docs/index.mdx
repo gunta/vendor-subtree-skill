@@ -3,6 +3,8 @@ title: Overview
 description: Repository context workflows for coding agents, LSPs, and humans.
 ---
 
+import { TabItem, Tabs } from "@astrojs/starlight/components"
+
 `ingraft` routes context into your repository in a controlled way. The flagship
 route is version-matched upstream source under `vendor/`, but the goal is not to
 vendor everything forever. The goal is to make the context that matters available
@@ -22,6 +24,51 @@ source fetches, local search tools, or generated agent instructions.
 - Version selection from branches, tags, releases, commits, and synced package versions.
 - Tooling integration for editors, linters, formatters, monorepos, and agent files.
 - Doctor output for the detected project stack, context routes, and vendor status.
+
+## Install
+
+Install or run the published CLI with the package lane that fits your project:
+
+<Tabs syncKey="package-runner">
+  <TabItem label="npm" icon="npm">
+
+```sh
+npx ingraft@latest --help
+```
+
+  </TabItem>
+  <TabItem label="Bun" icon="bun">
+
+```sh
+bunx ingraft@latest
+```
+
+  </TabItem>
+  <TabItem label="pnpm" icon="pnpm">
+
+```sh
+pnpm dlx ingraft@latest deps
+```
+
+  </TabItem>
+  <TabItem label="Homebrew" icon="homebrew">
+
+```sh
+brew install ingraft
+```
+
+  </TabItem>
+  <TabItem label="Nix" icon="nix">
+
+```sh
+nix run github:gunta/ingraft
+```
+
+  </TabItem>
+</Tabs>
+
+See [Installation](/docs/installation/) for npm, Bun, pnpm, Yarn, Homebrew,
+Nix, shell, and `skills.sh` paths.
 
 ## Core loop
 

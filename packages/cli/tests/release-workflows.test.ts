@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test"
+import { randomUUID } from "node:crypto"
+import { mkdir, mkdtemp, rm } from "node:fs/promises"
+import { tmpdir } from "node:os"
 import { join } from "node:path"
 
 import { parse } from "yaml"
@@ -42,6 +45,7 @@ type PackageJson = {
     readonly type?: string
     readonly url?: string
   }
+  readonly scripts?: Record<string, string>
   readonly version?: string
 }
 
@@ -66,6 +70,98 @@ const expectStep = (
 
 const workflowText = async (path: string): Promise<string> =>
   await Bun.file(join(workspaceRoot, path)).text()
+
+const spawn = (
+  cmd: readonly string[],
+  cwd: string
+): {
+  readonly exitCode: number
+  readonly stderr: string
+  readonly stdout: string
+} => {
+  const result = Bun.spawnSync({
+    cmd: [...cmd],
+    cwd,
+    stderr: "pipe",
+    stdout: "pipe"
+  })
+  return {
+    exitCode: result.exitCode,
+    stderr: result.stderr.toString(),
+    stdout: result.stdout.toString()
+  }
+}
+
+const writeJson = async (path: string, value: unknown): Promise<void> => {
+  await Bun.write(path, `${JSON.stringify(value, null, 2)}\n`)
+}
+
+const createReleaseFixture = async (version: string): Promise<string> => {
+  const fixture = await mkdtemp(join(tmpdir(), "ingraft-release-fixture-"))
+  await Promise.all([
+    mkdir(join(fixture, ".github/workflows"), { recursive: true }),
+    mkdir(join(fixture, "Formula"), { recursive: true }),
+    mkdir(join(fixture, "packages/cli"), { recursive: true }),
+    mkdir(join(fixture, "packages/skill"), { recursive: true }),
+    mkdir(join(fixture, "scripts"), { recursive: true })
+  ])
+
+  await Bun.write(join(fixture, "scripts/release.ts"), await workflowText("scripts/release.ts"))
+  await writeJson(join(fixture, "package.json"), {
+    name: "ingraft-workspace",
+    scripts: {
+      "release:check": "bun scripts/release.ts check",
+      "release:next": "bun scripts/release.ts next",
+      "release:notes": "bun scripts/release.ts notes",
+      "release:prepare": "bun scripts/release.ts prepare"
+    },
+    version
+  })
+  await writeJson(join(fixture, "packages/cli/package.json"), {
+    name: "ingraft",
+    version
+  })
+  await writeJson(join(fixture, "packages/skill/package.json"), {
+    name: "@ingraft/skill",
+    version
+  })
+  await writeJson(join(fixture, "packages/cli/package-lock.json"), {
+    name: "ingraft",
+    packages: {
+      "": {
+        name: "ingraft",
+        version
+      }
+    },
+    version
+  })
+  await Bun.write(
+    join(fixture, "Formula/ingraft.rb"),
+    `class Ingraft < Formula\n  url "https://registry.npmjs.org/ingraft/-/ingraft-${version}.tgz"\n  sha256 "${"a".repeat(64)}"\nend\n`
+  )
+  await Bun.write(
+    join(fixture, ".github/workflows/release-packages.yml"),
+    "run: bun run release:check\nrun: npm publish --access public --provenance\n"
+  )
+  await Bun.write(
+    join(fixture, ".github/workflows/prepare-release.yml"),
+    "run: bun run release:prepare\n"
+  )
+  await Bun.write(
+    join(fixture, "CHANGELOG.md"),
+    `# Changelog\n\nAll notable changes to ingraft are recorded here.\n\n## Unreleased\n\n## ${version} - 2026-05-19\n\n### Changed\n\n- Existing release.\n`
+  )
+
+  expect(spawn(["git", "init"], fixture).exitCode).toBe(0)
+  expect(spawn(["git", "config", "user.email", "release@example.com"], fixture).exitCode).toBe(0)
+  expect(spawn(["git", "config", "user.name", "Release Fixture"], fixture).exitCode).toBe(0)
+  expect(spawn(["git", "add", "."], fixture).exitCode).toBe(0)
+  expect(spawn(["git", "commit", "-m", "feat: fixture release automation"], fixture).exitCode).toBe(
+    0
+  )
+
+  return fixture
+}
 
 describe("release automation workflows", () => {
   test("marks published packages for public npm release", async () => {
@@ -126,13 +222,15 @@ describe("release automation workflows", () => {
     expect(publish?.environment).toBe("npm")
     expectStep(publish?.steps, { uses: "actions/setup-node@v6" })
     expectStep(publish?.steps, { run: "bun install --frozen-lockfile" })
+    expectStep(publish?.steps, { run: "bun run release:check" })
     expectStep(publish?.steps, { run: "bun run check" })
     expectStep(publish?.steps, { run: "bun run build" })
+    expectStep(publish?.steps, { run: "bun run release:notes -- --output release-notes.md" })
 
     for (const directory of ["packages/cli", "packages/skill"]) {
       expectStep(publish?.steps, {
         "working-directory": directory,
-        run: "npm publish --access public"
+        run: "npm publish --access public --provenance"
       })
     }
 
@@ -141,6 +239,157 @@ describe("release automation workflows", () => {
 
     expect(text).not.toContain("NPM_TOKEN")
     expect(text).not.toContain("NODE_AUTH_TOKEN")
+  })
+
+  test("prepares release branches with one audited automation script", async () => {
+    const workflow = await readWorkflow(".github/workflows/prepare-release.yml")
+    const prepare = workflow.jobs?.prepare
+    const rootPackage = await readJson<PackageJson>("package.json")
+    const releaseScript = await workflowText("scripts/release.ts")
+
+    expect(workflow.name).toBe("Prepare release")
+    expect(workflow.on).toMatchObject({
+      workflow_dispatch: {
+        inputs: {
+          bump: expect.objectContaining({ default: "patch", type: "choice" }),
+          version: expect.objectContaining({ required: false }),
+          prerelease: expect.objectContaining({ type: "boolean" })
+        }
+      }
+    })
+    expect(workflow.permissions).toEqual({
+      contents: "write",
+      "pull-requests": "write"
+    })
+    expect(prepare?.permissions).toEqual({
+      contents: "write",
+      "pull-requests": "write"
+    })
+    expectStep(prepare?.steps, { uses: "actions/checkout@v6" })
+    expectStep(prepare?.steps, { name: "Resolve release version" })
+    expectStep(prepare?.steps, { name: "Prepare release files" })
+    expectStep(prepare?.steps, { run: "bun run release:check" })
+    expectStep(prepare?.steps, { run: "bun run release:notes -- --output release-notes.md" })
+    expectStep(prepare?.steps, {
+      run: "gh pr create --fill --base main --head release/v${{ steps.release.outputs.version }}"
+    })
+
+    expect(rootPackage.scripts).toMatchObject({
+      "release:check": "bun scripts/release.ts check",
+      "release:next": "bun scripts/release.ts next",
+      "release:notes": "bun scripts/release.ts notes",
+      "release:prepare": "bun scripts/release.ts prepare"
+    })
+    expect(releaseScript).toContain("prepare")
+    expect(releaseScript).toContain("check")
+    expect(releaseScript).toContain("next")
+    expect(releaseScript).toContain("notes")
+    expect(releaseScript).toContain("--bump")
+    expect(releaseScript).toContain("CHANGELOG.md")
+    expect(releaseScript).toContain("Formula/ingraft.rb")
+    expect(releaseScript).toContain("packages/cli/package-lock.json")
+  })
+
+  test("keeps changelog and release metadata anchored to the current version", async () => {
+    const rootPackage = await readJson<PackageJson>("package.json")
+    const cliPackage = await readJson<PackageJson>("packages/cli/package.json")
+    const skillPackage = await readJson<PackageJson>("packages/skill/package.json")
+    const changelog = await workflowText("CHANGELOG.md")
+    const releaseDocs = await workflowText("RELEASE.md")
+
+    expect(cliPackage.version).toBe(rootPackage.version)
+    expect(skillPackage.version).toBe(rootPackage.version)
+    expect(changelog).toContain("# Changelog")
+    expect(changelog).toContain("## Unreleased")
+    expect(changelog).toContain(`## ${rootPackage.version}`)
+    expect(changelog).toContain("### Added")
+    expect(changelog).toContain("### Changed")
+    expect(releaseDocs).toContain("bun run release:prepare")
+    expect(releaseDocs).toContain("bun run release:prepare -- --version")
+    expect(releaseDocs).toContain("bun run release:prepare -- --bump minor")
+    expect(releaseDocs).toContain("bun run release:check")
+    expect(releaseDocs).toContain("GitHub release")
+  })
+
+  test("prepares the next patch version by default", async () => {
+    const fixture = await createReleaseFixture("1.2.3")
+
+    try {
+      const result = spawn(
+        ["bun", "scripts/release.ts", "prepare", "--skip-pack", "--date", "2026-05-20"],
+        fixture
+      )
+      expect(result.exitCode, result.stderr).toBe(0)
+
+      const rootPackage = JSON.parse(await Bun.file(join(fixture, "package.json")).text())
+      const cliPackage = JSON.parse(
+        await Bun.file(join(fixture, "packages/cli/package.json")).text()
+      )
+      const lock = JSON.parse(
+        await Bun.file(join(fixture, "packages/cli/package-lock.json")).text()
+      )
+      const formula = await Bun.file(join(fixture, "Formula/ingraft.rb")).text()
+      const changelog = await Bun.file(join(fixture, "CHANGELOG.md")).text()
+
+      expect(rootPackage.version).toBe("1.2.4")
+      expect(cliPackage.version).toBe("1.2.4")
+      expect(lock.version).toBe("1.2.4")
+      expect(lock.packages[""].version).toBe("1.2.4")
+      expect(formula).toContain("ingraft-1.2.4.tgz")
+      expect(changelog).toContain("## 1.2.4 - 2026-05-20")
+      expect(result.stdout).toContain("Prepared ingraft 1.2.4")
+    } finally {
+      await rm(fixture, { force: true, recursive: true })
+    }
+  })
+
+  test("allows explicit versions to override automatic bumping", async () => {
+    const fixture = await createReleaseFixture("1.2.3")
+
+    try {
+      const result = spawn(
+        [
+          "bun",
+          "scripts/release.ts",
+          "prepare",
+          "--version",
+          "2.0.0",
+          "--bump",
+          "minor",
+          "--skip-pack",
+          "--date",
+          "2026-05-20"
+        ],
+        fixture
+      )
+      expect(result.exitCode, result.stderr).toBe(0)
+
+      const rootPackage = JSON.parse(await Bun.file(join(fixture, "package.json")).text())
+      const formula = await Bun.file(join(fixture, "Formula/ingraft.rb")).text()
+      expect(rootPackage.version).toBe("2.0.0")
+      expect(formula).toContain("ingraft-2.0.0.tgz")
+    } finally {
+      await rm(fixture, { force: true, recursive: true })
+    }
+  })
+
+  test("writes release notes to absolute output paths", async () => {
+    const outputPath = join(tmpdir(), `ingraft-release-notes-${randomUUID()}.md`)
+    const result = Bun.spawnSync({
+      cmd: ["bun", "run", "release:notes", "--", "--output", outputPath],
+      cwd: workspaceRoot,
+      stderr: "pipe",
+      stdout: "pipe"
+    })
+
+    try {
+      expect(result.exitCode).toBe(0)
+      const notes = await Bun.file(outputPath).text()
+      expect(notes).toContain("### Added")
+      expect(notes).toContain("### Changed")
+    } finally {
+      await rm(outputPath, { force: true })
+    }
   })
 
   test("keeps package metadata usable outside npm", async () => {
@@ -184,6 +433,7 @@ describe("release automation workflows", () => {
     expect(formula).toContain('depends_on "node"')
     expect(formula).toContain('system "npm", "install", *std_npm_args')
     expect(formula).toContain('bin.install_symlink libexec.glob("bin/*")')
+    expect(formula).toContain("repository context router for coding agents")
 
     expect(flake).toContain('nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable"')
     expect(flake).toContain("overlays.default")
@@ -206,6 +456,37 @@ describe("release automation workflows", () => {
     for (const text of [rootReadme, skillReadme, rootSkill]) {
       expect(text).toContain("npx skills add gunta/ingraft")
     }
+  })
+
+  test("documents public install lanes across repo and website", async () => {
+    const rootReadme = await workflowText("README.md")
+    const cliReadme = await workflowText("packages/cli/README.md")
+    const installDocs = await workflowText(
+      "packages/website/src/content/docs/docs/installation.mdx"
+    )
+    const landing = await workflowText(
+      "packages/website/src/components/landing/InstallSection.astro"
+    )
+    const installer = await workflowText("packages/website/public/install.sh")
+
+    for (const text of [rootReadme, cliReadme, installDocs, landing]) {
+      expect(text).toContain("npx ingraft@latest")
+      expect(text).toContain("bunx ingraft@latest")
+      expect(text).toContain("npm install -g ingraft")
+      expect(text).toContain("brew install ingraft")
+      expect(text).toContain("nix run github:gunta/ingraft")
+      expect(text).toContain("npx skills add gunta/ingraft")
+    }
+
+    expect(installDocs).toContain("pnpm dlx ingraft@latest")
+    expect(installDocs).toContain("yarn dlx ingraft@latest")
+    expect(installDocs).toContain("curl -fsSL https://ingraft.dev/install.sh | sh")
+    expect(installer).toContain("INGRAFT_INSTALL_METHOD")
+    expect(installer).toContain("INGRAFT_VERSION")
+    expect(installer).toContain("bun add -g")
+    expect(installer).toContain("npm install -g")
+    expect(installer).toContain("pnpm add -g")
+    expect(installer).toContain("yarn global add")
   })
 
   test("deploys the Astro site through the Cloudflare website workflow", async () => {

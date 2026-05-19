@@ -5,17 +5,21 @@ description: Install the CLI, scan a project, and add your first repository cont
 
 ![Engraving of a grafting knife laid diagonally beside a fresh scion-cutting.](/visuals/section-getting-started.png)
 
+Install the CLI first, or run it once through `npx`, `bunx`, `pnpm dlx`, or
+`yarn dlx`. See [Installation](/docs/installation/) for every package manager,
+Homebrew, Nix, shell, and `skills.sh` path.
+
 Run the CLI from the root of the project that should receive context:
 
 ```sh
-bunx ingraft
+bunx ingraft@latest
 ```
 
 The zero-argument command opens the interactive dashboard. For a plain
 non-interactive dependency scan, run:
 
 ```sh
-ingraft deps
+npx ingraft@latest deps
 ```
 
 You can also pass targets directly:

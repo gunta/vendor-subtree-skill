@@ -1,8 +1,8 @@
 class Ingraft < Formula
-  desc "Vendor external source repositories into projects for coding agents"
+  desc "Route repository context into coding-agent workflows"
   homepage "https://ingraft.dev"
   url "https://registry.npmjs.org/ingraft/-/ingraft-0.3.0.tgz"
-  sha256 "ddb1c2a9daaa623b532fcc219bbe687f298e31660f26d298b8b09c60ce539c8a"
+  sha256 "d4b4555592bbd70ce4a43ac8d5d74260398f3901b1bcc04089b55d9402f1432e"
   license "MIT"
 
   depends_on "bun"
@@ -15,6 +15,6 @@ class Ingraft < Formula
   end
 
   test do
-    assert_match "git reference manager for coding agents", shell_output("#{bin}/ingraft --help")
+    assert_match "repository context router for coding agents", shell_output("#{bin}/ingraft --help")
   end
 end

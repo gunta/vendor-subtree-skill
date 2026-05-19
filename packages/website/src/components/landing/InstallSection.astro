@@ -1,0 +1,86 @@
+---
+import Icon from "../icons/Icon.astro"
+import CodeWindow from "./CodeWindow.astro"
+
+const installMethods = [
+  {
+    icon: "zap",
+    title: "Run once",
+    body: "Use the published package without adding a global command.",
+    code: `bunx ingraft@latest
+npx ingraft@latest --help
+pnpm dlx ingraft@latest deps
+yarn dlx ingraft@latest doctor`,
+    badge: "zero install"
+  },
+  {
+    icon: "package",
+    title: "Install globally",
+    body: "Put the CLI on PATH with the package manager already in your toolchain.",
+    code: `npm install -g ingraft
+bun add -g ingraft
+pnpm add -g ingraft
+yarn global add ingraft`,
+    badge: "npm"
+  },
+  {
+    icon: "terminal",
+    title: "Shell bootstrap",
+    body: "A hosted script chooses Bun, npm, pnpm, or Yarn and installs the package globally.",
+    code: `curl -fsSL https://ingraft.dev/install.sh | sh`,
+    badge: "shell"
+  },
+  {
+    icon: "download",
+    title: "Homebrew",
+    body: "Install from the repository tap when you want Node, Bun, and Git managed together.",
+    code: `brew tap gunta/ingraft https://github.com/gunta/ingraft
+brew install ingraft`,
+    badge: "brew"
+  },
+  {
+    icon: "command",
+    title: "Nix",
+    body: "Run directly from the flake, or install the package into a Nix profile.",
+    code: `nix run github:gunta/ingraft
+nix profile install github:gunta/ingraft#ingraft`,
+    badge: "flake"
+  },
+  {
+    icon: "sparkles",
+    title: "Agent skill",
+    body: "Install the skill wrapper while keeping the implementation in the package-managed CLI.",
+    code: `npx skills add gunta/ingraft`,
+    badge: "skills.sh"
+  }
+] as const
+---
+
+<section id="install" class="section install-section">
+  <p class="section-kicker">Install</p>
+  <h2>Run it from the store your project already trusts.</h2>
+  <p class="section-intro">
+    Try <code>ingraft</code> without installing through <code>npx</code>, <code>bunx</code>,
+    <code>pnpm dlx</code>, or <code>yarn dlx</code>. Put it on <code>PATH</code> through npm,
+    Homebrew, Nix, or the shell bootstrap when you want a durable local command.
+  </p>
+
+  <div class="install-grid">
+    {
+      installMethods.map((method) => (
+        <article class="tile install-card">
+          <header class="install-card-head">
+            <span class="install-card-icon" aria-hidden="true">
+              <Icon name={method.icon as never} size={16} stroke={1.7} />
+            </span>
+            <div>
+              <h3>{method.title}</h3>
+              <p>{method.body}</p>
+            </div>
+          </header>
+          <CodeWindow code={method.code} lang="bash" badge={method.badge} compact />
+        </article>
+      ))
+    }
+  </div>
+</section>
