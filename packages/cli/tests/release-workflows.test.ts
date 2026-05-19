@@ -23,6 +23,11 @@ type WorkflowJob = {
   readonly needs?: string | readonly string[]
   readonly permissions?: Record<string, string>
   readonly steps?: readonly WorkflowStep[]
+  readonly strategy?: {
+    readonly "fail-fast"?: boolean
+    readonly matrix?: Record<string, unknown>
+  }
+  readonly "runs-on"?: string
 }
 
 type Workflow = {
@@ -227,6 +232,7 @@ describe("release automation workflows", () => {
   test("runs CI checks on pushes and pull requests", async () => {
     const workflow = await readWorkflow(".github/workflows/ci.yml")
     const check = workflow.jobs?.check
+    const installSmoke = workflow.jobs?.["install-smoke"]
 
     expect(workflow.name).toBe("CI")
     expect(workflow.on).toMatchObject({
@@ -235,7 +241,8 @@ describe("release automation workflows", () => {
     })
     expect(workflow.permissions).toEqual({ contents: "read" })
     expect(check).toMatchObject({
-      permissions: { contents: "read" }
+      permissions: { contents: "read" },
+      "runs-on": "ubuntu-latest"
     })
     expectStep(check?.steps, { uses: "actions/checkout@v6" })
     expectStep(check?.steps, {
@@ -245,6 +252,40 @@ describe("release automation workflows", () => {
     expectStep(check?.steps, { run: "bun install --frozen-lockfile" })
     expectStep(check?.steps, { run: "bun run check" })
     expectStep(check?.steps, { run: "bun run build" })
+    expectStep(check?.steps, {
+      name: "Pack npm packages",
+      run: expect.stringContaining("npm pack --pack-destination ../../.artifacts")
+    })
+    expectStep(check?.steps, {
+      name: "Upload npm packages",
+      uses: "actions/upload-artifact@v6",
+      with: expect.objectContaining({
+        name: "ingraft-npm-packages",
+        path: ".artifacts/*.tgz"
+      })
+    })
+
+    expect(installSmoke).toMatchObject({
+      needs: "check",
+      permissions: { contents: "read" },
+      "runs-on": "${{ matrix.os }}",
+      strategy: {
+        "fail-fast": false,
+        matrix: {
+          os: ["ubuntu-latest", "macos-latest", "windows-latest"]
+        }
+      }
+    })
+    expectStep(installSmoke?.steps, { uses: "actions/checkout@v6" })
+    expectStep(installSmoke?.steps, { uses: "actions/setup-node@v6" })
+    expectStep(installSmoke?.steps, {
+      uses: "actions/download-artifact@v6",
+      with: {
+        name: "ingraft-npm-packages",
+        path: ".artifacts"
+      }
+    })
+    expectStep(installSmoke?.steps, { run: "node scripts/ci/smoke-install.mjs .artifacts" })
   })
 
   test("publishes npm install packages through GitHub OIDC", async () => {

@@ -1,8 +1,10 @@
 # Release Automation
 
-This repository ships three GitHub Actions workflows:
+This repository ships four GitHub Actions workflows:
 
-- `ci.yml` runs the monorepo check and build on pull requests and pushes to `main`.
+- `ci.yml` runs the monorepo check and build once on Linux, packs the public npm
+  artifacts, then smoke-installs them on Linux, macOS, and Windows.
+- `prepare-release.yml` opens audited release-preparation pull requests.
 - `release-packages.yml` publishes the npm packages when a GitHub Release is published or when the workflow is run manually.
 - `deploy-website.yml` deploys the Astro/Starlight website to Cloudflare.
 
