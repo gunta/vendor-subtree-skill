@@ -40,15 +40,15 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@astrojs/react": "^5.0.4",
+    "@astrojs/react": "^5.0.5",
     "@astrojs/starlight": "^0.39.2",
     "@effect/platform-bun": "4.0.0-beta.66",
     "@effect/platform-node": "4.0.0-beta.66",
     "@paper-design/shaders-react": "^0.0.76",
-    "@types/react": "^19.2.14",
+    "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
     "alchemy": "2.0.0-beta.38",
-    "astro": "^6.3.1",
+    "astro": "^6.3.5",
     "effect": "4.0.0-beta.66",
     "libsodium-wrappers": "^0.8.4",
     "react": "^19.2.6",
