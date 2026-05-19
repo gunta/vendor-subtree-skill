@@ -13,9 +13,11 @@ class Ingraft < Formula
   def install
     system "npm", "install", *std_npm_args
     bin.install_symlink libexec.glob("bin/*")
+    man1.install libexec/"lib/node_modules/@ingraft/cli/man/ingraft.1"
   end
 
   test do
     assert_match "repository context router for coding agents", shell_output("#{bin}/ingraft --help")
+    assert_predicate man1/"ingraft.1", :exist?, "ingraft.1 man page was not installed"
   end
 end

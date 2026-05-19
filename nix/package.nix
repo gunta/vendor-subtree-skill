@@ -21,6 +21,7 @@ buildNpmPackage {
       ../packages/cli/LICENSE
       ../packages/cli/README.md
       ../packages/cli/bin
+      ../packages/cli/man
       ../packages/cli/package-lock.json
       ../packages/cli/package.json
       ../packages/cli/src
@@ -52,6 +53,10 @@ buildNpmPackage {
       git
     ])
   ];
+
+  postInstall = ''
+    install -Dm644 man/ingraft.1 "$out/share/man/man1/ingraft.1"
+  '';
 
   meta = {
     description = packageJson.description;

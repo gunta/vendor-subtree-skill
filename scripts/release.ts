@@ -31,8 +31,10 @@ const root = resolve(import.meta.dir, "..")
 
 const paths = {
   changelog: join(root, "CHANGELOG.md"),
+  aliasManPage: join(root, "packages/ingraft/man/ingraft.1"),
   aliasPackage: join(root, "packages/ingraft/package.json"),
   cliConstants: join(root, "packages/cli/src/domain/constants.ts"),
+  cliManPage: join(root, "packages/cli/man/ingraft.1"),
   cliPackage: join(root, "packages/cli/package.json"),
   cliPackageLock: join(root, "packages/cli/package-lock.json"),
   formula: join(root, "Formula/ingraft.rb"),
@@ -251,6 +253,26 @@ const updateCliVersionConstant = async (version: string): Promise<void> => {
   await writeText(paths.cliConstants, updated)
 }
 
+const updateManPage = async (path: string, version: string, date: string): Promise<string> => {
+  const source = await readText(path)
+  const updated = source.replace(
+    /^\.TH INGRAFT 1 "[^"]+" "ingraft [^"]+" "ingraft Manual"$/m,
+    `.TH INGRAFT 1 "${date}" "ingraft ${version}" "ingraft Manual"`
+  )
+  assert(updated !== source, `${path} is missing the expected .TH header`)
+  await writeText(path, updated)
+  return updated
+}
+
+const updateManPages = async (version: string, date: string): Promise<void> => {
+  const cliUpdated = await updateManPage(paths.cliManPage, version, date)
+  const aliasUpdated = await updateManPage(paths.aliasManPage, version, date)
+  assert(
+    cliUpdated === aliasUpdated,
+    "Man page mirrors drifted after version bump — investigate before publishing"
+  )
+}
+
 const updatePackageLockVersion = async (version: string): Promise<void> => {
   const lock = await readJson<PackageLockJson>(paths.cliPackageLock)
   lock.version = version
@@ -463,6 +485,26 @@ const checkRelease = async (): Promise<void> => {
   const formula = await readText(paths.formula)
   assert(formula.includes(`cli-${version}.tgz`), "Formula/ingraft.rb tarball URL is stale")
   assert(/sha256 "[a-f0-9]{64}"/.test(formula), "Formula/ingraft.rb is missing a sha256")
+  assert(
+    formula.includes('man1.install libexec/"lib/node_modules/@ingraft/cli/man/ingraft.1"'),
+    "Formula/ingraft.rb must install the man page"
+  )
+
+  assert(cliPackage.man === "./man/ingraft.1", "packages/cli/package.json must declare man path")
+  assert(
+    aliasPackage.man === "./man/ingraft.1",
+    "packages/ingraft/package.json must declare man path"
+  )
+  const cliManPage = await readText(paths.cliManPage)
+  const aliasManPage = await readText(paths.aliasManPage)
+  assert(
+    cliManPage === aliasManPage,
+    "packages/cli/man/ingraft.1 and packages/ingraft/man/ingraft.1 must be byte-identical"
+  )
+  assert(
+    cliManPage.includes(`"ingraft ${version}"`),
+    `packages/cli/man/ingraft.1 .TH header must reference version ${version}`
+  )
 
   const changelog = await readText(paths.changelog)
   assert(changelog.includes("## Unreleased"), "CHANGELOG.md is missing an Unreleased section")
@@ -507,6 +549,7 @@ const checkRelease = async (): Promise<void> => {
 
 const prepareRelease = async (options: Options): Promise<void> => {
   const version = await resolveReleaseVersion(options)
+  const date = options.date ?? new Date().toISOString().slice(0, 10)
 
   await updatePackageVersion(paths.rootPackage, version)
   await updatePackageVersion(paths.cliPackage, version)
@@ -514,10 +557,11 @@ const prepareRelease = async (options: Options): Promise<void> => {
   await updateAliasPackageVersion(version)
   await updatePackageVersion(paths.skillPackage, version)
   await updatePackageLockVersion(version)
+  await updateManPages(version, date)
 
   const sha256 = options.skipPack ? undefined : await packCliTarball()
   await updateFormula(version, sha256)
-  await updateChangelog(version, options.date ?? new Date().toISOString().slice(0, 10))
+  await updateChangelog(version, date)
   await checkRelease()
   console.log(`Prepared ingraft ${version}`)
 }

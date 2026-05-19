@@ -6,21 +6,21 @@ const installMethods = [
   {
     icon: "zap",
     title: "Run once",
-    body: "Use the published package without adding a global command.",
-    code: `bunx @ingraft/cli@latest
-npx @ingraft/cli@latest --help
-pnpm dlx @ingraft/cli@latest deps
-yarn dlx @ingraft/cli@latest doctor`,
-    badge: "zero install"
+    body: "The shortest path. npx ingraft launches the interactive dashboard in any project. No global install, no flags.",
+    code: `npx ingraft
+bunx ingraft@latest --help
+pnpm dlx ingraft deps
+yarn dlx ingraft doctor`,
+    badge: "most popular"
   },
   {
     icon: "package",
     title: "Install globally",
-    body: "Put the CLI on PATH with the package manager already in your toolchain.",
-    code: `npm install -g @ingraft/cli
-bun add -g @ingraft/cli
-pnpm add -g @ingraft/cli
-yarn global add @ingraft/cli`,
+    body: "Put ingraft on PATH with the package manager already in your toolchain.",
+    code: `npm install -g ingraft
+bun add -g ingraft
+pnpm add -g ingraft
+yarn global add ingraft`,
     badge: "npm"
   },
   {
@@ -61,9 +61,10 @@ nix profile install github:gunta/ingraft#ingraft`,
   <p class="section-kicker">Install</p>
   <h2>Run it from the store your project already trusts.</h2>
   <p class="section-intro">
-    Try <code>@ingraft/cli</code> without installing through <code>npx</code>, <code>bunx</code>,
-    <code>pnpm dlx</code>, or <code>yarn dlx</code>. Put it on <code>PATH</code> through npm,
-    Homebrew, Nix, or the shell bootstrap when you want a durable local command.
+    The short path is <code>npx ingraft</code> — no install, opens the dashboard. Same package
+    works through <code>bunx</code>, <code>pnpm dlx</code>, or <code>yarn dlx</code>. Put it on
+    <code>PATH</code> through npm, Homebrew, Nix, or the shell bootstrap when you want a durable
+    local command.
   </p>
 
   <div class="install-grid">

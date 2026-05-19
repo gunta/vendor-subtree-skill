@@ -1,0 +1,467 @@
+.\" Manpage for ingraft.
+.\" Source lives at packages/cli/man/ingraft.1 in the ingraft repository.
+.\" Mirror at packages/ingraft/man/ingraft.1 must stay byte\-identical.
+.TH INGRAFT 1 "2026-05-20" "ingraft 0.3.2" "ingraft Manual"
+.
+.SH NAME
+ingraft \- repository context router for coding agents
+.
+.SH SYNOPSIS
+.B ingraft
+.RI [ command ]
+.RI [ options ]
+.RI [ targets ...]
+.PP
+.B ingraft
+.RI < repo >...
+.PP
+.B ingraft
+.RB [ \-h | \-\-help ]
+.RB [ \-\-version ]
+.
+.SH DESCRIPTION
+.B ingraft
+routes durable repository context into coding\-agent workflows so that
+agents \(em Claude, Codex, Cursor, Copilot, cloud workers, and PR bots \(em
+read the same source, docs, and tool routes across handoffs.
+.PP
+The main route is version\-matched upstream source vendored under
+.IR vendor/ ,
+written with one of four strategies:
+.BR subtree ,
+.BR submodule ,
+.BR clone-ignore ,
+or
+.BR cache-link .
+.B ingraft
+also helps pick lighter routes when source should stay out of git:
+ignored local clones, shared cache links, narrow repository packs,
+lazy source fetches, local search tools, and generated project
+instructions.
+.PP
+With no arguments,
+.B ingraft
+launches an interactive OpenTUI dashboard for scanning, matching,
+routing, and updating context. With a positional repository argument
+it behaves like
+.BR "ingraft add" .
+With a subcommand it dispatches to that subcommand.
+.
+.SH COMMANDS
+.TP
+.B add \fI<repo>...\fR
+Add durable source context from one or more repositories, aliases,
+npm package names, or
+.BI hex: <package>
+packages. See
+.B STRATEGIES
+for storage routes.
+.TP
+.B add-org \fI<owner>\fR
+Discover every repository under a GitHub organization or user and
+vendor them into
+.IR "vendor/<owner>/<repo>" .
+Filters include
+.BR \-\-language ,
+.BR \-\-since ,
+.BR \-\-visibility ,
+.BR \-\-include-archived ,
+.BR \-\-include-forks .
+Defaults to the
+.B clone-ignore
+strategy.
+.TP
+.B fork \fI<upstream>\fR
+Create or reuse an editable GitHub fork checkout in a parallel
+workspace and expose it as a read\-only local vendor projection.
+Use
+.B ingraft fork status
+to list recorded forks.
+.TP
+.B update \fR[\fI<name>\fR]
+Pull upstream changes for one or all durable source routes.
+.TP
+.B remove \fI<name>\fR
+Remove durable source context. With
+.B \-\-dangerously-rewrite-history
+.B ingraft
+rewrites every local ref via
+.BR git-filter-repo (1)
+so the vendor path disappears from history; this changes commit SHAs
+and requires coordinated force\-pushes and re\-clones.
+.TP
+.B list
+List durable source routes derived from git commit trailers. Use
+.B \-\-versions
+to resolve package and version drift metadata. Use
+.B \-\-json
+for machine\-readable output.
+.TP
+.B deps
+Scan project package manifests
+.RI ( package.json ", " mix.exs ", " Package.swift ", "
+Android Gradle), match npm and Hex repository metadata, and vendor
+selected source repositories. Supports
+.BR \-\-dry-run ,
+.BR \-\-json ,
+.BR \-\-strategy ,
+and
+.BR \-\-yes .
+.TP
+.B init
+Bootstrap agent docs,
+.IR .gitignore ,
+.IR .gitattributes ,
+editor settings, and tool ignores, then commit. Also sets
+.B ingraft.forkMode
+interactively when the repository is a GitHub fork.
+.TP
+.B refresh
+Re\-generate agent docs, gitignore, gitattributes, editor settings,
+and tool ignores from the current git state.
+.TP
+.B context
+Detect or run optional context tools that complement durable source
+routes.
+.RS
+.TP
+.B context pack \fR[\fI<path>...\fR]
+Run
+.BR repomix (1)
+against
+.I vendor/
+or selected paths. Use
+.B \-\-compress
+for Tree\-sitter compression.
+.TP
+.B context source \fI<target>\fR
+Run
+.B opensrc
+and print the cached source path for a package or repository.
+.RE
+.TP
+.B doctor
+Inspect repository context routes and detected formatter, linter,
+editor, agent, and monorepo tool status. Use
+.B \-\-fix
+to repair generated agent docs, hygiene files, editor settings, and
+tool ignores. Use
+.B \-\-json
+for machine\-readable output.
+.
+.SH GLOBAL OPTIONS
+.TP
+.BR \-h ", " \-\-help
+Show command help.
+.TP
+.B \-\-version
+Print the
+.B ingraft
+version and exit.
+.TP
+.BR \-\-completions " " \fIshell\fR
+Print a shell completion script. Choices:
+.BR bash ", " zsh ", " fish ", " sh .
+.TP
+.BR \-\-log-level " " \fIlevel\fR
+Set the minimum log level. Choices:
+.BR all ", " trace ", " debug ", " info ", " warn ", "
+.BR error ", " fatal ", " none .
+.
+.SH ADD OPTIONS
+The following options apply to
+.B ingraft add
+and (where noted) similar commands.
+.TP
+.BR \-r ", " \-\-ref " " \fIref\fR
+Branch, tag, or commit to vendor. Defaults to the upstream's default
+branch.
+.TP
+.B \-\-tag \fIvX.Y.Z\fR
+Git tag to vendor.
+.TP
+.B \-\-release \fItag|latest\fR
+Host release to vendor. Use a GitHub/GitLab release tag or the literal
+.B latest
+for the most recent release.
+.TP
+.B \-\-sync-package \fIname\fR
+Resolve the vendored ref from the root
+.I package.json
+dependency version and persist the sync intent for future
+.B ingraft update
+runs.
+.TP
+.B \-\-cloudflare-artifact
+Import the source repository into Cloudflare Artifacts and clone the
+short\-lived Artifacts remote locally. Implies
+.BR clone-ignore .
+.TP
+.B \-\-cloudflare-artifact-depth \fIN\fR
+Optional import depth for the Cloudflare Artifacts REST import API.
+.TP
+.B \-\-cloudflare-artifact-name \fIname\fR
+Cloudflare Artifacts repository name. Defaults to the durable source
+route name.
+.TP
+.B \-\-exclude \fIglob\fR
+Repo\-relative glob to omit. Repeatable. Example:
+.B \-\-exclude '*.png'
+.TP
+.B \-\-exclude-dir \fIdir\fR
+Repo\-relative directory to omit. Repeatable.
+.TP
+.B \-\-exclude-ext \fIext\fR
+File extension to omit. Repeatable.
+.TP
+.B \-\-include \fIglob\fR
+Repo\-relative glob to keep. Repeatable. When set, only matching paths
+are vendored (allow\-list).
+.TP
+.B \-\-include-dir \fIdir\fR
+Repo\-relative directory to keep. Repeatable. When set, only matching
+subtrees are vendored.
+.TP
+.B \-\-max-file-size \fIsize\fR
+Omit files larger than this size, for example
+.BR 1MB " or " 512KB .
+.TP
+.BR \-p ", " \-\-prefix " " \fIpath\fR
+Vendor prefix path. Defaults to
+.IR vendor/<name> .
+.TP
+.BR \-n ", " \-\-name " " \fIname\fR
+Override the inferred name (used for the prefix path and lookups).
+.TP
+.B \-\-strategy \fIstrategy\fR
+Vendoring strategy. See
+.BR STRATEGIES .
+.TP
+.BR \-\-local-only ", " \-\-no-commit
+Vendor entirely outside tracked git state. Writes the ignore block to
+.IR .git/info/exclude ,
+persists metadata in
+.IR .git/ingraft/state.json ,
+and skips host repository commits. Valid only with
+.B clone-ignore
+or
+.BR cache-link .
+.
+.SH STRATEGIES
+.TP
+.B subtree
+Default. Source is imported via
+.BR git-subtree (1)
+and committed into the host repository. Use when upstream code is
+small enough to become a portable, reviewable part of the repo's
+context contract.
+.TP
+.B submodule
+Source is registered as a git submodule (a gitlink). Use when source
+needs its own git identity, especially for large upstreams or
+fork\-backed vendor patches.
+.TP
+.B clone-ignore
+Source is cloned into the working tree but ignored by git. Use when
+agents need files on disk but git history should stay lean.
+.TP
+.B cache-link
+Source is checked out into a shared host\-wide cache directory and
+the working tree gets a symlink. Use when many repositories share an
+upstream and you want a single on\-disk copy. Cache root defaults to
+.IR $XDG_CACHE_HOME/ingraft
+.RI ( ~/.cache/ingraft
+when
+.B $XDG_CACHE_HOME
+is unset) or
+.BR $INGRAFT_CACHE_DIR .
+.
+.SH FILES
+.TP
+.I vendor/
+Default root for vendored source.
+.TP
+.I .ingraft/config.toml
+Project\-level configuration: default strategy, filters, route
+overrides.
+.TP
+.I .git/info/exclude
+Per\-clone ignore block written by
+.BR \-\-local-only .
+Never tracked, never pushed.
+.TP
+.I .git/ingraft/state.json
+Per\-clone metadata for
+.B \-\-local-only
+vendors. Never tracked.
+.TP
+.I AGENTS.md
+Agent documentation block bootstrapped by
+.B ingraft init
+and refreshed by
+.BR "ingraft refresh" .
+.
+.SH ENVIRONMENT
+.TP
+.B INGRAFT_CACHE_DIR
+Override the directory used by the
+.B cache-link
+strategy. Takes precedence over
+.BR XDG_CACHE_HOME .
+.TP
+.B XDG_CACHE_HOME
+Standard XDG cache root. Used to derive
+.IR $XDG_CACHE_HOME/ingraft
+when
+.B INGRAFT_CACHE_DIR
+is unset.
+.TP
+.BR GITHUB_TOKEN ", " GH_TOKEN
+Authenticate against the GitHub API for higher rate limits and access
+to private repositories. Read by the underlying
+.BR gh (1)
+and git tooling.
+.TP
+.BR CLOUDFLARE_API_TOKEN ", " CLOUDFLARE_ACCOUNT_ID ", " ARTIFACTS_BASE_URL ", " ARTIFACTS_NAMESPACE
+Credentials and routing for the Cloudflare Artifacts import path
+.RB ( \-\-cloudflare-artifact ).
+.TP
+.BR NO_COLOR ", " FORCE_COLOR ", " TERM
+Standard color and terminal controls honored by the output layer.
+.
+.SH GIT CONFIGURATION
+.TP
+.B ingraft.forkMode
+.RB ( personal " | " upstream )
+When the host repository is a GitHub fork and
+.B ingraft.forkMode
+is
+.BR personal ,
+.B ingraft add
+defaults to
+.B \-\-local-only
+so vendored source never leaks to the upstream on push. Set via
+.B "ingraft init"
+or
+.BR "git config ingraft.forkMode personal" .
+.B ingraft doctor
+flags forks in personal mode that still hold tracked vendor commits.
+.
+.SH EXAMPLES
+Open the dashboard in the current project:
+.PP
+.RS
+.EX
+$ ingraft
+.EE
+.RE
+.PP
+Add upstream source as a subtree:
+.PP
+.RS
+.EX
+$ ingraft add Effect-TS/effect
+.EE
+.RE
+.PP
+Vendor Effect under an allow\-list using the cache\-link strategy and
+skip host commits:
+.PP
+.RS
+.EX
+$ ingraft add Effect-TS/effect \\
+    \-\-strategy cache-link \\
+    \-\-include-dir packages/effect/src \\
+    \-\-include 'src/**/*.ts' \\
+    \-\-exclude '*.snap' \\
+    \-\-local-only
+.EE
+.RE
+.PP
+Vendor multiple repositories and packages in one invocation:
+.PP
+.RS
+.EX
+$ ingraft zod hex:jason swift:apple/swift-argument-parser \\
+    Effect-TS/effect
+.EE
+.RE
+.PP
+Scan dependencies and vendor every match without prompting:
+.PP
+.RS
+.EX
+$ ingraft deps \-\-yes
+.EE
+.RE
+.PP
+Inspect routes and detected tools:
+.PP
+.RS
+.EX
+$ ingraft doctor
+$ ingraft list \-\-versions \-\-json
+.EE
+.RE
+.PP
+Create an editable fork checkout for upstream patching while keeping
+.I vendor/
+read\-only:
+.PP
+.RS
+.EX
+$ ingraft fork Effect-TS/effect
+.EE
+.RE
+.PP
+Pack a narrow Repomix snapshot of one vendored tree:
+.PP
+.RS
+.EX
+$ ingraft context pack vendor/effect \-\-compress
+.EE
+.RE
+.PP
+Install shell completion (zsh shown):
+.PP
+.RS
+.EX
+$ ingraft \-\-completions zsh > ~/.zsh/completions/_ingraft
+.EE
+.RE
+.
+.SH EXIT STATUS
+.TP
+.B 0
+Success.
+.TP
+.B 1
+Generic error (unhandled failure).
+.TP
+.B 2
+User\-visible operational failure (invalid arguments, dirty working
+tree, missing dependency, git/subtree failure, history rewrite error,
+config parse error). The CLI prints a structured error view.
+.
+.SH SEE ALSO
+.BR git (1),
+.BR git-subtree (1),
+.BR git-submodule (1),
+.BR git-filter-repo (1),
+.BR repomix (1),
+.BR gh (1),
+.BR bunx (1),
+.BR npx (1).
+.PP
+Documentation, strategy guides, and the full CLI reference are at
+.B https://ingraft.dev .
+.
+.SH AUTHORS
+Written by Gunther Brunner and contributors.
+.
+.SH BUGS
+Report issues at
+.B https://github.com/gunta/ingraft/issues .
+.
+.SH LICENSE
+MIT. See the LICENSE file in the source distribution.

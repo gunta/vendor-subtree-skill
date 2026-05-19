@@ -9,6 +9,7 @@ import { renderInkOnce } from "./app/ink/render.tsx"
 import { LiveLayer } from "./app/layers.ts"
 import { withCommandTelemetry } from "./app/log.tsx"
 import { RuntimeConfig } from "./app/runtime.ts"
+import { notifyIfCliOutdated } from "./app/update-notifier.ts"
 import { addOrgCmd } from "./commands/add-org.tsx"
 import { addCmd, addManyImpl } from "./commands/add.tsx"
 import { contextCmd } from "./commands/context.tsx"
@@ -157,6 +158,7 @@ export const main = app.pipe(
 )
 
 export const runMain = () => {
+  notifyIfCliOutdated()
   if (shouldShowRootHelp(process.argv)) {
     printRootHelp()
     return

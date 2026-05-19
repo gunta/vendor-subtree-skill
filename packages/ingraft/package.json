@@ -20,11 +20,13 @@
     "url": "git+https://github.com/gunta/ingraft.git",
     "directory": "packages/ingraft"
   },
+  "man": "./man/ingraft.1",
   "bin": {
     "ingraft": "bin/ingraft.js"
   },
   "files": [
     "bin",
+    "man",
     "README.md",
     "LICENSE"
   ],

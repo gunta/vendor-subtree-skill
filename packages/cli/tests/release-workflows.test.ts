@@ -105,8 +105,10 @@ const createReleaseFixture = async (version: string): Promise<string> => {
     mkdir(join(fixture, ".github/workflows"), { recursive: true }),
     mkdir(join(fixture, "Formula"), { recursive: true }),
     mkdir(join(fixture, "packages/cli"), { recursive: true }),
+    mkdir(join(fixture, "packages/cli/man"), { recursive: true }),
     mkdir(join(fixture, "packages/cli/src/domain"), { recursive: true }),
     mkdir(join(fixture, "packages/ingraft"), { recursive: true }),
+    mkdir(join(fixture, "packages/ingraft/man"), { recursive: true }),
     mkdir(join(fixture, "packages/skill"), { recursive: true }),
     mkdir(join(fixture, "scripts"), { recursive: true })
   ])
@@ -123,6 +125,8 @@ const createReleaseFixture = async (version: string): Promise<string> => {
     version
   })
   await writeJson(join(fixture, "packages/cli/package.json"), {
+    files: ["dist", "man", "README.md", "LICENSE"],
+    man: "./man/ingraft.1",
     name: "@ingraft/cli",
     version
   })
@@ -134,6 +138,8 @@ const createReleaseFixture = async (version: string): Promise<string> => {
     dependencies: {
       "@ingraft/cli": version
     },
+    files: ["bin", "man", "README.md", "LICENSE"],
+    man: "./man/ingraft.1",
     name: "ingraft",
     version
   })
@@ -153,7 +159,19 @@ const createReleaseFixture = async (version: string): Promise<string> => {
   })
   await Bun.write(
     join(fixture, "Formula/ingraft.rb"),
-    `class Ingraft < Formula\n  url "https://registry.npmjs.org/@ingraft/cli/-/cli-${version}.tgz"\n  sha256 "${"a".repeat(64)}"\nend\n`
+    `class Ingraft < Formula\n  url "https://registry.npmjs.org/@ingraft/cli/-/cli-${version}.tgz"\n  sha256 "${"a".repeat(64)}"\n\n  def install\n    system "npm", "install", *std_npm_args\n    bin.install_symlink libexec.glob("bin/*")\n    man1.install libexec/"lib/node_modules/@ingraft/cli/man/ingraft.1"\n  end\nend\n`
+  )
+  const manPage = [
+    '." Manpage for ingraft.',
+    `.TH INGRAFT 1 "2026-05-19" "ingraft ${version}" "ingraft Manual"`,
+    ".SH NAME",
+    "ingraft \\- repository context router for coding agents",
+    ""
+  ].join("\n")
+  await Promise.all(
+    ["packages/cli/man/ingraft.1", "packages/ingraft/man/ingraft.1"].map((path) =>
+      Bun.write(join(fixture, path), manPage)
+    )
   )
   await Bun.write(
     join(fixture, ".github/workflows/release-packages.yml"),
@@ -376,6 +394,8 @@ describe("release automation workflows", () => {
       const formula = await Bun.file(join(fixture, "Formula/ingraft.rb")).text()
       const changelog = await Bun.file(join(fixture, "CHANGELOG.md")).text()
       const constants = await Bun.file(join(fixture, "packages/cli/src/domain/constants.ts")).text()
+      const cliManPage = await Bun.file(join(fixture, "packages/cli/man/ingraft.1")).text()
+      const aliasManPage = await Bun.file(join(fixture, "packages/ingraft/man/ingraft.1")).text()
 
       expect(rootPackage.version).toBe("1.2.4")
       expect(cliPackage.version).toBe("1.2.4")
@@ -386,6 +406,8 @@ describe("release automation workflows", () => {
       expect(lock.packages[""].version).toBe("1.2.4")
       expect(formula).toContain("cli-1.2.4.tgz")
       expect(changelog).toContain("## 1.2.4 - 2026-05-20")
+      expect(cliManPage).toBe(aliasManPage)
+      expect(cliManPage).toContain('"2026-05-20" "ingraft 1.2.4"')
       expect(result.stdout).toContain("Prepared ingraft 1.2.4")
     } finally {
       await rm(fixture, { force: true, recursive: true })
@@ -416,9 +438,11 @@ describe("release automation workflows", () => {
       const rootPackage = JSON.parse(await Bun.file(join(fixture, "package.json")).text())
       const formula = await Bun.file(join(fixture, "Formula/ingraft.rb")).text()
       const constants = await Bun.file(join(fixture, "packages/cli/src/domain/constants.ts")).text()
+      const cliManPage = await Bun.file(join(fixture, "packages/cli/man/ingraft.1")).text()
       expect(rootPackage.version).toBe("2.0.0")
       expect(constants).toContain('export const VERSION = "2.0.0"')
       expect(formula).toContain("cli-2.0.0.tgz")
+      expect(cliManPage).toContain('"2026-05-20" "ingraft 2.0.0"')
     } finally {
       await rm(fixture, { force: true, recursive: true })
     }
@@ -510,7 +534,10 @@ describe("release automation workflows", () => {
       expect(text).toContain("https://skills.sh/gunta/ingraft")
     }
 
-    for (const text of [rootReadme, skillReadme, rootSkill]) {
+    expect(rootReadme).toContain("agent skill")
+    expect(rootReadme).toContain("ingraft.dev")
+
+    for (const text of [skillReadme, rootSkill]) {
       expect(text).toContain("npx skills add gunta/ingraft")
     }
   })
@@ -526,7 +553,10 @@ describe("release automation workflows", () => {
     )
     const installer = await workflowText("packages/website/public/install.sh")
 
-    for (const text of [rootReadme, cliReadme, installDocs, landing]) {
+    expect(rootReadme).toContain("npx ingraft")
+    expect(rootReadme).toContain("https://ingraft.dev")
+
+    for (const text of [cliReadme, installDocs]) {
       expect(text).toContain("bunx @ingraft/cli@latest")
       expect(text).toContain("npm install -g @ingraft/cli")
       expect(text).toContain("brew tap oven-sh/bun")
@@ -535,11 +565,16 @@ describe("release automation workflows", () => {
       expect(text).toContain("npx skills add gunta/ingraft")
     }
 
-    for (const text of [rootReadme, cliReadme, installDocs]) {
+    for (const text of [cliReadme, installDocs]) {
       expect(text).toContain("npx ingraft@latest")
       expect(text).toContain("npm install -g ingraft")
     }
 
+    expect(landing).toContain("npx ingraft")
+    expect(landing).toContain("npm install -g ingraft")
+    expect(landing).toContain("brew install ingraft")
+    expect(landing).toContain("nix run github:gunta/ingraft")
+    expect(landing).toContain("npx skills add gunta/ingraft")
     expect(installDocs).toContain("pnpm dlx @ingraft/cli@latest")
     expect(installDocs).toContain("yarn dlx @ingraft/cli@latest")
     expect(installDocs).toContain("curl -fsSL https://ingraft.dev/install.sh | sh")
